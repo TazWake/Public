@@ -131,10 +131,20 @@ After the script has completed, the investigator should analyse the data and det
 6. Invoke the script: `scriptname.sh imagefilename volatilityprofile`
 7. Wait
 8. Analyse the resulting data
-
 ### IR Notes
 This is a tool for collecting data, the output needs to be analysed.
 
+## IP LOOKUPS
+This is a script to gather basic data when an incident responder or CTI analyst is trying to work through a large volume of suspicious addresses. 
+It is based on a script used in Investigate Like Rockstar which is definitely worth reading (ISBN-10: 1549527622 // ISBN-13: 978-1549527623).
+Note: The checks are carried out against WHOIS.
+### How to use
+1. Save the script
+2. Create a list of ips called `ips.txt` - **Make sure there are no blank lines**
+3. Invoke the script
+4. Analyse the resulting CSV
+### IR Notes
+This can be used to narrow down IP addresses of interest. Be aware that CDN use and privacy controls make the data dubious.
 # Python Scripts
 TBC
 
