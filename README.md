@@ -117,7 +117,23 @@ The plugin highlights the following events:
 TBC
 
 # Bash Scripts
-TBC
+## Memory Precook
+This is a script designed to run a standard range of data extraction commands against a memory image. Each command output is saved to a text file and a running log of activity is maintained.
+The objective of this script is to ensure a consistent approach to information capture across a team of multiple investigators with multiple memory images and reduce the need to re-run specific commands.
+After the script has completed, the investigator should analyse the data and determine if additional, targeted, collection is required.
+
+### How to use
+1. Save the script to the same folder as the memory image.
+2. Ensure `vol.py` is in the path - if not modify the script
+3. Ensure `bulk_extractor` is in the path - if not modify the script
+4. Determine the correct volatility profile
+5. Make sure the script is executable (`chmod +x scriptname.sh`)
+6. Invoke the script: `scriptname.sh imagefilename volatilityprofile`
+7. Wait
+8. Analyse the resulting data
+
+### IR Notes
+This is a tool for collecting data, the output needs to be analysed.
 
 # Python Scripts
 TBC
