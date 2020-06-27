@@ -11,7 +11,8 @@ Sections will include:
 - [ ] DFIR Notes
 
 
-# Volatility Plugins
+# Volatility 2.6 Plugins
+*Note: the plugins here have only ever been tested with volatility 2.6*
 ## RAMSCAN
 The first volatility plugin is `ramscan.py`. 
 This plugin lists running processes with PID and Parent PID, Command Line used to invoke the process and a check to see what the VAD settings are. If the VAD is set to Read, Write, Execute it is marked as suspicious.
