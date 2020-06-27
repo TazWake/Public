@@ -1,7 +1,15 @@
 # Public Repository
 Previous repos have become a bit cluttered with a mix of scripts other people might be interested in and ones only I am ever going to use and even then for very specific tasks. As a result I have created this as a home for things other people might be interested in.
 
-This README will act as the parent index with a summary of "how to use" if appropriate
+This README will act as the parent index with a summary of "how to use" if appropriate.
+
+Sections will include:
+- [x] Volatility Plugins
+- [ ] Powershell Scripts
+- [ ] Bash Scripts
+- [ ] Python Scripts
+- [ ] DFIR Notes
+
 
 # Volatility Plugins
 ## RAMSCAN
