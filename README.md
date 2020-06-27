@@ -6,7 +6,7 @@ This README will act as the parent index with a summary of "how to use" if appro
 Sections will include:
 - [x] Volatility Plugins
 - [ ] Powershell Scripts
-- [ ] Bash Scripts
+- [x] Bash Scripts
 - [ ] Python Scripts
 - [ ] DFIR Notes
 
