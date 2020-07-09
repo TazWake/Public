@@ -86,7 +86,8 @@ update_logs mimikatz.txt
 vol.py -f $fn --profile=$profile handles --output-file=handles.txt
 update_logs handles.txt
 vol.py -f $fn --profile=$profile getsids --output-file=AllSIDS.txt
-update_logs AllSIDS.txt
+update_logs svcscan.txt
+vol.py -f $fn --profile=$profile svcscan --output-file=svcscan.txt
 mkdir malfind
 vol.py -f $fn --profile=$profile malfind -D ./malfind/ --output-file=malfind.txt
 update_logs malfind.txt
