@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# use: scriptname.sh imagefilename volatilityprofile
+# ####################################################
+# use: scriptname.sh imagefilename volatilityprofile #
+# ####################################################
 #
 # This script runs a standard battery of memory analysis tools against a sample image to provide a standardised set of artefacts
 # Two arguments are required - the file name of the memory image and the volatility profile to be used
