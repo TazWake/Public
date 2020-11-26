@@ -94,6 +94,9 @@ update_logs svcscan.txt
 mkdir malfind
 vol.py -f $fn --profile=$profile malfind -D ./malfind/ --output-file=malfind.txt
 update_logs malfind.txt
+echo "*** AV Scan on Malfind Output ***"
+clamscan * ./malfind/* > clamscan_malfind.txt
+update_logs clamscan_malfind.txt
 mkdir MFT
 vol.py -f $fn --profile=$profile mftparser -D ./MFT/ --output-file=mft.txt
 update_logs mft.txt
@@ -109,6 +112,7 @@ if [ -f "netscan.txt"]; then
     echo "*** network data carved ***"
 else
     echo "*** Network data not found ***"
+fi
 echo ""
 echo "*** attempting hashdump ***"
 # This will attempt to locate the SYSTEM and SAM hives and use them to dump hashes from the memory image.
