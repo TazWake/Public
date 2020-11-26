@@ -102,7 +102,7 @@ vol.py -f $fn --profile=$profile mftparser -D ./MFT/ --output-file=mft.txt
 update_logs mft.txt
 echo "*** carving network data ***"
 # This is to create two easier to read text files showing established and listening connections
-if [ -f "netscan.txt"]; then
+if [ -f "netscan.txt" ]; then
     head -n1 netscan.txt > established.txt
     grep ESTABLISHED netscan.txt >> established.txt
     update_logs established.txt
