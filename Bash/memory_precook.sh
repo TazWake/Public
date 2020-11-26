@@ -39,7 +39,7 @@ checksum_copy() {
 		cp checksum.txt $check.txt
 		echo "The md5 of the checksum file is $check"
 		echo "A copy of the checksum file has been created as $check.txt"
-		echo "[ ] A copy of the checksum has been create as $check.txt" >> log.txt
+		echo "[*] A copy of the checksum has been created as $check.txt" >> log.txt
 	else
 	    echo "Unable to locate the checksum file"
 	fi
@@ -88,8 +88,9 @@ update_logs mimikatz.txt
 vol.py -f $fn --profile=$profile handles --output-file=handles.txt
 update_logs handles.txt
 vol.py -f $fn --profile=$profile getsids --output-file=AllSIDS.txt
-update_logs svcscan.txt
+update_logs AllSIDS.txt
 vol.py -f $fn --profile=$profile svcscan --output-file=svcscan.txt
+update_logs svcscan.txt
 mkdir malfind
 vol.py -f $fn --profile=$profile malfind -D ./malfind/ --output-file=malfind.txt
 update_logs malfind.txt
@@ -98,18 +99,21 @@ vol.py -f $fn --profile=$profile mftparser -D ./MFT/ --output-file=mft.txt
 update_logs mft.txt
 echo "*** carving network data ***"
 # This is to create two easier to read text files showing established and listening connections
-head -n1 netscan.txt > established.txt
-grep ESTABLISHED netscan.txt >> established.txt
-update_logs established.txt
-head -n1 netscan.txt > listening.txt
-grep LISTENING netscan.txt >> listening.txt
-update_logs listening.txt
-echo "*** network data carved ***"
+if [ -f "netscan.txt"]; then
+    head -n1 netscan.txt > established.txt
+    grep ESTABLISHED netscan.txt >> established.txt
+    update_logs established.txt
+    head -n1 netscan.txt > listening.txt
+    grep LISTENING netscan.txt >> listening.txt
+    update_logs listening.txt
+    echo "*** network data carved ***"
+else
+    echo "*** Network data not found ***"
 echo ""
 echo "*** attempting hashdump ***"
 # This will attempt to locate the SYSTEM and SAM hives and use them to dump hashes from the memory image.
-syshive=$(grep SYSTEM hives.txt | cut -d" " -f1)
-samhive=$(grep SAM hives.txt | cut -d" " -f1)
+syshive=$(egrep -i "system$" hives.txt | cut -d" " -f1)
+samhive=$(egrep -i "SAM$" hives.txt | cut -d" " -f1)
 vol.py -f $fn --profile=$profile hashdump -y $syshive -s $samhive --output-file=hashdump.txt
 update_logs hashdump.txt
 # Password hashes should be in a crackable format now if required.
@@ -135,6 +139,7 @@ echo "********************"
 echo ""
 checksum_copy
 echo "Automated Data carving completed at $(date)" >> log.txt
+chmod 444 log.txt
 echo "********************"
 echo "Initial Assessment Completed"
 echo "********************" 
