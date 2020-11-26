@@ -95,7 +95,7 @@ mkdir malfind
 vol.py -f $fn --profile=$profile malfind -D ./malfind/ --output-file=malfind.txt
 update_logs malfind.txt
 echo "*** AV Scan on Malfind Output ***"
-clamscan * ./malfind/* > clamscan_malfind.txt
+clamscan ./malfind/* > clamscan_malfind.txt
 update_logs clamscan_malfind.txt
 mkdir MFT
 vol.py -f $fn --profile=$profile mftparser -D ./MFT/ --output-file=mft.txt
