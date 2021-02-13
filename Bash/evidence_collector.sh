@@ -23,7 +23,7 @@ hashfile() {
     file=$1
     if [ -f "$file" ]; then
 	    hash=$(sha1sum $file)
-        echo "[#] SHA1 hash: $hash" >> $LOGFILE
+        echo "[#] SHA1 hash: $hash \n" >> $LOGFILE
     else
 	    echo "[!] There is a problem with logging the hash - exiting!"
         exit 255;
