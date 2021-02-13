@@ -12,9 +12,9 @@
 #
 # Primary consideration: https://tools.ietf.org/html/rfc3227
 
-PATH=$1
+EVIDENCEPATH=$1
 TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 6)
-TEMPFILE=$PATH/$TEMPNAME
+TEMPFILE=$EVIDENCEPATH/$TEMPNAME
 
 # validate storage path
 touch $TEMPFILE
@@ -29,30 +29,33 @@ fi
 
 # Set up logging
 dtg=$(date | cut -d" " -f4,5)
-LOGFILE=$PATH/datacollection_$dtg.txt
+LOGFILE=$EVIDENCEPATH/datacollection_$dtg.txt
 echo "***********************" > $LOGFILE
 echo "* Evidence Collection *" >> $LOGFILE
 echo "***********************" >> $LOGFILE
 echo "Collection Started at: $dtg" >> $LOGFILE
-echo "Storage location: $PATH" >> $LOGFILE
+echo "Storage location: $EVIDENCEPATH" >> $LOGFILE
 
 # Grap network data - arp cache, routing cache.
-arp -a > $PATH/arp_export.txt
+echo "[ ] Collecting ARP"
+arp -a > $EVIDENCEPATH/arp_export.txt
 dtg=$(date | cut -d" " -f4,5)
-echo "[ ] ARP cache exported to $PATH/arp_export.txt at $dtg." >> $LOGFILE
-hash=$(sha1sum $PATH/arp_export.txt)
+echo "[ ] ARP cache exported to $EVIDENCEPATH/arp_export.txt at $dtg." >> $LOGFILE
+hash=$(sha1sum $EVIDENCEPATH/arp_export.txt)
 echo "[ ] SHA1 hash: $hash" >> $LOGFILE
 
-route -n > $PATH/route_table.txt
+echo "[ ] Collecting route data"
+route -n > $EVIDENCEPATH/route_table.txt
 dtg=$(date | cut -d" " -f4,5)
-echo "[ ] Route table exported to $PATH/route_table.txt at $dtg." >> $LOGFILE
-hash=$(sha1sum $PATH/route_table.txt)
+echo "[ ] Route table exported to $EVIDENCEPATH/route_table.txt at $dtg." >> $LOGFILE
+hash=$(sha1sum $EVIDENCEPATH/route_table.txt)
 echo "[ ] SHA1 hash: $hash" >> $LOGFILE
 
-netstat -ano > $PATH/netstat.txt
+echo "[ ] Collecting netstat"
+netstat -ano > $EVIDENCEPATH/netstat.txt
 dtg=$(date | cut -d" " -f4,5)
-echo "[ ] Route table exported to $PATH/netstat.txt at $dtg." >> $LOGFILE
-hash=$(sha1sum $PATH/netstat.txt)
+echo "[ ] Route table exported to $EVIDENCEPATH/netstat.txt at $dtg." >> $LOGFILE
+hash=$(sha1sum $EVIDENCEPATH/netstat.txt)
 echo "[ ] SHA1 hash: $hash" >> $LOGFILE
 
 # Grab memory
@@ -67,11 +70,11 @@ echo "[ ] SHA1 hash: $hash" >> $LOGFILE
 dtg=$(date | cut -d" " -f4,5)
 echo "Data collection complete at $dtg" >> $LOGFILE
 echo "***********************" >> $LOGFILE
-echo "* EXTRACTION COMPLETE *" >> $LOGILE
+echo "* EXTRACTION COMPLETE *" >> $LOGFILE
 echo "***********************" >> $LOGFILE
 sha1=$(sha1sum $LOGFILE)
-echo "Logfile hash: $sha1" >> $PATH/logfile_hash.txt
+echo "Logfile hash: $sha1" >> $EVIDENCEPATH/logfile_hash.txt
 echo "[+] Evidence extraction complete."
 echo "[+] Logfile is stored at $LOGFILE"
 echo "[+] SHA1 hash of the logfile is $sha1"
-echo "[+] A copy of the hash is stored at $PATH/logfile_hash.txt"
+echo "[+] A copy of the hash is stored at $EVIDENCEPATH/logfile_hash.txt"
