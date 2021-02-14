@@ -216,7 +216,7 @@ else
     echo "[ ] Writing to $IMAGEFILENAME.E01"
     echo "[ ] Using ewfacquire for image capture." >> $LOGFILE
     echo "[ ] Writing disk image to $IMAGEFILENAME.E01 at $dtg" >> $LOGFILE
-    ewfacquire -t $IMAGEFILENAME $DISK -f ewf -D "Automatic Evidence Capture at $dtg." -c best -S 2G -o 0 -b 64 -l $EVIDENCEPATH/ewflog.txt
+    ewfacquire -t $IMAGEFILENAME $DISK -f ewf -D "Automatic Evidence Capture at $dtg." -c best -o 0 -b 64 -l $EVIDENCEPATH/ewflog.txt
     dtg=$(date | cut -d" " -f4,5)
     echo "[+] E01 disk image created at $dtg" >> $LOGFILE
     echo "[ ] Image creation completed, hashing using MD5"
