@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Evidence collection script for Linux hosts
+# Evidence collection script for Linux hosts. 
+# NOTE: MD5 is used to hash disk images to save time.
 #
 # Requirements.
 #     ewfaquire - if this isn't on the system dd can be used.
@@ -23,7 +24,8 @@ hashfile() {
     file=$1
     if [ -f "$file" ]; then
 	    hash=$(sha1sum $file)
-        echo "[#] SHA1 hash: $hash \n" >> $LOGFILE
+        echo "[#] SHA1 hash: $hash" >> $LOGFILE
+	echo " " >> $LOGFILE
     else
 	    echo "[!] There is a problem with logging the hash - exiting!"
         exit 255;
@@ -110,12 +112,16 @@ then
     echo "[ ] Image collection complete, hashing"
     diskhash=$(md5sum $IMAGEFILENAME)
     echo $diskhash > $EVIDENCEPATH/diskimage_md5hash.txt
-    echo "[#] Disk image MD5 hash: $(echo $diskhash | cut -d' ' -f1) \n" >> $LOGFILE
-    echo "[+] Image MD% hash: $(echo $diskhash | cut -d' ' -f1)\n[ ] Compressing disk image."
+    dtg=$(date | cut -d" " -f4,5)
+    echo "[#] Disk image MD5 hash: $(echo $diskhash | cut -d' ' -f1) $dtg" >> $LOGFILE
+    echo "[+] Image MD% hash: $(echo $diskhash | cut -d' ' -f1)"
+    echo "[ ] Compressing disk image."
     tar -cvzf $EVIDENCEPATH/disk_image.tar.gz $IMAGEFILENAME $EVIDENCEPATH/sha1hash.txt
-    comphash=$(sha1sum $EVIDENCEPATH/disk_image.tar.gz)
-    echo "[+] Compression completed. Hash: $(echo comphash | cut -d' ' -f1)"
-    echo "[+] Compressed tar file created." >> $LOGFILE
+    echo "[ ] Compression completed, hashing with MD5."
+    comphash=$(md5sum $EVIDENCEPATH/disk_image.tar.gz)
+    echo "[+] MD5 Hash completed. Hash: $(echo comphash | cut -d' ' -f1)"
+    dtg=$(date | cut -d" " -f4,5)
+    echo "[+] Compressed tar file created at $dtg." >> $LOGFILE
     echo "[ ] Reference details: $comphash" >> $LOGFILE
     rm $IMAGEFILENAME
     echo "[ ] Original disk image deleted from file system"
@@ -127,11 +133,13 @@ else
     echo "[ ] Writing to $IMAGEFILENAME.E01"
     echo "[ ] Using ewfacquire for image capture." >> $LOGFILE
     echo "[ ] Writing disk image to $IMAGEFILENAME.E01 at $dtg" >> $LOGFILE
-    ewfacquire -t $IMAGEFILENAME $DISK -f ewf -D "Automatic Evidence Capture" -c best -S 4G
+    ewfacquire -t $IMAGEFILENAME $DISK -f ewf -D "Automatic Evidence Capture at $dtg." -c best -S 4G
     dtg=$(date | cut -d" " -f4,5)
     echo "[+] E01 disk image created at $dtg" >> $LOGFILE
-    echo "[ ] Image creation completed, hashing"
-    hashfile $IMAGEFILENAME.E01
+    echo "[ ] Image creation completed, hashing using MD5"
+    hash=$(md5sum $IMAGEFILENAME.E01)
+    echo "[#] MD5 hash: $hash" >> $LOGFILE
+    echo " " >> $LOGFILE
     echo "[*] Hashing Complete."
     ewfinfo $IMAGEFILENAME.E01 > $EVIDENCEPATH/ewfinfo.txt
 fi
@@ -143,7 +151,7 @@ echo "***********************" >> $LOGFILE
 echo "* EXTRACTION COMPLETE *" >> $LOGFILE
 echo "***********************" >> $LOGFILE
 sha1=$(sha1sum $LOGFILE)
-echo "Logfile hash:\n $sha1" > $EVIDENCEPATH/logfile_hash.txt
+echo "Logfile hash: \n $sha1" > $EVIDENCEPATH/logfile_hash.txt
 echo "[+] Evidence extraction complete."
 echo "[+] Logfile is stored at $LOGFILE"
 echo "[+] SHA1 hash of the logfile is $(echo $sha1 | cut -d' ' -f1)"
