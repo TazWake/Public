@@ -16,7 +16,7 @@
 # Primary consideration: https://tools.ietf.org/html/rfc3227
 
 EVIDENCEPATH=$1
-TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 6)
+TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8)
 TEMPFILE=$EVIDENCEPATH/$TEMPNAME
 
 hashfile() {
@@ -94,33 +94,46 @@ chmod 444 $EVIDENCEPATH/running_processes.txt
 
 # Get disk image
 DISK=$(df | grep "/$" | cut -d' ' -f 1)
-IMAGEFILENAME=$(hostname)_disk_image.raw
 
 if ! command -v ewfacquire &> /dev/null
 then
     dtg=$(date | cut -d" " -f4,5)
+    IMAGEFILENAME=$EVIDENCEPATH/$(hostname)_disk_image.raw
     echo "[!] ewfaquire not found. Using dd instead. Disk image will be larger, tar will be used to compress."
     echo "[!] THIS MIGHT TAKE SOME TIME!"
     echo "[ ] Using DD for image capture." >> $LOGFILE
-    echo "[ ] Writing to $EVIDENCEPATH/$IMAGEFILENAME"
-    echo "[ ] Writing disk image to $EVIDENCEPATH/$IMAGEFILENAME at $dtg" >> $LOGFILE
-    dd if=$DISK of=$EVIDENCEPATH/$IMAGEFILENAME bs=64K conv=noerror,sync
+    echo "[ ] Writing to $IMAGEFILENAME"
+    echo "[ ] Writing disk image to $IMAGEFILENAME at $dtg" >> $LOGFILE
+    dd if=$DISK of=$IMAGEFILENAME bs=64K conv=noerror,sync
     dtg=$(date | cut -d" " -f4,5)
     echo "[+] Disk copy completed at $dtg." >> $LOGFILE
     echo "[ ] Image collection complete, hashing"
-    diskhash=$(sha1sum $EVIDENCEPATH/$IMAGEFILENAME)
-    echo $diskhash > $EVIDENCEPATH/sha1hash.txt
-    echo "[ ] Disk hash: $(echo $diskhash | cut -d' ' -f1)" >> $LOGFILE
-    echo "[+] Image hash: $(echo $diskhash | cut -d' ' -f1)\n[ ] Compressing disk image."
-    tar -cvzf $EVIDENCEPATH/disk_image.tar.gz $EVIDENCEPATH/$IMAGEFILENAME $EVIDENCEPATH/sha1hash.txt
+    diskhash=$(md5sum $IMAGEFILENAME)
+    echo $diskhash > $EVIDENCEPATH/diskimage_md5hash.txt
+    echo "[#] Disk image MD5 hash: $(echo $diskhash | cut -d' ' -f1) \n" >> $LOGFILE
+    echo "[+] Image MD% hash: $(echo $diskhash | cut -d' ' -f1)\n[ ] Compressing disk image."
+    tar -cvzf $EVIDENCEPATH/disk_image.tar.gz $IMAGEFILENAME $EVIDENCEPATH/sha1hash.txt
     comphash=$(sha1sum $EVIDENCEPATH/disk_image.tar.gz)
     echo "[+] Compression completed. Hash: $(echo comphash | cut -d' ' -f1)"
     echo "[+] Compressed tar file created." >> $LOGFILE
     echo "[ ] Reference details: $comphash" >> $LOGFILE
-    rm $EVIDENCEPATH/$IMAGEFILENAME
+    rm $IMAGEFILENAME
     echo "[ ] Original disk image deleted from file system"
 else
+    IMAGEFILENAME=$EVIDENCEPATH/$(hostname)_disk_image
+    dtg=$(date | cut -d" " -f4,5)
     echo "[!] ewfaquire found. Will create E01 image."
+    echo "[!] THIS MIGHT TAKE SOME TIME!"
+    echo "[ ] Writing to $IMAGEFILENAME.E01"
+    echo "[ ] Using ewfacquire for image capture." >> $LOGFILE
+    echo "[ ] Writing disk image to $IMAGEFILENAME.E01 at $dtg" >> $LOGFILE
+    ewfacquire -t $IMAGEFILENAME $DISK -f ewf -D "Automatic Evidence Capture" -c best -S 4G
+    dtg=$(date | cut -d" " -f4,5)
+    echo "[+] E01 disk image created at $dtg" >> $LOGFILE
+    echo "[ ] Image creation completed, hashing"
+    hashfile $IMAGEFILENAME.E01
+    echo "[*] Hashing Complete."
+    ewfinfo $IMAGEFILENAME.E01 > $EVIDENCEPATH/ewfinfo.txt
 fi
 
 # Close down
