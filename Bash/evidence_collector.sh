@@ -58,6 +58,48 @@ echo "***********************" >> $LOGFILE
 echo "Collection Started at: $dtg" >> $LOGFILE
 echo "Storage location: $EVIDENCEPATH" >> $LOGFILE
 
+################ CAPTURE VOLATILE DATA ##################################
+
+# Copy proc files
+# This is commented out as it can take hours.
+#dtg=$(date | cut -d" " -f4,5)
+#mkdir $EVIDENCEPATH/procs
+#echo "[ ] Copying /proc to the storage media. This may take some time."
+#echo "[~] Created folder at $EVIDENCEPATH/procs" >> $LOGFILE
+#echo "[~] Copying /proc data at $dtg." 
+#echo "[~] Errors will be suppressed and copy may be incomplete." >> $LOGFILE
+#cp -R /proc/ $EVIDENCEPATH/procs 2>/dev/null
+#dtg=$(date | cut -d" " -f4,5)
+#echo "[~] Collection completed at $dtg." >> $LOGFILE
+#echo "[ ] Copy complete."
+
+# Capture bash history
+dtg=$(date | cut -d" " -f4,5)
+echo "[ ] Collecting bash history at $dtg" >> $LOGFILE
+echo "[ ] Collecting bash history."
+mkdir $EVIDENCEPATH/history # create storage locations
+cp /root/.bash_history $EVIDENCEPATH/history/root_bash_history.txt # get root history
+USRNAMES=$(getent passwd | grep sh | grep -v nologin | grep -v root | grep -v lib | cut -d':' -f 6 | cut -d'/' -f3 | sort | uniq | sed '/^$/d')
+for i in $USRNAMES
+do 
+    mkdir $EVIDENCEPATH/history/$i # create user folders
+    cp /home/$i/.bash_history $EVIDENCEPATH/history/$i/bash_history.txt # grab bash history
+done
+dtg=$(date | cut -d" " -f4,5)
+echo "[+] Collection complete at $dtg." >> $LOGFILE
+echo "[+] Bash history collection complete."
+
+# Capture running processes
+dtg=$(date | cut -d" " -f4,5)
+echo "[ ] Capturing process table at $dtg" >> $LOGFILE
+echo "[ ] Capturing process table."
+ps -aux > $EVIDENCEPATH/running_processes.txt
+dtg=$(date | cut -d" " -f4,5)
+echo "[+] Process table exported to $EVIDENCEPATH/running_processes.txt at $dtg" >> $LOGFILE
+hashfile $EVIDENCEPATH/running_processes.txt
+echo "[+] Process table exported"
+chmod 444 $EVIDENCEPATH/running_processes.txt
+
 # Grab network data - arp cache, routing cache.
 echo "[ ] Collecting ARP"
 arp -a > $EVIDENCEPATH/arp_export.txt
@@ -79,17 +121,6 @@ chmod 444 $EVIDENCEPATH/netstat.txt
 dtg=$(date | cut -d" " -f4,5)
 echo "[ ] Route table exported to $EVIDENCEPATH/netstat.txt at $dtg." >> $LOGFILE
 hashfile $EVIDENCEPATH/netstat.txt
-
-# Capture running processes
-dtg=$(date | cut -d" " -f4,5)
-echo "[ ] Capturing process table at $dtg" >> $LOGFILE
-echo "[ ] Capturing process table."
-ps -aux > $EVIDENCEPATH/running_processes.txt
-dtg=$(date | cut -d" " -f4,5)
-echo "[+] Process table exported to $EVIDENCEPATH/running_processes.txt at $dtg" >> $LOGFILE
-hashfile $EVIDENCEPATH/running_processes.txt
-echo "[+] Process table exported"
-chmod 444 $EVIDENCEPATH/running_processes.txt
 
 # Grab memory
 # TBD
@@ -115,7 +146,7 @@ then
     dtg=$(date | cut -d" " -f4,5)
     echo "[#] Disk image MD5 hash: $(echo $diskhash | cut -d' ' -f1) $dtg" >> $LOGFILE
     echo "[+] Image MD% hash: $(echo $diskhash | cut -d' ' -f1)"
-    echo "[ ] Compressing disk image."
+    echo "[ ] Compressing disk image. This will take a LONG time."
     tar -cvzf $EVIDENCEPATH/disk_image.tar.gz $IMAGEFILENAME $EVIDENCEPATH/sha1hash.txt
     echo "[ ] Compression completed, hashing with MD5."
     comphash=$(md5sum $EVIDENCEPATH/disk_image.tar.gz)
