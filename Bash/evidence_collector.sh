@@ -4,16 +4,20 @@
 # NOTE: MD5 is used to hash disk images to save time.
 #
 # Requirements.
-#     ewfaquire - if this isn't on the system dd can be used.
+#     LiME to capture memory. If this is missing, the memory capture will fail.
+#         It is assumed this will be a src build saved as a zip file with LiME in the name.
+#         in the same folder as the script. If this is not correct, modify the memory section.
+#     dwarfdump. If this is not installed a version should be provided in the same folder as this script.
+#         If you are running a packaged copy of dwarfdump, it should be named "dwarfump-CPU" where CPU is
+#         either x86_64 or i686 etc. It should match the output of uname -m.
+#     ewfaquire - if this isn't on the system dd can be used but this is a lot slower.
 #
-# Useage:
+# Use:
+# This runs best when stored on a USB with a copy of LiME.
+#
 # This script needs to be run with root privs. 
 # Run script to copy memory and disk image to external storage media.
-# ./evidence_collector.sh /path/to/storage/device
 # sudo ./evidence_collector.sh /path/to/storage/device
-# 
-# eg: ./evidence_collector.sh /mnt/usb/evidencefolder
-#
 # Primary consideration: https://tools.ietf.org/html/rfc3227
 
 EVIDENCEPATH=$1
@@ -31,6 +35,30 @@ hashfile() {
         exit 255;
 	fi
 }
+
+dwarfdumper() {
+SAVEFILE=$1
+if ! command -v dwarfdump & > /dev/null
+then
+    echo "[!] Dwarfdump is not installed. Checking for local version."
+    # Check for local version.
+    echo "[!] Searching for dwarfdump_$CPU"
+    # dwarfdump=$(find . -name dwarfdump_$CPU 2>/dev/null | head -n1)
+    dwarfump=./dwarfdump_$CPU
+    if test -f "$dwarfdump"; then
+        echo "[!] Dwarfdump found. Using version at $dwarfdump."
+	echo "[!] Using version of dwarfdump provided at $dwarfdump." >> $LOGFILE
+	
+    else
+        echo "[!] Unable to locate $dwarfdump. If this file exists make sure it is in the same path as this script."
+	echo "[!] Unable to locate Dwarfdump. It is not possible to build a profile automatically." >> $LOGFILE
+    fi
+else
+    echo "[ ] Dwarfdump installed."
+    
+fi
+}
+
 # Check Requirements
 if [[ $EUID != 0 ]]; then
     echo "[!] This script must be run with root privileges!"
@@ -86,7 +114,7 @@ do
     cp /home/$i/.bash_history $EVIDENCEPATH/history/$i/bash_history.txt # grab bash history
 done
 dtg=$(date | cut -d" " -f4,5)
-echo "[+] Collection complete at $dtg." >> $LOGFILE
+echo "[+] Bash history collection complete at $dtg." >> $LOGFILE
 echo " " >> $LOGFILE
 echo "[+] Bash history collection complete."
 
@@ -124,7 +152,30 @@ echo "[ ] Route table exported to $EVIDENCEPATH/netstat.txt at $dtg." >> $LOGFIL
 hashfile $EVIDENCEPATH/netstat.txt
 
 # Grab memory
-# TBD
+# This is complex and expects a zipped version of LiME in the folder where the script is running.
+# ##################################
+# # NOTE THIS IS UNDER DEVELOPMENT #
+# ##################################
+# Until this is complete, use LMG: https://github.com/halpomeranz/lmg
+
+#echo "[ ] Starting memory collection."
+# #### Get environment
+#KERNELVER=$(uname -r) # e.g., "3.2.0-41-generic"
+#CPU=$(uname -m) # typically "x86_64" or "i686"
+#HOST=$(hostname)
+#TIMESTAMP=$(date '+%F_%H.%M.%S') # YYYY-MM-DD_hh.mm.ss
+# ##### Update logs
+#echo "[~] Collecting memory. Collection started at $(date '+%H:%M:%S %Z')" >> $LOGFILE
+#echo "[ ] Environment settings:" >> $LOGFILE
+#echo "        Kernel Version: $KERNELVER" >> $LOGFILE
+#echo "        CPU Architecture: $CPU" >> $LOGFILE
+#echo "        Hostname: $HOST" >> $LOGFILE
+#echo " " >> $LOGFILE
+#dwarfdumper $EVIDENCEPATH/$TIMESTAMP_memory
+
+#echo "[+] Memory collection complete."
+#echo "[+] Memory collection attempt terminated at $(date '+%H:%M:%S %Z')." >> $LOGFILE
+#echo " " >> $LOGFILE
 
 # Get disk image
 DISK=$(df | grep "/$" | cut -d' ' -f 1)
