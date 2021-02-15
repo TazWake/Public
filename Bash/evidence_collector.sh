@@ -221,7 +221,8 @@ else
     echo "[+] E01 disk image created at $dtg" >> $LOGFILE
     echo "[ ] Image creation completed, hashing using MD5"
     hash=$(md5sum $IMAGEFILENAME.E01)
-    echo "[#] MD5 hash: $hash" >> $LOGFILE
+    echo "[#] MD5 hash of $IMAGEFILENAME.E01 : $hash" >> $LOGFILE
+    echo "    NOTE: This may not be a complete capture if the file is split across multiple E0x files" >> $LOGFILE
     echo " " >> $LOGFILE
     echo "[*] Hashing Complete."
     ewfinfo $IMAGEFILENAME.E01 > $EVIDENCEPATH/ewfinfo.txt
