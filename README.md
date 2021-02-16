@@ -114,6 +114,9 @@ The plugin highlights the following events:
 2. Invoke volatility calling the plugin. Eg `python vol.py --plugins={path/to/plugins} --profile={profile for memory image} -f {path to image} triagecheck`
 3. Where the plugin generates a warning message, prioritise this for further investigation
 
+# Volatility 3.x Plugins
+This section is "coming soon" and any new plugins will be ported over to volatility 3.
+
 # Powershell Scripts
 TBC
 
