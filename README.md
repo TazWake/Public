@@ -4,14 +4,15 @@ Previous repos have become a bit cluttered with a mix of scripts other people mi
 This README will act as the parent index with a summary of "how to use" if appropriate.
 
 Sections will include:
-- [x] Volatility Plugins
+- [x] Volatility 2.x Plugins
+- [ ] Volatility 3.x Plugins 
 - [ ] Powershell Scripts
 - [x] Bash Scripts
-- [ ] Python Scripts
+- [X] Python Scripts
 - [ ] DFIR Notes
 
 
-# Volatility 2.6 Plugins
+# Volatility 2.x Plugins
 *Note: the plugins here have only ever been tested with volatility 2.6*
 ## RAMSCAN
 The first volatility plugin is `ramscan.py`. 
@@ -134,6 +135,18 @@ After the script has completed, the investigator should analyse the data and det
 ### IR Notes
 This is a tool for collecting data, the output needs to be analysed.
 
+## Evidence Collector
+This script captures process details, netstat, arp cache, routing tables and a disk image from a target linux machine. With modification it can capture the contents of /proc or take a memory image. However it is probably easier to do this with LMG.
+The objective of this script is to capture data in alignment to RFC3227 in an automated fashion to allow responders to capture at scale and record their actions.
+### How to use
+1. Store the script somewhere with access to the target system.
+2. Ensure there is an evidence storage drive mounted (consider capacity as a full disk image will be taken)
+3. Ensure elevated privs are available.
+4. Run the script from an elevated account (or via `sudo`) with: `evidence_collector.sh /path/to/storage/media`
+5. Wait.
+### IR Notes
+This is a tool for collecting evidence. The output needs to be analysed.
+
 ## IP LOOKUPS
 This is a script to gather basic data when an incident responder or CTI analyst is trying to work through a large volume of suspicious addresses. 
 It is based on a script used in Investigate Like Rockstar which is definitely worth reading (ISBN-10: 1549527622 // ISBN-13: 978-1549527623).
@@ -147,10 +160,3 @@ Note: The checks are carried out against WHOIS.
 This can be used to narrow down IP addresses of interest. Be aware that CDN use and privacy controls make the data dubious.
 # Python Scripts
 TBC
-
-# IR Notes
-TBC
-
-# Bash Scripts
-
-This area contains scripts aimed at making repetetive forensic tasks easier to manage at scale.
