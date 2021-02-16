@@ -150,3 +150,7 @@ TBC
 
 # IR Notes
 TBC
+
+# Bash Scripts
+
+This area contains scripts aimed at making repetetive forensic tasks easier to manage at scale.
