@@ -60,7 +60,7 @@ Auditpol /set /subcategory:"Other Account Logon Events" /success:enable /failure
 Auditpol /set /category:"Account Management" /success:enable /failure:enable
 Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
 Auditpol /set /subcategory:"RPC Events" /success:enable /failure:enable
-Auditpol /set /subcategory:"Directory Services Changes" /success:enable /failure:enable
+Auditpol /set /subcategory:"Directory Service Changes" /success:enable /failure:enable
 Auditpol /set /subcategory:"Logon" /success:enable /failure:enable
 Auditpol /set /subcategory:"Network Policy Server" /success:enable /failure:enable
 Auditpol /set /subcategory:"Other Logon/Logoff Events" /success:enable /failure:enable
@@ -71,7 +71,7 @@ Auditpol /set /subcategory:"File Share" /success:enable /failure:enable
 Auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable
 Auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failure:enable
-Auditpol /set /subcategory:"Authorizaton Policy Change" /success:enable /failure:enable
+Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
@@ -81,19 +81,19 @@ write-host "[ ] "
 write-host "[!] Advanced auditing options can generate a lot more events and should only be enabled if required. Most systems will not need this level of auditing."
 write-host "[ ] "
 $adv = Read-Host -Prompt "[?]Do you want to enable advanced auditing? [y/n]"
-if ($adv="y") {
+if ($adv -eq "y") {
     write-host "[!] Advanced auditing enabled"
     Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable
     Auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:enable
     Auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:enable /failure:disable
-    Auditpol /set /subcategory:"Directory Services Access" /success:enable /failure:enable
+    Auditpol /set /subcategory:"Directory Service Access" /success:enable /failure:enable
     Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
     Auditpol /set /subcategory:"Handle Manipulation" /success:enable /failure:disable
     Auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:enable
     Auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Kerberos Service Ticket Ops" /success:enable /failure:enable
+    Auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
     write-host "[!] Advanced auditing established"
 } else {
     write-host "[ ] No advanced auditing selected."
