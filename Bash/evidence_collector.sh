@@ -86,6 +86,33 @@ echo "***********************" >> $LOGFILE
 echo "Collection Started at: $dtg" >> $LOGFILE
 echo "Storage location: $EVIDENCEPATH" >> $LOGFILE
 
+######################### System Data ##################################
+
+echo "[ ] Collecting System Information"
+echo "[ ] Target System Information - Collected at $(date | cut -d" " -f4,5)" >> $LOGFILE
+echo "[+] Environment Settings" >> $EVIDENCEPATH/environment.txt
+printenv >> $EVIDENCEPATH/environment.txt
+echo "[+] lsb_release details" >> $EVIDENCEPATH/environment.txt
+lsb_release -a >> $EVIDENCEPATH/environment.txt
+echo "[ ] Sysem Manufacturer: $(dmidecode -s system-manufacturer)" >> $EVIDENCEPATH/environment.txt
+echo "[ ] System Product Name: $(dmidecode -s system-product-name)" >> $EVIDENCEPATH/environment.txt
+echo "[ ] System Version: $(dmidecode -s system-version)" >> $EVIDENCEPATH/environment.txt
+echo "[ ] System Serial Number: $(dmidecode -s system-serial-number)" >> $EVIDENCEPATH/environment.txt
+echo "[ ] System UUID: $(dmidecode -s system-uuid)" >> $EVIDENCEPATH/environment.txt
+echo "[+] Mounts" >> $EVIDENCEPATH/environment.txt
+cat /etc/mtab >> $EVIDENCEPATH/environment.txt
+echo "[+] Disk Use" >> $EVIDENCEPATH/environment.txt
+df -aT >> $EVIDENCEPATH/environment.txt
+echo "[+] USB data" >> $EVIDENCEPATH/environment.txt
+lsusb >> $EVIDENCEPATH/environment.txt
+echo "[+] PCI Data" >> $EVIDENCEPATH/environment.txt
+lspci >> $EVIDENCEPATH/environment.txt
+$envhash = sha1sum $EVIDENCEPATH/environment.txt
+echo "[ ] Collection completed at $(date | cut -d" " -f4,5)"
+echo "[ ] Collection completed at $(date | cut -d" " -f4,5)" >> $LOGFILE
+echo "[ ] System information stored at $EVIDENCEPATH/environment.txt." >> $LOGFILE
+echo "[ ] SHA1 Hash: $envhash" >> $LOGFILE
+
 ################ CAPTURE VOLATILE DATA ##################################
 
 # Copy proc files
