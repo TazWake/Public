@@ -7,9 +7,6 @@
     for windows 10 / server 2016 or newer systems
     NOTE: This script must be run with elevated privs
 
-.PARAMETER
-    This script has no parameters to run. It does require admin rights.
-
 .EXAMPLE
     .setAuditing.ps1
     
