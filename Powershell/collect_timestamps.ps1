@@ -11,8 +11,7 @@ timestamps.ps1 -targetPath C:\Windows\temp -outputPath D:\incidentresponse\
 .LINK
 https://github.com/TazWake/
 .NOTES
-To Do List
-1) Create a to-do list
+Under development
 #>
 param(
     [Parameter(Mandatory=$false)][string]$targetPath,
