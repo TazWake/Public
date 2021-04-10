@@ -11,7 +11,6 @@ Sections will include:
 - [X] Python Scripts
 - [ ] DFIR Notes (TBC)
 
-
 # Volatility 2.x Plugins
 *Note: the plugins here have only ever been tested with volatility 2.6*
 ## RAMSCAN
