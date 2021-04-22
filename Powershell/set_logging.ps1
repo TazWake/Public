@@ -8,6 +8,7 @@ reg add "hklm\software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsof
 reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-DriverFrameworks-UserMode/Operational" /v Enabled /t REG_DWORD /d 1
 reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1
 reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1
+reg add "hklm\System\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1
 Auditpol /set /category:"Account Management" /success:enable /failure:enable
 Auditpol /set /category:"System" /success:enable /failure:enable
 Auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
