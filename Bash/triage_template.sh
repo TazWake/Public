@@ -81,13 +81,6 @@ echo "Evidence storage location: $EVIDENCEPATH" >> $LOGFILE
 # Network connections
 # Running processess
 
-# EXAMPLE - Gather Root history
-mkdir $EVIDENCEPATH/history # create storage locations for history files
-cp /root/.bash_history $EVIDENCEPATH/history/root_bash_history.txt
-echo "[ ] Root History copied to $EVIDENCEPATH/history/root_bash_history.txt at $(date | cut -d' ' -f4,5)" >> $LOGFILE
-hashfile $EVIDENCEPATH/history/root_bash_history.txt
-echo "- Root Bash History Extracted"
-
 # EXAMPLE - Gather user account data
 mkdir $EVIDENCEPATH/user_details # create storage locations for user files
 cp /etc/passwd $EVIDENCEPATH/user_details/passwd_file.txt
@@ -123,8 +116,13 @@ hashfile $EVIDENCEPATH/logindata/btmp
 cp /var/log/btmp $EVIDENCEPATH/logindata/wtmp
 echo "[ ] WTMP extracted to $EVIDENCEPATH/logindata/wtmp at $(date | cut -d' ' -f4,5)" >> $LOGFILE
 hashfile $EVIDENCEPATH/logindata/wtmp
-cp /var/run/utmp $EVIDENCEPATH/logindata/wtmp
+cp /var/run/utmp $EVIDENCEPATH/logindata/utmp
 echo "[ ] UTMP extracted to $EVIDENCEPATH/logindata/utmp at $(date | cut -d' ' -f4,5)" >> $LOGFILE
 hashfile $EVIDENCEPATH/logindata/utmp
 
-
+# EXAMPLE - Gather Root history
+mkdir $EVIDENCEPATH/history # create storage locations for history files
+cp /root/.bash_history $EVIDENCEPATH/history/root_bash_history.txt
+echo "[ ] Root History copied to $EVIDENCEPATH/history/root_bash_history.txt at $(date | cut -d' ' -f4,5)" >> $LOGFILE
+hashfile $EVIDENCEPATH/history/root_bash_history.txt
+echo "- Root Bash History Extracted"
