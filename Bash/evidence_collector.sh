@@ -27,13 +27,13 @@ TEMPFILE=$EVIDENCEPATH/$TEMPNAME
 hashfile() {
     file=$1
     if [ -f "$file" ]; then
-	    hash=$(sha1sum $file)
+	hash=$(sha1sum $file)
         echo "[#] SHA1 hash: $hash" >> $LOGFILE
 	echo " " >> $LOGFILE
     else
-	    echo "[!] There is a problem with logging the hash - exiting!"
+	echo "[!] There is a problem with logging the hash - exiting!"
         exit 255;
-	fi
+    fi
 }
 
 dwarfdumper() {
