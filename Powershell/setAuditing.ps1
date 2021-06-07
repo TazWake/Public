@@ -4,7 +4,9 @@
 
 .DESCRIPTION
     This script establishes baseline audit settings
-    for windows 10 / server 2016 or newer systems
+    for windows 10 / server 2016 or newer systems.
+    This script is based on the settings found in 
+    https://www.malwarearchaeology.com/cheat-sheets/
     NOTE: This script must be run with elevated privs
 
 .EXAMPLE
@@ -12,8 +14,8 @@
     
 .NOTES
     Author: Taz Wake
-    Last Edit: 01 Apr 2021
-    Version 1.0 - initial release
+    Last Edit: 07 June 2021
+    Version 1.1 - Typos corrected
 
 #>
 
@@ -26,6 +28,10 @@ wevtutil sl Security /ms:1048576000
 write-host "[!] Setting Powershell logging to a minimum of 512mb. This can be increased if needed and you should set up powershell command line history."
 wevtUtil sl "Windows PowerShell" /ms:512000000
 wevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000000
+
+write-host "[!] Enabling Powershell Module Logging and ScriptBlock Logging."
+reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 
+reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1
 
 write-host "[!] Enabling Command Line Auditing. This makes event ID 4688 useful."
 reg add "hklm\software\microsoft\windows\currentversion\policies\system\audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1
