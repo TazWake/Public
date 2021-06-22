@@ -1,3 +1,7 @@
+<#
+This script is deprecated
+#>
+
 reg add hklm\system\CurrentControlSet\services\eventlog\Security /v MaxSize /t REG_DWORD /d 524288000 /f
 reg add "hklm\system\CurrentControlSet\services\eventlog\Windows PowerShell" /v MaxSize /t REG_DWORD /d 262144000 /f
 reg add "hklm\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-PowerShell/Operational" /v MaxSize /t REG_DWORD /d 524288000 /f
