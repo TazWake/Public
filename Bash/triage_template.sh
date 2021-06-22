@@ -1,24 +1,24 @@
 #!/bin/bash
 
 # This a starter template to help people build
-# triage evidence collection scripts. It is not 
+# triage evidence collection scripts. It is not
 # complete and, without tailoring will not
-# function. 
+# function.
 
 # OBJECTIVE
 # Use this as a framework to build your own Linux
-# rapid response triage scripts. If you want, you 
+# rapid response triage scripts. If you want, you
 # can even create something similar to KAPE.
 
 # USE
 # Before you deploy this script, make sure you have
-# tailored into something that collects the evidence 
+# tailored into something that collects the evidence
 # you want/need for the incident you are working on.
 # Remember you need to also take into consideration
 # the target distro - Ubuntu uses /var/log/auth.log
 # CentOS uses /var/log/secure - etc.
 #
-# Next get the script onto the target with a place to 
+# Next get the script onto the target with a place to
 # store data and with an account that has root privs.
 # Then execute the script with the storage location
 # as the first argument.
