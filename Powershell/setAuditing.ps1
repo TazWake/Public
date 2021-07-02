@@ -56,6 +56,7 @@ Auditpol /set /subcategory:"Registry" /success:enable /failure:disable
 Auditpol /set /subcategory:"SAM" /success:enable /failure:disable
 Auditpol /set /subcategory:"Filtering Platform Policy Change" /success:enable /failure:disable
 Auditpol /set /subcategory:"IPsec Driver" /success:enable /failure:disable
+write-host "[!] Success only audit policies set."
 
 # set failure only
 Auditpol /set /subcategory:"Other System Events" /success:disable /failure:enable
