@@ -14,8 +14,6 @@
 # Example
 # VMDK_Carver.sh /cases/suspicousimage.vmdk /cases/rawfile/
 
-
-
 # SET UP GLOBALS
 VMDK=$1
 FILENAME=basename "$VMDK"
@@ -113,22 +111,38 @@ then
         echo "[ ] fsstat data written to $OUTPATH/fsstat_$i.txt" >> $LOGFILE
         chmod 444 $OUTPATH/fsstat_$i.txt
         hashfile $OUTPATH/fsstat_$i.txt
+        # extract MFT
         echo "[ ] Extracting MFT at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
         echo "[ ] Extracting MFT to $OUTPATH/$FILE_$i_mft_mft.raw."
         icat -o $i $RAWFILE 0 > $OUTPATH/$FILE_$i_mft_mft.raw
         echo "[ ] MFT extract complete. File is at $OUTPATH/$FILE_$i_mft.raw"
-        quickhash $OUTPATH/$FILE_$i_mft.raw"
+        quickhash $OUTPATH/$FILE_$i_mft.raw
+        # analyse MFT
         if ! command -v analyzeMFT.py &> /dev/null
         then
             echo "[!] Unable to find analyzeMFT - no MFT analysis will take place." 
             echo "[!] Unable to find analyzeMFT - no MFT analysis will take place." >> $LOGFILE
         else
             echo "[ ] Running analyzeMFT"
+            echo "[ ] analyzeMFT started at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
+            analyzeMFT.py -f $OUTPATH/$FILE_$i_mft.raw -o $OUTPATH/$FILE_$i_mft_analyzed.csv
+            echo "[ ] analyzeMFT completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
+            echo "[ ] Output stored at $OUTPATH/$FILE_$i_mft_analyzed.csv." >> $LOGFILE
+            hashfile $OUTPATH/$FILE_$i_mft_analyzed.csv
+            chmod 444 $OUTPATH/$FILE_$i_mft_analyzed.csv
+            echo "[ ] analyzeMFT completed."
+            echo "[!] Analysis Note: Some carved data may be incomplete - validate the partition and its role in the VM."
         fi
-        
+        echo "[ ] MFT processing completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
+        echo "[ ] Exiting at $(date -u | cut -d" " -f5,6)" >> $LOGFILE
+        echo "[ ] Log closed on $(date -u '+%Y-%m-%d')." >> $LOGFILE
+        echo "[ ] Processing completed at $(date -u | cut -d" " -f5-6)."
     done
 else
-    echo "[!] No NTFS Partitions detected."
     echo "[!] No NTFS Partitions detected in the raw image." >> $LOGFILE
-    echo "[ ] Exiting at $(date | cut -d" " -f5,6)." >> $LOGFILE
+    echo "[ ] Exiting at $(date -u | cut -d" " -f5,6)." >> $LOGFILE
+    echo "[ ] Log closed on $(date -u '+%Y-%m-%d')." >> $LOGFILE
+    chmod 444 $LOGFILE
+    echo "[!] No NTFS Partitions detected. This script will now exit"
     exit()
+fi
