@@ -87,7 +87,7 @@ echo "VMDK Conversion" >> $LOGFILE
 echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
 qemu-img convert -f vmdk -O raw $VMDK $RAWFILE
 echo "[ ] Conversion Complete - hashing."
-echo "[ ] Conversion Complted at $(date | cut -d" " -f5,6)" >> $LOGFILE
+echo "[ ] Conversion Completed at $(date | cut -d" " -f5,6)" >> $LOGFILE
 rawhash=$(md5sum $RAWFILE) 
 echo "[ ] Raw file MD5 Hash: $rawhash" >> $LOGFILE
 echo "[ ] Hashing completed."
@@ -134,7 +134,16 @@ then
             echo "[!] Analysis Note: Some carved data may be incomplete - validate the partition and its role in the VM."
         fi
         echo "[ ] Offset $i MFT processing completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
-        
+        # Generate FLS timeline.
+        echo "[ ] Creating timeline with FLS and MACTIME."
+        fls -i raw -f ntfs -o $i -m C: -r $RAWFILE > $OUTPUTPATH/$i-BodyFile
+        echo "[ ] Bodyfile for partition at offset $i created." >> $LOGFILE
+        hashfile $OUTPUTPATH/$i-BodyFile
+        mactime -b $OUTPUTPATH/$i-BodyFile -z UTC > $OUTPUTPATH/$i-timeline.txt
+        echo "[ ] Timeline for partition at offset $i created." >> $LOGFILE
+        chmod 444 $OUTPUTPATH/$i-BodyFile
+        chmod 444 $OUTPUTPATH/$i-timeline.txt
+        echo "[ ] FLS/MACTIME timeline created."
     done
 else
     echo "[!] No NTFS Partitions detected in the raw image." >> $LOGFILE
