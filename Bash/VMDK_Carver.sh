@@ -7,6 +7,7 @@
 #   2. TSK must be installed.
 #   3. A VMDK containing NTFS partitions and a storage location is required.
 #   4. If analyzeMFT is installed that will be used to convert MFT to CSV.
+#   5. QEMU tools need to be installed.
 #
 # Syntax
 # VMDK_Carver.sh /path/to/vmdk/name.vmdk /path/to/storage
