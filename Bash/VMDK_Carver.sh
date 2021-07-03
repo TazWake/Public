@@ -82,13 +82,13 @@ echo "********************************" >> $LOGFILE
 # MD5 hashes are used for disk images (and other large files) for speed.
 #
 echo "[ ] Converting VMDK to raw file. Hashing the file might take a long time!"
-# initialhash=$(md5sum $VMDK)
-echo "VMDK Conversion" > $LOGFILE
+initialhash=$(md5sum $VMDK)
+echo "VMDK Conversion" >> $LOGFILE
 echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
 qemu-img convert -f vmdk -O raw $VMDK $RAWFILE
 echo "[ ] Conversion Complete - hashing."
 echo "[ ] Conversion Complted at $(date | cut -d" " -f5,6)" >> $LOGFILE
-# rawhash=$(md5sum $RAWFILE) 
+rawhash=$(md5sum $RAWFILE) 
 echo "[ ] Raw file MD5 Hash: $rawhash" >> $LOGFILE
 echo "[ ] Hashing completed."
 
@@ -98,7 +98,7 @@ mmls $RAWFILE > $OUTPATH/mmls.txt
 chmod 444 $OUTPATH/mmls.txt
 echo "[ ] MMLS ran at at $(date | cut -d" " -f5,6). File stored at $OUTPATH/mmls.txt" >> $LOGFILE
 hashfile $OUTPATH/mmls.txt
-if grep -q ntfs $OUTPATH/mmls.txt
+if grep -q NTFS $OUTPATH/mmls.txt
 then
     echo "[!] NTFS Partitions detected."
     echo "[ ] Processing NTFS Partitions in the RAW image." >> $LOGFILE
@@ -106,17 +106,17 @@ then
     do
         # Carve partition data with fsstat
         echo "[ ] Offset $i contains NTFS data." >> $LOGFILE
-        echo "Data at offset $i" > $OUTPATH/fsstat_$i.txt
-        fsstat -o $i $RAWFILE >> $OUTPATH/fsstat_$i.txt
-        echo "[ ] fsstat data written to $OUTPATH/fsstat_$i.txt" >> $LOGFILE
-        chmod 444 $OUTPATH/fsstat_$i.txt
-        hashfile $OUTPATH/fsstat_$i.txt
+        echo "Data at offset $i" > $OUTPATH/fsstat-$i.txt
+        fsstat -o $i $RAWFILE >> $OUTPATH/fsstat-$i.txt
+        echo "[ ] fsstat data written to $OUTPATH/fsstat-$i.txt" >> $LOGFILE
+        chmod 444 $OUTPATH/fsstat-$i.txt
+        hashfile $OUTPATH/fsstat-$i.txt
         # extract MFT
         echo "[ ] Extracting MFT at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
-        echo "[ ] Extracting MFT to $OUTPATH/$FILE_$i_mft_mft.raw."
-        icat -o $i $RAWFILE 0 > $OUTPATH/$FILE_$i_mft_mft.raw
-        echo "[ ] MFT extract complete. File is at $OUTPATH/$FILE_$i_mft.raw"
-        quickhash $OUTPATH/$FILE_$i_mft.raw
+        echo "[ ] Extracting MFT to $OUTPATH/$FILE-mft-$i.raw."
+        icat -o $i $RAWFILE 0 > $OUTPATH/$FILE-mft-$i.raw
+        echo "[ ] MFT extract complete. File is at $OUTPATH/$FILE-mft-$i.raw" >> $LOGFILE
+        quickhash $OUTPATH/$FILE-mft-$i.raw
         # analyse MFT
         if ! command -v analyzeMFT.py &> /dev/null
         then
@@ -125,24 +125,23 @@ then
         else
             echo "[ ] Running analyzeMFT"
             echo "[ ] analyzeMFT started at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
-            analyzeMFT.py -f $OUTPATH/$FILE_$i_mft.raw -o $OUTPATH/$FILE_$i_mft_analyzed.csv
+            analyzeMFT.py -f $OUTPATH/$FILE-mft-$i.raw -o $OUTPATH/$FILE-analyzed-MFT-$i.csv
             echo "[ ] analyzeMFT completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
-            echo "[ ] Output stored at $OUTPATH/$FILE_$i_mft_analyzed.csv." >> $LOGFILE
-            hashfile $OUTPATH/$FILE_$i_mft_analyzed.csv
-            chmod 444 $OUTPATH/$FILE_$i_mft_analyzed.csv
+            echo "[ ] Output stored at $OUTPATH/$FILE-analyzed-MFT-$i.csv." >> $LOGFILE
+            hashfile $OUTPATH/$FILE-analyzed-MFT-$i.csv
+            chmod 444 $OUTPATH/$FILE-analyzed-MFT-$i.csv
             echo "[ ] analyzeMFT completed."
             echo "[!] Analysis Note: Some carved data may be incomplete - validate the partition and its role in the VM."
         fi
-        echo "[ ] MFT processing completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
-        echo "[ ] Exiting at $(date -u | cut -d" " -f5,6)" >> $LOGFILE
-        echo "[ ] Log closed on $(date -u '+%Y-%m-%d')." >> $LOGFILE
-        echo "[ ] Processing completed at $(date -u | cut -d" " -f5-6)."
+        echo "[ ] Offset $i MFT processing completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
+        
     done
 else
     echo "[!] No NTFS Partitions detected in the raw image." >> $LOGFILE
-    echo "[ ] Exiting at $(date -u | cut -d" " -f5,6)." >> $LOGFILE
-    echo "[ ] Log closed on $(date -u '+%Y-%m-%d')." >> $LOGFILE
-    chmod 444 $LOGFILE
     echo "[!] No NTFS Partitions detected. This script will now exit"
-    exit()
 fi
+echo "[+] Analysis completed." >> $LOGFILE
+echo "[ ] Exiting at $(date -u | cut -d" " -f5,6)" >> $LOGFILE
+echo "[ ] Log closed on $(date -u '+%Y-%m-%d')." >> $LOGFILE
+chmod 444 $LOGFILE
+echo "[ ] Processing completed at $(date -u | cut -d" " -f5-6)."
