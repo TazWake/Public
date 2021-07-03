@@ -1,11 +1,20 @@
 #!/bin/bash
 
-# This script carves VMDK images
+# This script carves NTFS data out of VMDK images.
 #
-#
+# REQUIREMENTS
+#   1. This script must be run with root permissions.
+#   2. TSK must be installed.
+#   3. A VMDK containing NTFS partitions and a storage location is required.
+#   4. If analyzeMFT is installed that will be used to convert MFT to CSV.
 #
 # Syntax
 # VMDK_Carver.sh /path/to/vmdk/name.vmdk /path/to/storage/
+#
+# Example
+# VMDK_Carver.sh /cases/suspicousimage.vmdk /cases/rawfile/
+
+
 
 # SET UP GLOBALS
 VMDK=$1
@@ -60,12 +69,11 @@ else
 fi
 
 # Set up logging
-dtg=$(date -u | cut -d" " -f5-6)
 echo "********************************" > $LOGFILE
 echo "* VMDK Conversion and analysis *" >> $LOGFILE
 echo "********************************" >> $LOGFILE
 echo "logile opened on $(date -u '+%Y-%m-%d')." > $LOGFILE
-echo "Conversion Started at: $dtg" >> $LOGFILE
+echo "Conversion Started at: $(date -u | cut -d" " -f5-6)" >> $LOGFILE
 echo "Storage location: $OUTPATH" >> $LOGFILE
 echo "********************************" >> $LOGFILE
 
@@ -89,12 +97,36 @@ echo "[ ] Hashing completed."
 # Partition Analysis
 echo "[ ] Analysing partitions"
 mmls $RAWFILE > $OUTPATH/mmls.txt
+chmod 444 $OUTPATH/mmls.txt
 echo "[ ] MMLS ran at at $(date | cut -d" " -f5,6). File stored at $OUTPATH/mmls.txt" >> $LOGFILE
 hashfile $OUTPATH/mmls.txt
 if grep -q NTFS $OUTPATH/mmls.txt
 then
     echo "[!] NTFS Partitions detected."
-    
+    echo "[ ] Processing NTFS Partitions in the RAW image." >> $LOGFILE
+    for i in $(grep -i ntfs $OUTPATH/mmls.txt | cut -d' ' -f6)
+    do
+        # Carve partition data with fsstat
+        echo "[ ] Offset $i contains NTFS data." >> $LOGFILE
+        echo "Data at offset $i" > $OUTPATH/fsstat_$i.txt
+        fsstat -o $i $RAWFILE >> $OUTPATH/fsstat_$i.txt
+        echo "[ ] fsstat data written to $OUTPATH/fsstat_$i.txt" >> $LOGFILE
+        chmod 444 $OUTPATH/fsstat_$i.txt
+        hashfile $OUTPATH/fsstat_$i.txt
+        echo "[ ] Extracting MFT at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
+        echo "[ ] Extracting MFT to $OUTPATH/$FILE_$i_mft_mft.raw."
+        icat -o $i $RAWFILE 0 > $OUTPATH/$FILE_$i_mft_mft.raw
+        echo "[ ] MFT extract complete. File is at $OUTPATH/$FILE_$i_mft.raw"
+        quickhash $OUTPATH/$FILE_$i_mft.raw"
+        if ! command -v analyzeMFT.py &> /dev/null
+        then
+            echo "[!] Unable to find analyzeMFT - no MFT analysis will take place." 
+            echo "[!] Unable to find analyzeMFT - no MFT analysis will take place." >> $LOGFILE
+        else
+            echo "[ ] Running analyzeMFT"
+        fi
+        
+    done
 else
     echo "[!] No NTFS Partitions detected."
     echo "[!] No NTFS Partitions detected in the raw image." >> $LOGFILE
