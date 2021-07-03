@@ -9,20 +9,21 @@
 #   4. If analyzeMFT is installed that will be used to convert MFT to CSV.
 #
 # Syntax
-# VMDK_Carver.sh /path/to/vmdk/name.vmdk /path/to/storage/
+# VMDK_Carver.sh /path/to/vmdk/name.vmdk /path/to/storage
 #
 # Example
-# VMDK_Carver.sh /cases/suspicousimage.vmdk /cases/rawfile/
+# VMDK_Carver.sh /cases/suspicousimage.vmdk /cases/rawfile
 
 # SET UP GLOBALS
 VMDK=$1
-FILENAME=basename "$VMDK"
+#VMDKA="$1"
+FILENAME=$(basename "$VMDK")
 FILE=$FILENAME | cut -d'.' -f1
 OUTPATH=$2
-RAWFILW=$OUTPATH/$FILE.raw
+RAWFILE=$OUTPATH/$FILE.raw
 TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8)
 TEMPFILE=$OUTPATH/$TEMPNAME
-$LOGFILE=$OUTPATH/CollectionLog.txt
+LOGFILE=$OUTPATH/CollectionLog.txt
 
 # SET UP FUNCTIONS
 hashfile() {
@@ -70,7 +71,7 @@ fi
 echo "********************************" > $LOGFILE
 echo "* VMDK Conversion and analysis *" >> $LOGFILE
 echo "********************************" >> $LOGFILE
-echo "logile opened on $(date -u '+%Y-%m-%d')." > $LOGFILE
+echo "logile opened on $(date -u '+%Y-%m-%d')." >> $LOGFILE
 echo "Conversion Started at: $(date -u | cut -d" " -f5-6)" >> $LOGFILE
 echo "Storage location: $OUTPATH" >> $LOGFILE
 echo "********************************" >> $LOGFILE
@@ -82,14 +83,15 @@ echo "********************************" >> $LOGFILE
 # MD5 hashes are used for disk images (and other large files) for speed.
 #
 echo "[ ] Converting VMDK to raw file. Hashing the file might take a long time!"
-initialhash=quickhash($VMDK)
+initialhash=$(md5sum $VMDK)
 echo "VMDK Conversion" > $LOGFILE
-echo "[ ] VMDK MD5 Hash: $initialhash" > $LOGFILE
+echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
+echo "command lines: $VMDK $RAWFILE"
 qemu-img convert -f VMDK -O RAW $VMDK $RAWFILE
 echo "[ ] Conversion Complete - hashing."
 echo "[ ] Conversion Complted at $(date | cut -d" " -f5,6)" >> $LOGFILE
-rawhash=quickhash($RAWFILE)
-echo "[ ] Raw file MD5 Hash: $rawhash" > $LOGFILE
+rawhash=$(md5sum $RAWFILE) 
+echo "[ ] Raw file MD5 Hash: $rawhash" >> $LOGFILE
 echo "[ ] Hashing completed."
 
 # Partition Analysis
@@ -98,7 +100,7 @@ mmls $RAWFILE > $OUTPATH/mmls.txt
 chmod 444 $OUTPATH/mmls.txt
 echo "[ ] MMLS ran at at $(date | cut -d" " -f5,6). File stored at $OUTPATH/mmls.txt" >> $LOGFILE
 hashfile $OUTPATH/mmls.txt
-if grep -q NTFS $OUTPATH/mmls.txt
+if grep -q ntfs $OUTPATH/mmls.txt
 then
     echo "[!] NTFS Partitions detected."
     echo "[ ] Processing NTFS Partitions in the RAW image." >> $LOGFILE
