@@ -16,7 +16,6 @@
 
 # SET UP GLOBALS
 VMDK=$1
-#VMDKA="$1"
 FILENAME=$(basename "$VMDK")
 FILE=$(echo $FILENAME | cut -d'.' -f1)
 OUTPATH=$2
@@ -83,14 +82,13 @@ echo "********************************" >> $LOGFILE
 # MD5 hashes are used for disk images (and other large files) for speed.
 #
 echo "[ ] Converting VMDK to raw file. Hashing the file might take a long time!"
-initialhash=$(md5sum $VMDK)
+# initialhash=$(md5sum $VMDK)
 echo "VMDK Conversion" > $LOGFILE
 echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
-echo "command lines: $VMDK $RAWFILE"
-qemu-img convert -f vmdk -O RAW $VMDK $RAWFILE
+qemu-img convert -f vmdk -O raw $VMDK $RAWFILE
 echo "[ ] Conversion Complete - hashing."
 echo "[ ] Conversion Complted at $(date | cut -d" " -f5,6)" >> $LOGFILE
-rawhash=$(md5sum $RAWFILE) 
+# rawhash=$(md5sum $RAWFILE) 
 echo "[ ] Raw file MD5 Hash: $rawhash" >> $LOGFILE
 echo "[ ] Hashing completed."
 
