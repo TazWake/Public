@@ -18,7 +18,7 @@
 VMDK=$1
 #VMDKA="$1"
 FILENAME=$(basename "$VMDK")
-FILE=$FILENAME | cut -d'.' -f1
+FILE=$(echo $FILENAME | cut -d'.' -f1)
 OUTPATH=$2
 RAWFILE=$OUTPATH/$FILE.raw
 TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8)
@@ -87,7 +87,7 @@ initialhash=$(md5sum $VMDK)
 echo "VMDK Conversion" > $LOGFILE
 echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
 echo "command lines: $VMDK $RAWFILE"
-qemu-img convert -f VMDK -O RAW $VMDK $RAWFILE
+qemu-img convert -f vmdk -O RAW $VMDK $RAWFILE
 echo "[ ] Conversion Complete - hashing."
 echo "[ ] Conversion Complted at $(date | cut -d" " -f5,6)" >> $LOGFILE
 rawhash=$(md5sum $RAWFILE) 
