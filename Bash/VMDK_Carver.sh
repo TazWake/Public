@@ -81,22 +81,23 @@ echo "********************************" >> $LOGFILE
 # device has sufficient space.
 # MD5 hashes are used for disk images (and other large files) for speed.
 #
-echo "[ ] Converting VMDK to raw file. Hashing the file might take a long time!"
-initialhash=$(md5sum $VMDK)
 echo "VMDK Conversion" >> $LOGFILE
-echo "[ ] VMDK MD5 Hash: $initialhash" >> $LOGFILE
+echo "[ ] Source VMDK file is $VMDK." >> $LOGFILE
+echo "[ ] Generating file hash."
+quickhash $VMDK
+echo "[ ] Converting VMDK."
 qemu-img convert -f vmdk -O raw $VMDK $RAWFILE
-echo "[ ] Conversion Complete - hashing."
-echo "[ ] Conversion Completed at $(date | cut -d" " -f5,6)" >> $LOGFILE
-rawhash=$(md5sum $RAWFILE) 
-echo "[ ] Raw file MD5 Hash: $rawhash" >> $LOGFILE
-echo "[ ] Hashing completed."
+echo "[ ] Conversion Complete - hashing. This may take some time."
+echo "[ ] Conversion Completed at $(date -u | cut -d" " -f5,6)." >> $LOGFILE
+#rawhash=$(md5sum $RAWFILE) 
+quickhash $RAWFILE
+echo "[ ] Hashing completed at $(date -u | cut -d" " -f5,6)."
 
 # Partition Analysis
-echo "[ ] Analysing partitions"
+echo "[ ] Analysing partitions."
 mmls $RAWFILE > $OUTPATH/mmls.txt
 chmod 444 $OUTPATH/mmls.txt
-echo "[ ] MMLS ran at at $(date | cut -d" " -f5,6). File stored at $OUTPATH/mmls.txt" >> $LOGFILE
+echo "[ ] MMLS ran at at $(date -u | cut -d" " -f5,6). File stored at $OUTPATH/mmls.txt" >> $LOGFILE
 hashfile $OUTPATH/mmls.txt
 if grep -q NTFS $OUTPATH/mmls.txt
 then
@@ -141,6 +142,7 @@ then
         hashfile $OUTPATH/$i-BodyFile
         mactime -b $OUTPATH/$i-BodyFile -z UTC > $OUTPATH/$i-timeline.txt
         echo "[ ] Timeline for partition at offset $i created." >> $LOGFILE
+        hashfile $OUTPATH/$i-timeline.txt
         chmod 444 $OUTPATH/$i-BodyFile
         chmod 444 $OUTPATH/$i-timeline.txt
         echo "[ ] FLS/MACTIME timeline created."
