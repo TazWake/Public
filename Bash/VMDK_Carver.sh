@@ -136,13 +136,13 @@ then
         echo "[ ] Offset $i MFT processing completed at $(date -u | cut -d" " -f5-6)." >> $LOGFILE
         # Generate FLS timeline.
         echo "[ ] Creating timeline with FLS and MACTIME."
-        fls -i raw -f ntfs -o $i -m C: -r $RAWFILE > $OUTPUTPATH/$i-BodyFile
+        fls -i raw -f ntfs -o $i -m C: -r $RAWFILE > $OUTPATH/$i-BodyFile
         echo "[ ] Bodyfile for partition at offset $i created." >> $LOGFILE
-        hashfile $OUTPUTPATH/$i-BodyFile
-        mactime -b $OUTPUTPATH/$i-BodyFile -z UTC > $OUTPUTPATH/$i-timeline.txt
+        hashfile $OUTPATH/$i-BodyFile
+        mactime -b $OUTPATH/$i-BodyFile -z UTC > $OUTPATH/$i-timeline.txt
         echo "[ ] Timeline for partition at offset $i created." >> $LOGFILE
-        chmod 444 $OUTPUTPATH/$i-BodyFile
-        chmod 444 $OUTPUTPATH/$i-timeline.txt
+        chmod 444 $OUTPATH/$i-BodyFile
+        chmod 444 $OUTPATH/$i-timeline.txt
         echo "[ ] FLS/MACTIME timeline created."
     done
 else
