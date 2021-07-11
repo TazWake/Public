@@ -1,5 +1,5 @@
 <#
-This script is deprecated
+This script is deprecated - please use https://github.com/TazWake/Public/blob/master/Powershell/setAuditing.ps1
 #>
 
 reg add hklm\system\CurrentControlSet\services\eventlog\Security /v MaxSize /t REG_DWORD /d 524288000 /f
