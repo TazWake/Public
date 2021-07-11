@@ -1,17 +1,24 @@
 <#
+
 .SYNOPSIS
 Script to display the Creation, Access and Write times of files in a given folder.
+
 .DESCRIPTION
 This script reports key details about files in a given folder. It identifies the filename, filesize (in bytes), creation/access/write times.
 If no path is provided with the execution it looks at files in the current path.
+
 .EXAMPLE
 timestamps.ps1
+
 .EXAMPLE
 timestamps.ps1 -targetPath C:\Windows\temp -outputPath D:\incidentresponse\
+
 .LINK
 https://github.com/TazWake/
+
 .NOTES
 Under development
+
 #>
 param(
     [Parameter(Mandatory=$false)][string]$targetPath,
