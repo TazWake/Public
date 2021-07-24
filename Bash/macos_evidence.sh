@@ -14,6 +14,8 @@ STORE="$1"
 TEMPNAME=$(cat /dev/urandom | head -c 12 | shasum | head -c 8)
 TEMPFILE=$STORE/$TEMPNAME
 ERRLOG=$STORE/errors.txt
+CSV=$STORE/evidence.csv
+echo "COMMAND,OUTPUT" > $CSV # Set up headers and ensure the csv starts clean
 exec 2> $ERRLOG
 
 # Check it is run as root
@@ -61,43 +63,54 @@ echo "###########################################################" >> $LOG
 echo "Storage Location: $STORE" >> $LOG
 echo "Account Used: $(whoami)" >> $LOG
 echo "Original Account: $(sh -c 'echo $SUDO_USER') - If this is blank the user has not elevated privileges with sudo" >> $LOG
+echo "This script will gather key data from the target system to support incident response." >> $LOG
+echo "When data is extracted it will be copied into relevant analysis files in the storage location." >> $LOG
+echo "In addition, all data will be combined into a master CSV file for analysis." >> $LOG
 
 # Gather SystemInfo
 # This captures into a text document and CSV.
 SYSTEM=$STORE/systeminfo.txt
-SYSTEMCSV=$STORE/systeminfo.csv
 rm $SYSTEM # ensure it starts clean
-rm $SYSTEMCSV # ensure it starts clean
-echo "COMMAND,OUTPUT" >> $SYSTEMCSV
 CMD=$(date)
 echo "DATE: $CMD" >> $SYSTEM
-echo "DATE,'$CMD'" >> $SYSTEMCSV
+echo "DATE,'$CMD'" >> $CSV
 CMD=$(date -u)
 echo "DATE (UTC): $CMD" >> $SYSTEM
-echo "DATE (UTC),'$CMD'" >> $SYSTEMCSV
+echo "DATE (UTC),'$CMD'" >> $CSV
 CMD=$(hostname)
 echo "HOSTNAME: $CMD" >> $SYSTEM
-echo "HOSTNAME,'$CMD'" >> $SYSTEMCSV
+echo "HOSTNAME,'$CMD'" >> $CSV
 CMD=$(uname -a)
 echo "UNAME -A: $CMD" >> $SYSTEM
-echo "UNAME -A,'$CMD'" >> $SYSTEMCSV
+echo "UNAME -A,'$CMD'" >> $CSV
 CMD=$(sw_vers)
 echo "SW_VERS: $CMD" >> $SYSTEM
-echo "SW_VERS,'$CMD'" >> $SYSTEMCSV
+echo "SW_VERS,'$CMD'" >> $CSV
 CMD=$(nvram)
 echo "NVRAM: $CMD" >> $SYSTEM
-echo "NVRAM,'$CMD'" >> $SYSTEMCSV
+echo "NVRAM,'$CMD'" >> $CSV
 CMD=$(uptime)
 echo "UPTIME: $CMD" >> $SYSTEM
-echo "UPTIME,'$CMD'" >> $SYSTEMCSV
+echo "UPTIME,'$CMD'" >> $CSV
 CMD=$(spctl --status)
 echo "SPTCL STATUS: $CMD" >> $SYSTEM
-echo "SPTCL STATUS,'$CMD'" >> $SYSTEMCSV
+echo "SPTCL STATUS,'$CMD'" >> $CSV
 CMD=$(bash --version)
 echo "BASH VERSION: $CMD" >> $SYSTEM
-echo "BASH VERSION,'$CMD'" >> $SYSTEMCSV
+echo "BASH VERSION,'$CMD'" >> $CSV
 unset CMD
 echo "System info collected and added to $SYSTEM." >> $LOG
 hashFile $SYSTEM
-echo "A CSV of the system info is at $SYSTEMCSV." >> $LOG
-hashFile $SYSTEMCSV
+
+# Gather User Data
+
+# Gather Network Data
+
+# Finalise Collection
+echo "The CSV file has been created at $CSV" >> $LOG
+hashFile $CSV
+echo "###########################################################" >> $LOG
+echo "#                                                         #" >> $LOG
+echo "# Data collection completed: $(date -u) #" >> $LOG
+echo "#                                                         #" >> $LOG
+echo "###########################################################" >> $LOG
