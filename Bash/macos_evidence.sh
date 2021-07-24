@@ -10,7 +10,7 @@
 # scriptname.sh <storage location>
 
 # Set up environment
-$STORE="$1"
+STORE="$1"
 
 
 #  Check it is run as root
