@@ -8,7 +8,7 @@ Sections will include:
 - [ ] Volatility 3.x Plugins (TBC)
 - [ ] Powershell Scripts (TBC)
 - [x] Bash Scripts
-- [X] Python Scripts
+- [x] Python Scripts
 - [ ] DFIR Notes (TBC)
 
 # Volatility 2.x Plugins
@@ -119,7 +119,9 @@ This section is "coming soon" and any new plugins will be ported over to volatil
 # Powershell Scripts
 TBC
 
-# Bash Scripts
+# Shell Scripts
+Note: This section now includes scripts designed to run on zsh, both for Linux and MacOS.
+
 ## Memory Precook
 This is a script designed to run a standard range of data extraction commands against a memory image. Each command output is saved to a text file and a running log of activity is maintained.
 The objective of this script is to ensure a consistent approach to information capture across a team of multiple investigators with multiple memory images and reduce the need to re-run specific commands.
