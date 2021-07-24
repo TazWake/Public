@@ -86,9 +86,6 @@ echo "UNAME -A,'$CMD'" >> $CSV
 CMD=$(sw_vers)
 echo "SW_VERS: $CMD" >> $SYSTEM
 echo "SW_VERS,'$CMD'" >> $CSV
-#CMD=$(nvram -p)
-#echo "NVRAM: $CMD" >> $SYSTEM
-#echo "NVRAM,'$CMD'" >> $CSV
 CMD=$(uptime)
 echo "UPTIME: $CMD" >> $SYSTEM
 echo "UPTIME,'$CMD'" >> $CSV
