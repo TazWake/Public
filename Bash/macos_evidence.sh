@@ -9,6 +9,12 @@
 #
 # scriptname.sh <storage location>
 
+# Check it is run as root
+if  [[ $EUID -ne 0 ]]; then
+    echo "This script requires root privileges to run."
+    exit;
+fi
+
 # Set up environment
 STORE="$1"
 TEMPNAME=$(cat /dev/urandom | head -c 12 | shasum | head -c 8)
@@ -17,12 +23,6 @@ ERRLOG=$STORE/errors.txt
 CSV=$STORE/evidence.csv
 echo "COMMAND,OUTPUT" > $CSV # Set up headers and ensure the csv starts clean
 exec 2> $ERRLOG
-
-# Check it is run as root
-if  [[ $EUID -ne 0 ]]; then
-    echo "This script requires root privileges to run."
-    exit;
-fi
 
 # Functions
 function hashFile () {
@@ -86,9 +86,9 @@ echo "UNAME -A,'$CMD'" >> $CSV
 CMD=$(sw_vers)
 echo "SW_VERS: $CMD" >> $SYSTEM
 echo "SW_VERS,'$CMD'" >> $CSV
-CMD=$(nvram)
-echo "NVRAM: $CMD" >> $SYSTEM
-echo "NVRAM,'$CMD'" >> $CSV
+#CMD=$(nvram -p)
+#echo "NVRAM: $CMD" >> $SYSTEM
+#echo "NVRAM,'$CMD'" >> $CSV
 CMD=$(uptime)
 echo "UPTIME: $CMD" >> $SYSTEM
 echo "UPTIME,'$CMD'" >> $CSV
@@ -102,11 +102,88 @@ unset CMD
 echo "System info collected and added to $SYSTEM." >> $LOG
 hashFile $SYSTEM
 
+# Capture NVRAM firmware variables
+nvram -xp > $STORE/nvram.xml
+echo "The system firmware NVRAM variable data has been exported to $STORE/nvram.xml" >> $LOG
+hashFile $STORE/nvram.xml
+
 # Gather User Data
+mkdir -p $STORE/userdata
+echo "User info and who based data is being carved and will be stored in $STORE/userdata." >> $LOG
+ls -alhi /Users > $STORE/userdata/ls-al-output.txt
+hashFile $STORE/userdata/ls-al-output.txt
+who > $STORE/userdata/who.txt
+echo "WHO,'$(who)'" >> $CSV
+hashFile $STORE/userdata/who.txt
+echo "WHOAMI: $(whoami)" >> $LOG
+echo "WHOAMI,'$(whoami)'" >> $CSV
+last > $STORE/userdata/last.txt
+hashFile $STORE/userdata/last.txt
+USER=$STORE/userdata/userInfo.txt
+echo "*****************" > $USER
+echo "* User Analysis *" >> $USER
+echo "*****************" >> $USER
+echo "Accounts on the system" >> $USER
+dscl . -ls /Users >> $USER;
+echo "*****************" >> $USER
+echo "" >> $USER
+echo "User Accounts: $(dscl . -ls /Users | grep -v ^_)" >> $LOG
+echo "User Accounts, '$(dscl . -ls /Users | grep -v ^_)'" >> $CSV
+dscl . ls /Users | egrep -v ^_ | while read user
+    do
+        echo "-----------------" >> $USER
+        echo "ACCOUNT: $user" >> $USER
+        echo "ID: $(id $user)" >> $USER
+        echo "GROUPS: $(groups $user)" >> $USER
+        echo "FINGER -M: $(finger -m $user)" >> $USER
+        echo "-----------------" >> $USER
+    done    
+echo "Account data/use information stored at $USER" >> $LOG
+hashFile $USER
+unset USER
 
 # Gather Network Data
+mkdir -p $STORE/networkdata
+NET=$STORE/networkdata
+echo "Collecting Networking Data - files will be stored in $NET." >> $LOG
+netstat > $NET/netstat.txt
+head -n1 $NET/netstat.txt > $NET/estabished_connections.txt
+grep ESTABLISHED $NET/netstat.txt >> $NET/established_connections.txt
+hashFile $NET/netstat.txt
+hashFile $NET/established_connections.txt
+ifconfig > $NET/ifconfig
+hashFile $NET/ifconfig
+networksetup -listallhardwareports > $NET/networksetup_hardwareports.txt
+hashFile $NET/networksetup_hardwareports.txt
+CONS=$(lsof -i)
+echo $CONS > $NET/lsof_i.txt
+hashFile $NET/lsof_i.txt
+echo "LSOF -I,'$(echo $CONS)'" >> $CSV
+unset CONS
+arp -a > $NET/arp.txt
+hashFile $NET/arp.txt
+echo "SECURITY TRUST SETTINGS: $(security dump-trust-settings)" >> $LOG
+echo "SECURITY TRUST SETTINGS, '$(security dump-trust-settings)'" >> $CSV
+smbutil statshares -a > $NET/smb_statshares.txt
+hashFile $NET/smb_statshares.txt
+echo "" >> $LOG
+
+# Collect process information
+mkdir -p $STORE/process
+PROC=$STORE/process
+echo "Collecting processor information. Data will be stored in $PROC." >> $LOG
+ps aux > $PROC/ps_aux.txt
+hashFile $PROC/ps_aux.txt
+ps axo user,pid,ppid,start,command > $PROC/ps_axo.txt
+hashFile $PROC/ps_axo.txt
+lsof > $PROC/lsof.txt
+hashFile $PROC/lsof.txt
+kextstat > $PROC/kextstat.txt
+hashFile $PROC/kextstat.txt
 
 # Finalise Collection
+echo "" >> $LOG
+echo "Collection finished." >> $LOG
 echo "The CSV file has been created at $CSV" >> $LOG
 hashFile $CSV
 echo "###########################################################" >> $LOG
@@ -114,3 +191,6 @@ echo "#                                                         #" >> $LOG
 echo "# Data collection completed: $(date -u) #" >> $LOG
 echo "#                                                         #" >> $LOG
 echo "###########################################################" >> $LOG
+echo "------------------------------------------------------------------"
+echo "                      Collection has completed "
+echo "------------------------------------------------------------------"
