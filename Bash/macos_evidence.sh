@@ -69,15 +69,34 @@ SYSTEMCSV=$STORE/systeminfo.csv
 rm $SYSTEM # ensure it starts clean
 rm $SYSTEMCSV # ensure it starts clean
 echo "COMMAND,OUTPUT" >> $SYSTEMCSV
-echo "DATE: $(date)" >> $SYSTEM
-echo "DATE,'$(date)'" >> $SYSTEMCSV
-echo "HOSTNAME: $(hostname)" >> $SYSTEM
-echo "HOSTNAME,'$(hostname)'" >> $SYSTEMCSV
-echo "UNAME -A: $(uname -a)" >> $SYSTEM
-echo "UNAME -A,'$(uname -a)'" >> $SYSTEMCSV
-echo "SW_VERS: $(sw_vers)" >> $SYSTEM
-echo "SW_VERS, '$(sw_vers)'" >> $SYSTEMCSV
-
+CMD=$(date)
+echo "DATE: $CMD" >> $SYSTEM
+echo "DATE,'$CMD'" >> $SYSTEMCSV
+CMD=$(date -u)
+echo "DATE (UTC): $CMD" >> $SYSTEM
+echo "DATE (UTC),'$CMD'" >> $SYSTEMCSV
+CMD=$(hostname)
+echo "HOSTNAME: $CMD" >> $SYSTEM
+echo "HOSTNAME,'$CMD'" >> $SYSTEMCSV
+CMD=$(uname -a)
+echo "UNAME -A: $CMD" >> $SYSTEM
+echo "UNAME -A,'$CMD'" >> $SYSTEMCSV
+CMD=$(sw_vers)
+echo "SW_VERS: $CMD" >> $SYSTEM
+echo "SW_VERS,'$CMD'" >> $SYSTEMCSV
+CMD=$(nvram)
+echo "NVRAM: $CMD" >> $SYSTEM
+echo "NVRAM,'$CMD'" >> $SYSTEMCSV
+CMD=$(uptime)
+echo "UPTIME: $CMD" >> $SYSTEM
+echo "UPTIME,'$CMD'" >> $SYSTEMCSV
+CMD=$(spctl --status)
+echo "SPTCL STATUS: $CMD" >> $SYSTEM
+echo "SPTCL STATUS,'$CMD'" >> $SYSTEMCSV
+CMD=$(bash --version)
+echo "BASH VERSION: $CMD" >> $SYSTEM
+echo "BASH VERSION,'$CMD'" >> $SYSTEMCSV
+unset CMD
 echo "System info collected and added to $SYSTEM." >> $LOG
 hashFile $SYSTEM
 echo "A CSV of the system info is at $SYSTEMCSV." >> $LOG
