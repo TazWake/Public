@@ -11,7 +11,7 @@
 
 # Set up environment
 STORE="$1"
-TEMPNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 8)
+TEMPNAME=$(cat /dev/urandom | head -c 12 | shasum | head -c 8)
 TEMPFILE=$STORE/$TEMPNAME
 ERRLOG=$STORE/errors.txt
 exec 2> $ERRLOG
@@ -26,7 +26,7 @@ fi
 function hashFile () {
     FILE="$1"
     if [ -f "$FILE" ]; then
-        SHA1HASH=$(sha1sum $FILE)
+        SHA1HASH=$(shasum $FILE)
         echo "SHA1 Hash: $SHA1HASH;" >> $LOG
     else
         echo "WARNING: There has been a problem hashing the file. This script will exit."
