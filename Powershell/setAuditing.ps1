@@ -103,6 +103,7 @@ if ($adv -eq "y") {
     Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable
+    write-host "[!] NOTE: The firewall setting will now include logging every event and can be noisy!"
     Auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:enable
     Auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:enable /failure:disable
     Auditpol /set /subcategory:"Directory Service Access" /success:enable /failure:enable
