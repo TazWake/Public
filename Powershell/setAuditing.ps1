@@ -14,8 +14,8 @@
     
 .NOTES
     Author: Taz Wake
-    Last Edit: 07 June 2021
-    Version 1.1 - Typos corrected
+    Last Edit: 27 Aug 2021
+    Version 1.2 - Updated to increase logsizes and include USB logging.
 
 #>
 
@@ -25,9 +25,13 @@ write-host "This script will ensure baseline audting has been applied. NOTE: It 
 write-host "[!] Setting Security log to 1048576000 - this should ensure 7 days logs are retained as a minimum."
 wevtutil sl Security /ms:1048576000
 
+write-host "[!] Setting System and Application logs to 262144000 - this should ensure 7 days logs are retained as a minimum."
+wevtutil sl System /ms:262144000
+wevtutil sl Application /ms:262144000
+
 write-host "[!] Setting Powershell logging to a minimum of 512mb. This can be increased if needed and you should set up powershell command line history."
-wevtUtil sl "Windows PowerShell" /ms:512000000
-wevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:512000000
+wevtUtil sl "Windows PowerShell" /ms:524288000
+wevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:524288000
 
 write-host "[!] Enabling Powershell Module Logging and ScriptBlock Logging."
 reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 
@@ -38,6 +42,12 @@ reg add "hklm\software\microsoft\windows\currentversion\policies\system\audit" /
 
 write-host "[!] Enabling DNS Client Logging"
 wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
+
+write-host "[!] Enabling Task Scheduler Logging"
+reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-TaskScheduler/Operational" /v Enabled /t REG_DWORD /d 1
+
+write-host "[!] Enabling USB History Logging"
+reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-DriverFrameworks-UserMode/Operational" /v Enabled /t REG_DWORD /d 1
 
 write-host "[!] Forcing advanced auditing policy."
 reg add "hklm\System\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1
