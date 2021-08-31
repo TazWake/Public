@@ -4,6 +4,8 @@
 # STATUS: DRAFT
 # Environment: 64bit Ubuntu
 #
+# based on https://gist.github.com/Neo23x0/9fe88c0c5979e017a389b90fd19ddfee
+#
 # USE:
 # ./setAuditD.sh
 # 
