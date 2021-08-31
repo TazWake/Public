@@ -39,13 +39,13 @@ fi
 # Noise reduction
 # removing references to current working directory, SELinux AVC records, End of Entry events, Cronn noise, Chrony and key refs for public facing systems.
 echo "[ ] Reducing noise."
-auditctl -a always,exclude -F msgtype=CWD
-auditctl -a always,exclude -F msgtype=AVC
-auditctl -a always,exclude -F msgtype=EOE
-auditctl -a never,user -F subj_type=crond_t
-auditctl -a exit,never -F subj_type=crond_t
-auditctl -a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
-auditctl -a always,exclude -F msgtype=CRYPTO_KEY_USER
+echo "-a always,exclude -F msgtype=CWD
+-a always,exclude -F msgtype=AVC
+-a always,exclude -F msgtype=EOE
+-a never,user -F subj_type=crond_t
+-a exit,never -F subj_type=crond_t
+-a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
+-a always,exclude -F msgtype=CRYPTO_KEY_USER" > /etc/audit/rules.d/10-noisereduction.rules
 
 # Set up auditing modules
 # Ensure Events that modify date and time information are collected
