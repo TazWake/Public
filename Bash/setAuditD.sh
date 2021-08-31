@@ -106,6 +106,35 @@ echo "-a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftrun
 -a always,exit -F arch=b64 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -k access
 -a always,exit -F arch=b32 -S creat -S open -S openat -S truncate -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -k access" > /etc/audit/rules.d/60-access.rules
 
+# Ensure use of privileged commands is collected
+echo "[ ] Auditing Privileged command use."
+find / -xdev \( -perm -4000 -o -perm -2000 \) -type f | awk '{print "-a always,exit -F path=" $1 " -F perm=x -F auid>='"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' -F auid!=4294967295 -k privileged" }' >> /etc/audit/rules.d/60-privileged.rules
+
+# Ensure successful file system mounts are collected
+echo "[ ] Auditing file system mount events."
+echo "-a always,exit -F arch=b64 -S mount -F auid>=1000 -F auid!=4294967295 -k mounts
+-a always,exit -F arch=b32 -S mount -F auid>=1000 -F auid!=4294967295 -k mounts" > /etc/audit/rules.d/60-mounts.rules
+
+# Ensure file deletion events by users are collected
+echo "[ ] Auditing file deletion events."
+echo "-a always,exit -F arch=b64 -S unlink -S unlinkat -S rename -S renameat -F auid>=1000 -F auid!=4294967295 -k delete
+-a always,exit -F arch=b32 -S unlink -S unlinkat -S rename -S renameat -F auid>=1000 -F auid!=4294967295 -k delete" > /etc/audit/rules.d/60-delete.rules
+
+# Ensure changes to system administration scope (sudoers) is collected
+echo "[ ] Auditing changes to sudoers file."
+echo "-w /etc/sudoers -p wa -k scope
+-w /etc/sudoers.d/ -p wa -k scope" > /etc/audit/rules.d/60-scope.rules
+
+# Ensure system administrator command executions (sudo) are collected
+echo "[ ] Auditing sudo use."
+echo "-a always,exit -F arch=b64 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions
+-a always,exit -F arch=b32 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions" > /etc/audit/rules.d/60-actions.rules
+
+
+
+
+
+
 
 # ##################################
 # ###         END BLOCK          ###
