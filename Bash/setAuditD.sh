@@ -21,7 +21,7 @@ if [[ $EUID != 0 ]]; then
     exit 255;
 else
     echo "[ ] Audit set-up script running. New files will be created with a 60-* prefix."
-    echo "[ ] Running with correct privilges."
+    echo "[ ] Running with correct privileges."
 fi
 
 # Check for auditd
