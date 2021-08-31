@@ -178,5 +178,8 @@ echo "-e 2" > /etc/audit/rules.d/99-final.rules
 # ##################################
 # ###         END BLOCK          ###
 # ##################################
+echo "[!] Rule creation completed. Generating new audit.rules file."
 augenrules
+echo "[!] Restarting auditd."
 systemctl restart auditd
+echo "[!] Script complete."
