@@ -130,11 +130,16 @@ echo "[ ] Auditing sudo use."
 echo "-a always,exit -F arch=b64 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions
 -a always,exit -F arch=b32 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions" > /etc/audit/rules.d/60-actions.rules
 
+# Ensure kernel module loading and unloading is collected
+echo "[ ] Auditing kernel module loads."
+echo "-w /sbin/insmod -p x -k modules
+-w /sbin/rmmod -p x -k modules
+-w /sbin/modprobe -p x -k modules
+-a always,exit -F arch=b64 -S init_module -S delete_module -k modules" > /etc/audit/rules.d/60-modules.rules
 
-
-
-
-
+# Ensure the audit configuration is immutable
+echo "[ ] Setting configuration to immutable."
+echo "-e 2" > /etc/audit/rules.d/99-final.rules
 
 # ##################################
 # ###         END BLOCK          ###
