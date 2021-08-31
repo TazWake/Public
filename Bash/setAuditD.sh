@@ -40,14 +40,15 @@ fi
 
 # Noise reduction
 # removing references to current working directory, SELinux AVC records, End of Entry events, Cronn noise, Chrony and key refs for public facing systems.
-echo "[ ] Reducing noise."
-echo "-a always,exclude -F msgtype=CWD
--a always,exclude -F msgtype=AVC
--a always,exclude -F msgtype=EOE
--a never,user -F subj_type=crond_t
--a exit,never -F subj_type=crond_t
--a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
--a always,exclude -F msgtype=CRYPTO_KEY_USER" > /etc/audit/rules.d/10-noisereduction.rules
+# This bit may be broken
+#echo "[ ] Reducing noise."
+#echo "-a always,exclude -F msgtype=CWD
+#-a always,exclude -F msgtype=AVC
+#-a always,exclude -F msgtype=EOE
+#-a never,user -F subj_type=crond_t
+#-a exit,never -F subj_type=crond_t
+#-a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
+#-a always,exclude -F msgtype=CRYPTO_KEY_USER" > /etc/audit/rules.d/50-noisereduction.rules
 
 # Set up auditing modules
 # Ensure Events that modify date and time information are collected
@@ -168,7 +169,7 @@ echo "-a always,exit -F arch=b32 -S all -k 32bit_api
 -a always,exit -F arch=b64 -S ptrace -F a0=0x5 -k data_injection
 -a always,exit -F arch=b32 -S ptrace -F a0=0x6 -k register_injection
 -a always,exit -F arch=b64 -S ptrace -F a0=0x6 -k register_injection
--a always,exit -F dir=/home -F uid=0 -F auid>=1000 -F auid!=4294967295 -C auid!=obj_uid -k power_abuse" > /etc/audit/rules.d/70-attacker.rules
+-a always,exit -F dir=/home -F uid=0 -F auid>=1000 -F auid!=4294967295 -C auid!=obj_uid -k power_abuse" > /etc/audit/rules.d/60-attacker.rules
 
 # Ensure the audit configuration is immutable
 echo "[ ] Setting configuration to immutable."
