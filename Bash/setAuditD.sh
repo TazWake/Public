@@ -26,14 +26,14 @@ fi
 
 # Check for auditd
 temp=$(dpkg -s auditd 2>/dev/null | grep installed | cut -d' ' -f3)
-if [ $temp != "ok" ]; then
+if [[ $temp != "ok" ]]; then
     echo "[!] auditd not installed. Installing it."
     apt install auditd audispd-plugins -y
 fi
 
 # Ensure Auditd is running
 temp=$(systemctl is-enabled auditd 2>/dev/null)
-if [ $temp != "enabled" ]; then
+if [[ $temp != "enabled" ]]; then
     echo "[!] Enabling the service."
     systemctl --now enable auditd
 fi
