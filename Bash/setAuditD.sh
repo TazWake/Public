@@ -39,7 +39,7 @@ if [ $temp != "enabled" ]; then
 fi
 
 # Noise reduction
-# removing references to current working directory, SELinux AVC records, End of Entry events, Cronn noise, Chrony and key refs for public facing systems.
+# removing references to current working directory, SELinux AVC records, End of Entry events, Cron noise, and key refs for public facing systems.
 # This bit may be broken
 #echo "[ ] Reducing noise."
 #echo "-a always,exclude -F msgtype=CWD
@@ -47,7 +47,6 @@ fi
 #-a always,exclude -F msgtype=EOE
 #-a never,user -F subj_type=crond_t
 #-a exit,never -F subj_type=crond_t
-#-a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
 #-a always,exclude -F msgtype=CRYPTO_KEY_USER" > /etc/audit/rules.d/50-noisereduction.rules
 
 # Set up auditing modules
@@ -146,21 +145,21 @@ echo "-a always,exit -F arch=b32 -S all -k 32bit_api
 -w /usr/bin/whoami -p x -k recon
 -w /etc/issue -p r -k recon
 -w /etc/hostname -p r -k recon
--w /usr/bin/wget -p x -k susp_activity
--w /usr/bin/curl -p x -k susp_activity
--w /usr/bin/base64 -p x -k susp_activity
--w /bin/nc -p x -k susp_activity
--w /bin/netcat -p x -k susp_activity
--w /usr/bin/ncat -p x -k susp_activity
--w /usr/bin/ssh -p x -k susp_activity
--w /usr/bin/socat -p x -k susp_activity
--w /usr/bin/wireshark -p x -k susp_activity
--w /usr/bin/rawshark -p x -k susp_activity
--w /usr/bin/rdesktop -p x -k sbin_susp
--w /sbin/iptables -p x -k sbin_susp 
--w /sbin/ifconfig -p x -k sbin_susp
--w /usr/sbin/tcpdump -p x -k sbin_susp
--w /usr/sbin/traceroute -p x -k sbin_susp
+-w /usr/bin/wget -p x -k suspicious
+-w /usr/bin/curl -p x -k suspicious
+-w /usr/bin/base64 -p x -k suspicious
+-w /bin/nc -p x -k suspicious
+-w /bin/netcat -p x -k suspicious
+-w /usr/bin/ncat -p x -k suspicious
+-w /usr/bin/ssh -p x -k suspicious
+-w /usr/bin/socat -p x -k suspicious
+-w /usr/bin/wireshark -p x -k suspicious
+-w /usr/bin/rawshark -p x -k suspicious
+-w /usr/bin/rdesktop -p x -k suspicious
+-w /sbin/iptables -p x -k suspicious 
+-w /sbin/ifconfig -p x -k suspicious
+-w /usr/sbin/tcpdump -p x -k suspicious
+-w /usr/sbin/traceroute -p x -k suspicious
 -a always,exit -F arch=b32 -S ptrace -k tracing
 -a always,exit -F arch=b64 -S ptrace -k tracing
 -a always,exit -F arch=b32 -S ptrace -F a0=0x4 -k code_injection
