@@ -25,7 +25,7 @@ else
 fi
 
 # Check for auditd
-temp=$(dpkg -s auditd | grep installed | cut -d' ' -f3)
+temp=$(dpkg -s auditd 2>/dev/null | grep installed | cut -d' ' -f3)
 if [ $temp != "ok" ]; then
     echo "[!] auditd not installed. Installing it."
     apt install auditd audispd-plugins -y
