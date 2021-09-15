@@ -51,4 +51,6 @@ ln /opt/afps-fuse/build/apfs-dump /usr/bin/apfs-dump
 ln /opt/afps-fuse/build/apfs-dump-quick /usr/bin/apfs-dump-quick
 ln /opt/afps-fuse/build/apfs-fuse /usr/bin/apfs-fuse
 ln /opt/afps-fuse/build/apfsutil /usr/bin/apfsutil
-echo "Script complete. Apfs-fuse has been built and binaries linked to /usr/bin."
+echo "Script complete. The apfs-fuse has been built and binaries linked to /usr/bin."
+echo ""
+echo "You can now mount an APFS evidence item with: apfs-fuse -o ro,allow_other IMAGE MOUNTPOINT"
