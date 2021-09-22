@@ -14,6 +14,10 @@
 # Notes:
 # This script must be run with root permissions.
 # This script only works on systems that use apt.
+# 
+# THANK YOU
+# This script is only possible because https://github.com/sgan81/apfs-fuse exists!
+
 
 # Check Requirements
 if [[ $EUID != 0 ]]; then
