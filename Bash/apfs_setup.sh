@@ -31,7 +31,7 @@ fi
 # Update repos.
 echo "Updating repositories. You might get prompted for answers."
 apt update
-apt install libicu-dev bzip2 cmake libz-dev libbz2-dev fuse3 libfuse3-3 libfuse3-dev clang git libattr1-dev libplist-utils git -y
+apt install libicu-dev bzip2 cmake libz-dev libbz2-dev fuse3 libfuse3-3 libfuse3-dev clang libattr1-dev libplist-utils git -y
 echo "Requirement installation complete."
 
 # Install apfs-fuse
