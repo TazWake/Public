@@ -1,14 +1,12 @@
 # This is an example of a dockerfile
 
-FROM uuntu:latest
+FROM alpine:latest
 
 # Create testing folder
 RUN mkdir -p /opt/nmap
 
 # Install nmap
-RUN apt update && \
-    apt install nmap -y
+RUN apk update && apk add nmap
 
-# Run scan
-ENTRYPOINT [ "/bin/bash" ]
-CMD ["nmap","-h"
+# Run nmap
+CMD ["nmap","-h"]
