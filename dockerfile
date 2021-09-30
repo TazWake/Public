@@ -1,6 +1,6 @@
 # This is an example of a dockerfile
 
-FROM Ubuntu:latest
+FROM uuntu:latest
 
 # Create testing folder
 RUN mkdir -p /opt/nmap
