@@ -2,8 +2,7 @@
 
 # This script gather triage data about containers on a target system
 #
-# Version 0.1
-
+# Version 0.3
 
 OUTPATH=$1
 LOGFILE=$OUTPATH/collection_log.txt
@@ -18,7 +17,6 @@ else
     echo -e "Collection commenced at $(date -u).\n\n" > $LOGFILE
 fi
 
-
 # Host data
 echo "Collecting host metadata"
 echo "**********************************************************" >> $OUTPATH/host_metadata.txt
@@ -30,8 +28,6 @@ echo -e "\n\n**********************************************************" >> $OUT
 echo -e "\nDOCKER INFO\n" >> $OUTPATH/host_metadata.txt
 echo "**********************************************************" >> $OUTPATH/host_metadata.txt
 docker info >> $OUTPATH/host_metadata.txt
-echo "**********************************************************" >> $OUTPATH/host_metadata.txt
-echo "**********************************************************" >> $OUTPATH/host_metadata.txt
 echo "**********************************************************" >> $OUTPATH/host_metadata.txt
 echo "Docker container information data collected and stored in $OUTPATH/host_metadata.txt" >> $LOGFILE
 echo -e "# File hash: $(md5sum $OUTPATH/host_metadata.txt). \n" >> $LOGFILE
@@ -110,7 +106,5 @@ done
 echo -e "Snapshots completed - all running containers have been captured.\n" >> $LOGFILE
 echo "Snapshots completed."
 
-
 echo "Collection completed. Your data is at $OUTPATH."
 echo -e "\n\nTriage collection completed at $(date -u)" >> $LOGFILE
-
