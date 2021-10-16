@@ -42,6 +42,6 @@ ENV HOME /home/analysis
 RUN pip install pip --upgrade --no-warn-script-location
 RUN pip install oletools --no-warn-script-location
 
-EXPOSE 22
+#EXPOSE 22
 
 CMD [ "/bin/zsh" ]
