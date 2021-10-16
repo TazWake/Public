@@ -1,0 +1,47 @@
+# Dockerfile for maldoc analysis
+#
+# BUILD
+# docker build -rm -t TAGS .
+#
+# RUN
+# docker run --rm -it --name "maldoc" IMAGE
+#
+# USE
+# Once the container is running, use docker cp to put maldocs in for analysis.
+# 
+# EG: docker cp /path/to/malicious/document maldoc:/home/analysis/malware
+# This will copy document to the /home/analysis/malware folder in the container named maldoc.
+
+FROM ubuntu:latest
+
+LABEL version="0.01"
+LABEL description="Maldoc analysis"
+LABEL name="maldoc"
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends apt-utils 
+RUN apt-get install -y --no-install-recommends curl sudo wget yara nano vim zsh git ghostscript python-setuptools exif python
+RUN apt-get install -y --no-install-recommends python3-pip
+RUN apt-get autoremove --purge -y
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN useradd -m analysis && adduser analysis sudo && echo "analysis:infected" | chpasswd
+RUN chsh -s /bin/zsh analysis
+RUN touch /home/analysis/.zshrc
+RUN echo 'alias history="history 0"' >> /home/analysis/.zshrc
+RUN echo "PATH=$PATH:/home/analysis/.local/bin" >> /home/analysis/.zshrc
+RUN mkdir /opt/pdfid && git clone --recursive https://github.com/Rafiot/pdfid/ /opt/pdfid/
+RUN chmod +x /opt/pdfid/pdfid/pdfid.py
+RUN chown -R analysis /usr/local/bin
+RUN chown -R analysis /opt/
+RUN ln -s /opt/pdfid/pdfid/pdfid.py /usr/local/bin/pdfid
+
+WORKDIR /home/analysis
+
+USER analysis
+ENV HOME /home/analysis
+
+RUN pip install pip --upgrade --no-warn-script-location
+RUN pip install oletools --no-warn-script-location
+
+EXPOSE 22
+
+CMD [ "/bin/zsh" ]
