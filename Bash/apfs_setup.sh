@@ -5,6 +5,9 @@
 # # Linux system to be able to mount    #
 # # and examine evidence images in APFS #
 # # format.                             #
+# #                                     #
+# # Version 0.9                         #
+# # 16 October 2021                     #
 # #######################################
 
 #
@@ -14,10 +17,9 @@
 # Notes:
 # This script must be run with root permissions.
 # This script only works on systems that use apt.
-# 
+#
 # THANK YOU
 # This script is only possible because https://github.com/sgan81/apfs-fuse exists!
-
 
 # Check Requirements
 if [[ $EUID != 0 ]]; then
