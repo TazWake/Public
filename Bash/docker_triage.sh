@@ -68,6 +68,7 @@ echo "# File hash: $(md5sum $OUTPATH/containers_active.txt)" >> $LOGFILE
 TMPZ=$(docker container ls | grep -v 'CONTAINER ID' | awk '{ print $1":"$2}')
 echo -e "Container inspect output\n" > $OUTPATH/container_inspect.txt
 echo -e "Container logs output\n" > $OUTPATH/container_logs.txt
+echo -e "Running Processes\n" > $OUTPATH/running_processes.txt
 echo 
 for i in $TMPZ
 do
@@ -79,10 +80,14 @@ do
     echo "  Checking logs: $FN, output stored in $OUTPATH/container_logs.txt" >> $LOGFILE
     echo "### Checking $FN ###" >> $OUTPATH/container_logs.txt
     docker logs $ID >> $OUTPATH/container_logs.txt
+    echo "### Checking $FN ###" >> $OUTPATH/running_processes.txt
+    echo "  Running processes: $FN, output stored in $OUTPATH/running_processes.txt" >> $LOGFILE
+    docker top $ID >> $OUTPATH/running_processes.txt
 done
 echo "Container inspection and log extraction complete."
 echo "# File hash: $(md5sum $OUTPATH/container_inspect.txt)" >> $LOGFILE
 echo "# File hash: $(md5sum $OUTPATH/container_logs.txt)" >> $LOGFILE
+echo "# File hash: $(md5sum $OUTPATH/running_processes.txt)" >> $LOGFILE
 
 # Create Snapshot
 echo "Creating snapshots."
