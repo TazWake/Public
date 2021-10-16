@@ -6,9 +6,9 @@ This README will act as the parent index with a summary of "how to use" if appro
 Sections will include:
 - [x] Volatility 2.x Plugins
 - [ ] Volatility 3.x Plugins (TBC)
-- [ ] Powershell Scripts (TBC)
+- [x] Powershell Scripts
 - [x] Bash Scripts
-- [x] Python Scripts
+- [ ] Python Scripts
 - [ ] DFIR Notes (TBC)
 
 # Volatility 2.x Plugins
