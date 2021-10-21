@@ -42,7 +42,7 @@ python setup.py install
 cd /opt 
 git clone https://github.com/ydkhatri/mac_apt
 cd /opt/mac_apt
-pip3 install ./other_dependencies/pyaff4-0.31-yk.zip 
+pip3 install ./other_dependencies/pyaff4-0.31-yk.zip --ignore-installed
 pip3 install anytree biplist construct==2.9.45 xlsxwriter plistutils kaitaistruct lz4 pytsk3==20170802 libvmdk-python==20181227 pycryptodome cryptography pybindgen==0.21.0 pillow pyliblzfse nska_deserialize
 cd 
 # Install completed
