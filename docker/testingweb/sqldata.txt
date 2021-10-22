@@ -1,0 +1,42 @@
+drop table if exists 'users';
+create table 'users' (
+    id int not null auto_increment,
+    username text not null,
+    password text not null,
+    primary key (id)
+);
+insert into 'users' (username, password) values
+    ("admin","supersekretpasswordz"),
+    ("netmaster","this is my password"),
+    ("a667d","12345678"),
+    ("jobengine","12345678");
+	  ("tristan","tR{3jT&N"),
+    ("usermoose","[6yZ->^F"),
+  	("dangermouse","[])tP8!("),
+  	("jki","hXjKA6&}"),
+  	("deepfake","2R=q>VEc"),
+	  ("snip","j8Nz&yp%"),
+	("tangent","P5Efp$]!"),
+	("stringer","%-B3vmF."),
+	("penfold","gf]B5Az4"),
+	("sweetie","7!@qC^.-"),
+	("ninajm4s3r","X9rU2!5T"),
+	("fiend","hVW=DC6w"),
+	("dagon","x+ZTCd92"),
+	("watcher","qcQ4K}GD"),
+	("superfan","5X)dTP]7"),
+	("hybrid","S5teJ>zL"),
+	("acom","2]>T{agS"),
+	("yopp","Sqj*nD!2"),
+	("nerfy","Zca$u%E9"),
+	("mizzle","tz]9kvBL"),
+	("vinde","-ewfs2BG"),
+	("grasshopper","c[qCWs4!"),
+	("daff","xW(-UAk2"),
+	("alium","/EsNd8YF"),
+	("volts","9&NKdrC>"),
+	("whistler",")9Hw^[+K"),
+	("bluewood","?$Fsna4]"),
+	("fallout","mDp6*$&U"),
+	("zonal","2!BczU%g"),
+	("hightop","zFJ5N?ZH");
