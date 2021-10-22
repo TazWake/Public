@@ -1,0 +1,33 @@
+version: '3'
+services:
+    php-apache-environment:
+        container_name: php-apache
+        build:
+            context: ./php
+            dockerfile: dockerfile
+        depends_on:
+            - db
+        volumes:
+            - ./php/src:/var/www/html/
+        ports:
+            - 9999:80
+    db:
+        container_name: test
+        image: mysql
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: NINJAROOTPASSWORD
+            MYSQL_DATABASE: vulndb
+            MYSQL_USER: dbuser
+            MYSQL_PASSWORD: secretmysqlpassword
+        ports:
+            - "9996:3306"
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        ports:
+            - '9090:80'
+        restart: always
+        environment:
+            PMA_HOST: db
+        depends_on:
+            - db
