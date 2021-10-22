@@ -1,25 +1,33 @@
 <?php
 include_once "./db.inc";
-$conn = new mysqli($host, $user, $pass, $mydatabase);
 $lname = $_POST["name"];
-
-$sql = 'SELECT password FROM users WHERE username = $lname';
-
-if ($result = $conn->query($sql)) {
-    while ($data = $result->fetch_object()) {
-        $upass[] = $data;
-    }
+$conn = new mysqli($host, $user, $pass, $mydatabase);
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
 }
+$sql = "SELECT username,password FROM users WHERE username = '".$lname."'";
+
 
 echo "<html>";
 echo "<head>";
-echo "	<title>PASSWORD LOOKUP</title>";
+echo "	<title>PASSWORD LOOKUP for ". $lname . " </title>";
 echo "</head>";
 
-echo "<body><h1>Results</h1><table>";
+echo "<body><h1>Results</h1><table border=1>";
 echo "<tr><td>Username</td><td>Password</td></tr>";
-foreach ($upass as $pwd) {
-    echo "<tr><td>". $lname . "</td><td>" . $pwd . "</td></tr>";
+
+$result = $conn->query($sql);
+if ($result->num_rows > 0) {
+    while($pwd = $result->fetch_assoc()){
+        echo "<tr><td>" . $pwd["username"] . "</td><td>" . $pwd["password"] . "</td></tr>";
+    }
+} else {
+    echo "<tr><td>" . $lname . "</td><td> NOT FOUND </td></tr>";
 }
-echo "</table></body";
+echo "</table><hr>";
+
+echo "<h2>Thank you for using this service</h2>";
+echo '<a href="/index.php">Return Home</a>';
+
+echo "</body";
 ?>
