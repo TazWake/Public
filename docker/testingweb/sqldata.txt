@@ -1,15 +1,15 @@
-drop table if exists 'users';
-create table 'users' (
+drop table if exists `users`;
+create table `users` (
     id int not null auto_increment,
     username text not null,
     password text not null,
     primary key (id)
 );
-insert into 'users' (username, password) values
+insert into `users` (username, password) values
     ("admin","supersekretpasswordz"),
     ("netmaster","this is my password"),
     ("a667d","12345678"),
-    ("jobengine","12345678");
+    ("jobengine","12345678"),
 	  ("tristan","tR{3jT&N"),
     ("usermoose","[6yZ->^F"),
   	("dangermouse","[])tP8!("),
