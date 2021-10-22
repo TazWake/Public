@@ -1,7 +1,7 @@
 version: '3'
 services:
     php-apache-environment:
-        container_name: php-apache
+        container_name: customer_webserver
         build:
             context: ./php
             dockerfile: dockerfile
@@ -12,7 +12,7 @@ services:
         ports:
             - 9999:80
     db:
-        container_name: test
+        container_name: customerdb
         image: mysql
         restart: always
         environment:
@@ -23,6 +23,7 @@ services:
         ports:
             - "9996:3306"
     phpmyadmin:
+        container_name: phpmyadmin
         image: phpmyadmin/phpmyadmin
         ports:
             - '9090:80'
