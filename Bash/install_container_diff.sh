@@ -17,7 +17,7 @@ fi
 # Install
 
 echo "Installing"
-mkdir /opt/container-diff
+mkdir -p /opt/container-diff
 curl -L https://storage.googleapis.com/container-diff/latest/container-diff-linux-amd64 -o /opt/container-diff/container-diff-linux-amd64
 install /opt/container-diff/container-diff-linux-amd64 /usr/local/bin/container-diff
 echo "Installation completed"
