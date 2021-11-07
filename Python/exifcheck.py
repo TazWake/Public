@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+This script extracts some key exif data from a docx file.
+It is not a replacement for exiftool or similar, but it can be used to make exifdata available for other tools.
+"""
+
 import docx
 import sys
 import getopt
@@ -40,7 +46,6 @@ def main(argv):
         print("Modified: " + str(metadata_dict["modified"]))
         print("Title: " + str(metadata_dict["title"]))
         print("Language: " + str(metadata_dict["language"]))
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
