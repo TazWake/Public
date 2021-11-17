@@ -92,7 +92,10 @@ Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failur
 Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
-Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable
+# This is VERY noisy
+write-host "[!] NOTE System Integrity auditing will be enabled. This may generate a very large number of ID 5061 events that are simply down to normal system use."
+Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable 
+
 
 write-host "[ ] "
 write-host "[!] Advanced auditing options can generate a lot more events and should only be enabled if required. Most systems will not need this level of auditing."
