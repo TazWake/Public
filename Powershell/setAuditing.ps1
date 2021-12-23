@@ -24,14 +24,19 @@ write-host "This script will ensure baseline audting has been applied. NOTE: It 
 
 write-host "[!] Setting Security log to 1048576000 - this should ensure 7 days logs are retained as a minimum."
 wevtutil sl Security /ms:1048576000
+#reg add hklm\system\CurrentControlSet\services\eventlog\Security /v MaxSize /t REG_DWORD /d 524288000 /f
 
 write-host "[!] Setting System and Application logs to 262144000 - this should ensure 7 days logs are retained as a minimum."
 wevtutil sl System /ms:262144000
+#reg add hklm\system\CurrentControlSet\services\eventlog\System /v MaxSize /t REG_DWORD /d 262144000 /f
 wevtutil sl Application /ms:262144000
+#reg add hklm\system\CurrentControlSet\services\eventlog\Application /v MaxSize /t REG_DWORD /d 262144000 /f
 
 write-host "[!] Setting Powershell logging to a minimum of 512mb. This can be increased if needed and you should set up powershell command line history."
 wevtUtil sl "Windows PowerShell" /ms:524288000
+#reg add "hklm\system\CurrentControlSet\services\eventlog\Windows PowerShell" /v MaxSize /t REG_DWORD /d 262144000 /f
 wevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:524288000
+#reg add "hklm\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-PowerShell/Operational" /v MaxSize /t REG_DWORD /d 524288000 /f
 
 write-host "[!] Enabling Powershell Module Logging and ScriptBlock Logging."
 reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 
@@ -42,6 +47,7 @@ reg add "hklm\software\microsoft\windows\currentversion\policies\system\audit" /
 
 write-host "[!] Enabling DNS Client Logging"
 wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
+#reg add "hklm\software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-DNS-Client/Operational" /v Enabled /t REG_DWORD /d 1
 
 write-host "[!] Enabling Task Scheduler Logging"
 reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-TaskScheduler/Operational" /v Enabled /t REG_DWORD /d 1
