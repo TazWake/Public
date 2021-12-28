@@ -51,6 +51,7 @@ wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
 
 write-host "[!] Enabling Task Scheduler Logging"
 reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-TaskScheduler/Operational" /v Enabled /t REG_DWORD /d 1
+#wevtutil set-log Microsoft-Windows-TaskScheduler/Operational /enabled:true
 
 write-host "[!] Enabling USB History Logging"
 reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-DriverFrameworks-UserMode/Operational" /v Enabled /t REG_DWORD /d 1
