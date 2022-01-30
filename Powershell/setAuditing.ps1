@@ -102,7 +102,7 @@ Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:
 # This is VERY noisy
 write-host "[!] NOTE System Integrity auditing will be enabled. This may generate a very large number of ID 5061 events that are simply down to normal system use."
 Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable 
-write-host "[ ] if you need to disable this, run + Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable + from a command prompt.
+write-host '[ ] if you need to disable this, run + Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable + from a command prompt.'
 write-host "[ ] "
 
 write-host "[ ] "
