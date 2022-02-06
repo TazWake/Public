@@ -33,7 +33,7 @@ Add-Content -Path \Evidence\$env:COMPUTERNAME\log.txt -Value "Memory capture ini
 Start-Sleep -Seconds 3
 Write-host -ForegroundColor Yellow "[ ] Launching Magnet RAM Capture to collect a memory image."
 Write-host -ForegroundColor Yellow "[!] This may take a long time. "
-Wait-Process -name "MRC"
+Wait-Process -Name "MRC"
 Write-host -ForergroundColor DarkYellow "[X] Capture complete, logging OS build data. Renaming evidence."
 [System.Environment]::OSVersion.Version > .\Evidence\$env:COMPUTERNAME\OS_build_version.txt
 Get-ChildItem -Filter 'MagnetRAMCapture*' -Recurse | Rename-Item -NewName {$_.name -replace 'MagnetRAMCapture', $env:COMPUTERNAME }
