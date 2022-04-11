@@ -11,7 +11,7 @@ Requirements:
     3. A correctly licenced copy of KAPE with appropriate targets/modules on in a folder called Kape at the root of the USB.
     4. A copy of Magnet Ram Capture (MRC.exe) on root of the USB.
 
-Exectution:
+Execution:
     1. Run powershell with Administrator privileges.
     2. Navigate to the USB.
     3. .\collectEvidence.ps1
