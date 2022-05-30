@@ -41,7 +41,7 @@ class FastTriage(plugins.PluginInterface):
                 bypass = "bypass" # filename is incomplete, skip this check
             else:
                 exename, extension = procname.split('.') # Split the filename
-                if len(exename) < 4: 
+                if len(exename) < 3: 
                     status = "Short filename"
             # check for extra lsass
             filename = "lsass.exe"
