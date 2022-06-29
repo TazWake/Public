@@ -6,7 +6,6 @@
 # checks to see if the last modified by field looks odd.
 #
 # USE
-#
 # filename.sh path start-date end-date
 #
 # EXAMPLE
