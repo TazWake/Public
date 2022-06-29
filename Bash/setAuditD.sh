@@ -13,6 +13,10 @@
 # Must be run as root.
 # It assumes auditd is installed - if it isnt:
 #    apt install auditd audispd-plugins
+# 
+# Warning:
+# This can be noisy. You should consider tuning any activity logged by this 
+# before using as a SIEM trigger.
 
 # Check Requirements
 if [[ $EUID != 0 ]]; then
