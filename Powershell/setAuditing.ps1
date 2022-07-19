@@ -96,19 +96,26 @@ Auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable
 Auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failure:enable
-Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
+write-host "[ ] "
+write-host "[!] Sensitive Privilege Use auditing has been disabled."
+Auditpol /set /subcategory:"Sensitive Privilege Use" /success:disable /failure:disable
+# This is VERY noisy and doesn't offer much value - if you really must enable it, uncomment the next line
+# Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
+write-host "[ ] If you absolutely require Sensitive Privilege Use auditing, please edit the script and re-run it or"
+write-host "[ ] run + Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable+ from a command prompt."
+write-host "[ ] "
+write-host "[ ] "
 Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
 # This is VERY noisy
-write-host "[!] NOTE System Integrity auditing will be enabled. This may generate a very large number of ID 5061 events that are simply down to normal system use."
-Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable 
-write-host '[ ] if you need to disable this, run + Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable + from a command prompt.'
+write-host "[!] NOTE System Integrity auditing will be disabled. This may generate a very large number of ID 5061 events that are simply down to normal system use."
+Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable 
+write-host "[ ] if you need to log this, run + Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable + from a command prompt."
 write-host "[ ] "
-
 write-host "[ ] "
 write-host "[!] Advanced auditing options can generate a lot more events and should only be enabled if required. Most systems will not need this level of auditing."
 write-host "[ ] "
-$adv = Read-Host -Prompt "[?]Do you want to enable advanced auditing? [y/n]"
+$adv = Read-Host -Prompt "[?] Do you want to enable advanced auditing? [y/n]"
 if ($adv -eq "y") {
     write-host "[!] Advanced auditing enabled"
     Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
