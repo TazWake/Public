@@ -2,7 +2,11 @@
 # This script is a starter-script for capturing
 # data from a suspected-compromised MacOS host.
 #
-# This is no a Forensic Evidence script. It is
+# NOTE: THIS IS NOT A FINISHED PRODUCT!!!
+# It is designed to provide a starting point for 
+# your own tailored collection scripts.
+#
+# This is not a Forensic Evidence script. It is
 # designed to support incident response.
 #
 # SYNTAX
