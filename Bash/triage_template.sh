@@ -72,6 +72,26 @@ else
     exit 255;
 fi
 
+# INPUT DATES
+# No sanitisation takes place here, other than to check a date has been entered.
+# For a production script this should be modifited to prevent external parties compromising the server.
+echo "Script exectuion will start soon. Please provide some additional details."
+read -p "Enter the earliest date you want to search for (yyyy/mm/dd): " sdate
+if [ "z$sdate" != "z" ] && date -d "$sdate" >/dev/null; then
+    read -p "Enter the latest date you want to search for (yyyy/mm/dd):" edate
+    if [ "z$edate" != "z" ] && date -d "$edate" >/dev/null; then
+    echo "[*] Date ranges selected."
+    echo "[*] Searches will run from $sdate to $edate."
+    echo "[!] WARNING: The usernames hunted down will still include exercise date unless it has been manually changed"
+    else
+        echo "Invalid end date entered."
+	exit 255;
+    fi
+else 
+    echo "Invalid start date entered."
+    exit 255;
+fi
+
 # SET UP LOGGING
 echo "*******************" >> $LOGFILE
 echo "EVIDENCE COLLECTION" >> $LOGFILE
@@ -248,19 +268,19 @@ echo "[ ] Search carried out for files with SUID bit set. Results saved to $EVID
 echo "[!] Check for unexpected entries." >> $LOGFILE
 echo "- Checked for files with SUID bit set."
 hashfile $EVIDENCE/files/suid_set.txt
-echo "[!] This script will now search the evidence for file modifications between 2018-08-01 and 2018-09-15. If this date range is not correct, please modify the script appropriately."
-find $DATA -type f -newermt 2018-08-01 ! -newermt 2018-09-15 -exec ls -alht {} \; | grep -v "/sess_" > $EVIDENCE/files/modified_1Aug-15Sep.txt # this is looking for files within the suspected incident timeline and has excluded php session files to reduce noise.
-echo "[ ] A list of files modified between 2018-08-01 and 2018-09-15 has been copied to $EVIDENCE/files/modified_1Aug-15Sep.txt" >> $LOGFILE
+echo "[!] This script will now search the evidence for file modifications between $sdate and $edate. If this date range is not correct, please modify the script appropriately."
+find $DATA -type f -newermt $sdate ! -newermt $edate -exec ls -alht {} \; | grep -v "/sess_" > $EVIDENCE/files/modified_during_window.txt # this is looking for files within the suspected incident timeline and has excluded php session files to reduce noise.
+echo "[ ] A list of files modified between $sdate and $edate has been copied to $EVIDENCE/files/modified_during_window.txt" >> $LOGFILE
 echo "[!] This date range is to cover the suspected incident timeframe. Check for unexpected entries, files that appear in other lists or even signs that attackers have caused processes to crash." >> $LOGFILE
-echo "[!] There are $(wc -l $EVIDENCE/files/modified_1Aug-15Sep.txt) lines in the file." >> $LOGFILE
-hashfile $EVIDENCE/files/modified_1Aug-15Sep.txt
+echo "[!] There are $(wc -l $EVIDENCE/files/modified_modified_during_window.txt) lines in the file." >> $LOGFILE
+hashfile $EVIDENCE/files/modified_modified_during_window.txt
 
-find $DATA -type f -newerct 2018-08-01 ! -newerct 2018-09-15 -exec ls -alht {} \; | grep -v "/sess_" > $EVIDENCE/files/metachange_1Aug-15Sep.txt # this is looking for files within the suspected incident timeline and has excluded php session files to reduce noise.
-echo "[ ] A list of files where the metadata has changed between 2018-08-01 and 2018-09-15 has been copied to $EVIDENCE/files/metachange_1Aug-15Sep.txt" >> $LOGFILE
-echo "- A list of files where the metadata has changed between 2018-08-01 and 2018-09-15 has been copied to $EVIDENCE/files/metachange_1Aug-15Sep.txt"
+find $DATA -type f -newerct $sdate ! -newerct $edate -exec ls -alht {} \; | grep -v "/sess_" > $EVIDENCE/files/metachange_modified_during_window.txt # this is looking for files within the suspected incident timeline and has excluded php session files to reduce noise.
+echo "[ ] A list of files where the metadata has changed between $sdate and $edate has been copied to $EVIDENCE/files/metachange_modified_during_window.txt" >> $LOGFILE
+echo "- A list of files where the metadata has changed between $sdate and $edate has been copied to $EVIDENCE/files/metachange_modified_during_window.txt"
 echo "[!] This date range is to cover the suspected incident timeframe. Check for unexpected entries, files that appear in other lists or even signs that attackers have caused processes to crash." >> $LOGFILE
-echo "[!] There are $(wc -l $EVIDENCE/files/metachange_1Aug-15Sep.txt) lines in the file." >> $LOGFILE
-hashfile $EVIDENCE/files/metachange_1Aug-15Sep.txt
+echo "[!] There are $(wc -l $EVIDENCE/files/metachange_modified_during_window.txt) lines in the file." >> $LOGFILE
+hashfile $EVIDENCE/files/metachange_modified_during_window.txt
 
 echo "- Checking sudoers files."
 cp $DATA/etc/sudoers $EVIDENCE/files/sudoers.txt
