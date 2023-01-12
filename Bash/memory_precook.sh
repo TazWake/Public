@@ -7,9 +7,9 @@
 # This script runs a standard battery of memory analysis tools against a sample image to provide a standardised set of artefacts
 # Two arguments are required - the file name of the memory image and the volatility profile to be used
 #
+# With volatility 3 this script needs extensive modification.
 #
-# With volatility 3, the second argument can be removed and the script modified appropriately
-#
+# This script is provided "as is" - any issues or errors should be corrected locally.
 #
 # ASSUMPTIONS
 # vol.py is in the path - if not update the script appropriately.
