@@ -2,11 +2,33 @@
 
 # This script takes two arguments, an inode number and drive, then dumps the block containing the inode.
 
+# Check to see if fsstat and blkcat exist
+
+if ! command -v fsstat &>/dev/null
+then
+    echo "Unable to locate fsstat. This script will exit"
+    exit
+fi
+if ! command -v blkcat &>/dev/null
+then
+    echo "Unable to locate blkcat. This script will exit"
+    exit
+fi
+
+
 clear
 echo "!! Begining EXT4 block extraction !!"
 read -p "What is the inode number? " INODE
-read -p "What is the device or drive address? " DRIVE
+read -p "What is the path to the image? " DRIVE
+# Check the device exists
+if [ ! -f "$DRIVE" ]
+then
+    echo "The image does not exist. Exiting."
+    exit
+fi
+
 echo ""
+
 echo "[X] Recovering inode $INODE from $DRIVE."
 echo ""
 GROUP=$(($INODE/8192))
