@@ -1,8 +1,20 @@
 #!/bin/bash
 
 # This script takes two arguments, an inode number and drive, then dumps the block containing the inode.
-
+# NOTE Command line arguments not yet implemented - it will only ask the user.
 # Check to see if fsstat and blkcat exist
+
+Help()
+{
+    # Help Function
+    echo "This script will identify the block containing a given inode from an EXT4 image and export it to disk."
+    echo ""
+    echo "Syntax: scriptname -i -p"
+    echo "Arguments:"
+    echo "    -i: inode number"
+    echo "    -p: path to the disk image"
+    echo ""
+}
 
 if ! command -v fsstat &>/dev/null
 then
@@ -15,9 +27,14 @@ then
     exit
 fi
 
-
 clear
 echo "!! Begining EXT4 block extraction !!"
+while getopts ":h" option; do
+    case $option in
+        h) Help
+           exit;;
+    esac
+done
 read -p "What is the inode number? " INODE
 read -p "What is the path to the image? " DRIVE
 # Check the device exists
@@ -28,7 +45,6 @@ then
 fi
 
 echo ""
-
 echo "[X] Recovering inode $INODE from $DRIVE."
 echo ""
 GROUP=$(($INODE/8192))
@@ -45,6 +61,12 @@ echo "[ ] This is $OFFSET blocks into the group."
 BLOCK=$(($START+$OFFSET))
 echo "[ ] Extracting block $BLOCK."
 blkcat $DRIVE $BLOCK > extracted_block_$BLOCK
-echo "[X] Extraction complete. The block is at ./extracted_block_$BLOCK."
+echo "[X] The block is at ./extracted_block_$BLOCK."
 # Calculate hex offset
-# use XXD to carve the block to find the specific inode
+OFFS=$(expr $COUNTINTOGROUP % 16)
+echo "[ ] The inode offset is $OFFS"
+HEXOFFS=$(($OFFS * 256))
+echo "[ ] The hex offset is $HEXOFFS"
+xxd -s $HEXOFFS -l 256 extracted_block_$BLOCK > inode_$INODE.txt
+echo "[X] The inode itself has been extracted to inode_$INODE.txt"
+echo "[X] Extraction complete."
