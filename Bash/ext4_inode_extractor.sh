@@ -1,12 +1,10 @@
 #!/bin/bash
 
 # This script takes two arguments, an inode number and drive, then dumps the block containing the inode.
-
-# Check to see if fsstat and blkcat exist
+# Set up the help function
 
 Help()
 {
-    # Help Function
     echo ""
     echo "This script will identify the block containing a given inode from an EXT4 image and export it to disk."
     echo ""
@@ -15,7 +13,12 @@ Help()
     echo "    -i: inode number"
     echo "    -p: path to the disk image"
     echo ""
+    echo "Also:"
+    echo "    -h: Show this help file and exit."
+    echo ""
 }
+
+# Check to see if the TSK components exist.
 
 if ! command -v fsstat &>/dev/null
 then
@@ -29,6 +32,8 @@ then
     exit
 fi
 
+# Take command line arguments
+
 while getopts ":i:p:h" option; do
     case $option in
         i) INODE=${OPTARG}
@@ -40,12 +45,15 @@ while getopts ":i:p:h" option; do
     esac
 done
 
+# Check arguments have been supplied
+
 if [ -z "${INODE}" ] || [ -z "${DRIVE}" ]
 then
     Help
     exit;
 fi
 
+# Start processing
 clear
 echo "!! Starting EXT4 block extraction !!"
 #read -p "What is the inode number? " INODE
