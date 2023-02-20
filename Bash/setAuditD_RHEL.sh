@@ -2,7 +2,7 @@
 
 # This file is used to establish some auditing baselines related to CIS controls.
 # STATUS: DRAFT
-# Environment: 64bit RHEL/CentOS/Fedora
+# Environment: 64bit RHEL/CentOS/Fedora/SuSE
 #
 # based on https://gist.github.com/Neo23x0/9fe88c0c5979e017a389b90fd19ddfee
 #
