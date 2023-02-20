@@ -36,13 +36,11 @@ if [[ $temp != "enabled" ]]; then
 fi
 
 # Initial set up
-# Remove existing rules
--D
-# Set buffer
+# Remove existing rules, set buffer and handle errors
+echo "-D
 -b 8192
-# Handle failures (print a failure message) and ignore errors.
 -f 1
--i
+-i" > /etc/audit/rules.d/5-setup.rules
 
 # Noise reduction
 # removing references to current working directory, SELinux AVC records, End of Entry events, Cron noise, and key refs for public facing systems.
