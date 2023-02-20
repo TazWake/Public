@@ -101,11 +101,6 @@ echo "-a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-local
 -w /etc/hosts -p wa -k system-locale
 -w /etc/network -p wa -k system-locale" > /etc/audit/rules.d/60-system-locale.rules
 
-# Ensure events that modify the system's Mandatory Access Controls are collected 
-echo "[ ] Auditing events that modify mandatory access controls. This requires apparmor."
-echo "-w /etc/apparmor/ -p wa -k MAC-policy
--w /etc/apparmor.d/ -p wa -k MAC-policy" > /etc/audit/rules.d/60-MAC-policy.rules
-
 # Ensure login and logout events are collected 
 echo "[ ] Auditing login and logout events in faillog/lastlog/tallylog."
 echo "-w /var/log/faillog -p wa -k logins
@@ -222,7 +217,6 @@ echo "-w /usr/bin/pip -p x -k T1072_third_party_software
 -w /etc/pacman.conf -p x -k T1072_third_party_software
 -w /etc/pacman.d -p x -k T1072_third_party_software" > /etc/audit/rules.d/60-software-management.rules
 
-
 # Ensure the audit configuration is immutable
 echo "[ ] Setting configuration to immutable."
 echo "-e 2" > /etc/audit/rules.d/99-final.rules
@@ -232,6 +226,6 @@ echo "-e 2" > /etc/audit/rules.d/99-final.rules
 # ##################################
 echo "[!] Rule creation completed. Generating new audit.rules file."
 augenrules
-echo "[!] Restarting auditd."
-systemctl restart auditd
+echo "[!] Loading rules into Auditd."
+auditctl -R /etc/audit/audit.rules
 echo "[!] Script complete."
