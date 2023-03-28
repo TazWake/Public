@@ -1,0 +1,19 @@
+# This is an example Plaso filter file for Linux.
+# It is important to note that this is NOT a production version
+# and it should not be used as-is without extensive testing &
+# validation.
+
+# User History
+/home/.+/.bash_history
+/home/.+/.zsh_history
+/home/.+/.csh_history
+/root/.bash_history
+/root/.zsh_history
+/root/.csh_history
+
+# Web Server Logs
+/var/log/(apache2|httpd|nginx)/access.log*
+/var/log/(apache2|httpd|nginx)/error.log*
+
+# AuditD logs
+/var/log/audit/audit.log*
