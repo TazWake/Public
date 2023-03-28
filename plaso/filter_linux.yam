@@ -1,0 +1,37 @@
+# Plaso filter file for triaging Linux systems.
+#
+# This is very much a work in progress file. It should
+# not be considered suitable for production use at this time.
+
+---
+description: Linux AuditD Log files.
+type: include
+paths:
+- '/var/log/audit/.+[.]log'
+- '/var/log/audit/.+[.]log[.].+[.]gz'
+---
+description: Webserver Log files.
+type: include
+paths:
+- '/var/log/(httpd|apache2|nginx)/access[.]log'
+- '/var/log/(httpd|apache2|nginx)/access.log[.].+[.]gz'
+---
+description: Webserver Log files.
+type: include
+paths:
+- '/var/log/(httpd|apache2|nginx)/access[.]log'
+- '/var/log/(httpd|apache2|nginx)/access.log[.].+[.]gz'
+---
+description: Authentication files.
+type: include
+paths:
+- '/var/log/(b|w)tmp'
+- '/var/log/(b|w)tmp[.].+'
+- '/var/log/auth[.]log'
+---
+description: SAMBA Log files.
+type: include
+paths:
+- '/var/log/samba[.]log'
+- '/var/log/samba[.]log[.].+'
+---
