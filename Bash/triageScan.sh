@@ -6,9 +6,13 @@
 
 # This is an example of running a scaled triage
 # it is not designed to be used "as is" and is
-# unlikely to work
+# unlikely to work without significant modification.
 
-# OUTLINE
+# ###############
+# ## ^^^^^^^^^ ##
+# ###############
+
+# OUTLINE & USE
 # This script is based on the DFIR team wanting to run a triage collection tool on all devices in a subnet
 # To use it, you need to modify the data to match your local circumstances.
 # You need an account which has SSH access to the target systems - this is shown as "responder" in the script
