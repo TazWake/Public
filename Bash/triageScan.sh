@@ -18,6 +18,6 @@ for i in {1..254} # Modify this to include the range of IP addresses you want to
 do
   ssh responder@10.10.10.$i 'mkdir DFIR' # This is creating a folder to hold the tool and evidence
   scp CyLR responder@10.10.10.$i:/home/responder/DFIR # Modify this to match your chosen tool or script
-  ssh responder@10.10.10.$i 'cd collector && CyLR -od /home/responder/DFIR -of evidence_collection.zip' # Modify this to meet the command line arguments your tool needs
+  ssh responder@10.10.10.$i 'cd collector && chmod +x CyLR && ./CyLR -od /home/responder/DFIR -of evidence_collection.zip' # Modify this to meet the command line arguments your tool needs and remember to make the tool executable.
   scp responder@10.10.10.$i:/home/responder/collector/evidence_collection.zip ./10.10.10.$i_evidence_collection.zip # Download the output evidence
 done
