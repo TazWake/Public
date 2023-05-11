@@ -19,5 +19,5 @@ do
   ssh responder@10.10.10.$i 'mkdir DFIR' # This is creating a folder to hold the tool and evidence
   scp CyLR responder@10.10.10.$i:/home/responder/DFIR # Modify this to match your chosen tool or script
   ssh responder@10.10.10.$i 'cd collector && CyLR -od /home/responder/DFIR -of evidence_collection.zip' # Modify this to meet the command line arguments your tool needs
-  scp responder@10.10.10.$i:/home/responder/collector/evidence_collection.zip 10.10.10.$i_evidence_collection.zip # Download the output evidence
+  scp responder@10.10.10.$i:/home/responder/collector/evidence_collection.zip ./10.10.10.$i_evidence_collection.zip # Download the output evidence
 done
