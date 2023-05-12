@@ -24,4 +24,6 @@ do
   scp CyLR responder@10.10.10.$i:/home/responder/DFIR/ # Modify this to match your chosen tool or script
   ssh responder@10.10.10.$i 'cd DFIR && chmod +x CyLR && ./CyLR -od /home/responder/DFIR -of evidence_collection.zip' # Modify this to meet the command line arguments your tool needs and remember to make the tool executable.
   scp responder@10.10.10.$i:/home/responder/DFIR/evidence_collection.zip ./10.10.10.$i_evidence_collection.zip # Download the output evidence
+  # Consider adding logic to validate the download and remove it from the endpoint to reduce disk use.
+  # for example ssh responder@10.10.10.$i 'md5sum /home/responder/DFIR/evidence_collection.zip' then compare this with the local MD5 if they match run ssh responder@10.10.10.$i 'rm /home/responder/DFIR/evidence_collection.zip'
 done
