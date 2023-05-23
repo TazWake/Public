@@ -273,7 +273,7 @@ find $DATA -type f -newermt $sdate ! -newermt $edate -exec ls -alht {} \; | grep
 echo "[ ] A list of files modified between $sdate and $edate has been copied to $EVIDENCE/files/modified_during_window.txt" >> $LOGFILE
 echo "[!] This date range is to cover the suspected incident timeframe. Check for unexpected entries, files that appear in other lists or even signs that attackers have caused processes to crash." >> $LOGFILE
 echo "[!] There are $(wc -l $EVIDENCE/files/modified_modified_during_window.txt) lines in the file." >> $LOGFILE
-hashfile $EVIDENCE/files/modified_modified_during_window.txt
+hashfile $EVIDENCE/files/modified_during_window.txt
 
 find $DATA -type f -newerct $sdate ! -newerct $edate -exec ls -alht {} \; | grep -v "/sess_" > $EVIDENCE/files/metachange_modified_during_window.txt # this is looking for files within the suspected incident timeline and has excluded php session files to reduce noise.
 echo "[ ] A list of files where the metadata has changed between $sdate and $edate has been copied to $EVIDENCE/files/metachange_modified_during_window.txt" >> $LOGFILE
