@@ -8,10 +8,11 @@
 # ########
 # WARNING
 # ########
-# This is tailored to run on FOR608 data. That
-# means the searches will look for specific dates
-# and specific user names. It WILL NOT work in a
-# different environment without modification.
+# In the format shown here, this is tailored to run
+# on FOR608 data.
+# This means the searches will look for specific 
+# dates and specific user names. It WILL NOT work 
+# in a different environment without modification.
 
 # OBJECTIVE
 # Use this as a framework to build your own Linux
