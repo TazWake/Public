@@ -26,6 +26,11 @@ echo "[ ] Copying the file now."
 cp ./testfile ./newtest && echo "Testfile copied to newtest at $(date). Timestamps here are for newtest." >> ./logs/timelog.txt && stat ./newtest >> ./logs/timelog.txt && echo "--------------------------" >> ./logs/timelog.txt
 echo "[ ] Testfile copied to newtest. Timestamps on FILE COPY - using newtest - are:" && echo
 stat ./newtest && rm ./newtest
+
+echo "[ ] Checking timestamps of the source file for the copy."
+echo "Testfile was used as the source for the copy. Timestamps for testfile are now:" >> ./logs/timelog.txt && stat ./testfile >> ./logs/timelog.txt && echo "--------------------------" >> ./logs/timelog.txt
+echo "[ ] Timestamps for testfile are:" && echo
+stat ./testfile
 sleep 1
 
 echo "[ ] Move and rename are identical. Moving the file to a new name"
