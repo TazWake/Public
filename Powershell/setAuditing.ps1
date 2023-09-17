@@ -14,7 +14,7 @@
     
 .NOTES
     Author: Taz Wake
-    Last Edit: 27 Aug 2021
+    Last Edit: 17 September 2023
     Version 1.2 - Updated to increase logsizes and include USB logging.
 
 #>
