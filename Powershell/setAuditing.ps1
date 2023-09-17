@@ -16,6 +16,7 @@
     Author: Taz Wake
     Last Edit: 17 September 2023
     Version 1.2 - Updated to increase logsizes and include USB logging.
+    Version 1.3 - Firewall logging removed
 
 #>
 
@@ -123,9 +124,9 @@ if ($adv -eq "y") {
     Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
     Auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable
-    write-host "[!] NOTE: The firewall setting will now include logging every event and can be noisy!"
-    Auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:enable /failure:disable
+    write-host "[!] NOTE: The firewall settings have not been changed to reduce noise."
+    #Auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:enable
+    #Auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:enable /failure:disable
     Auditpol /set /subcategory:"Directory Service Access" /success:enable /failure:enable
     Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
     Auditpol /set /subcategory:"Handle Manipulation" /success:enable /failure:disable
