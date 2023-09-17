@@ -99,14 +99,14 @@ Auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failu
 Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failure:enable
 write-host "[ ] "
 write-host "[!] Sensitive Privilege Use auditing has been disabled. This is very noisy with limited DFIR value. If you require it, please run"
-write-host "     auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enaable"
+write-host "     auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable"
 write-host "    Enabling it will make your policies compliant with the Malwarearcheology recommendations."
 Auditpol /set /subcategory:"Sensitive Privilege Use" /success:disable /failure:disable
 # This is VERY noisy and doesn't offer much value - if you really must enable it, uncomment the next line
 # Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
-write-host "[ ] If you absolutely require Sensitive Privilege Use auditing, please edit the script and re-run it or"
-write-host "[ ] run + Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable+ from a command prompt."
-write-host "[ ] "
+# write-host "[ ] If you absolutely require Sensitive Privilege Use auditing, please edit the script and re-run it or"
+# write-host "[ ] run + Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable + from a command prompt."
+# write-host "[ ] "
 write-host "[ ] "
 Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
 Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
