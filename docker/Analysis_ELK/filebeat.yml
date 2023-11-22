@@ -1,0 +1,32 @@
+filebeat.modules:
+- module: apache
+  access:
+    enabled: true
+    var.paths: ["/usr/share/filebeat/logs/access*"]
+- module: auditd
+  log:
+    enabled: true
+    var.paths: ["/usr/share/filebeat/logs/audit*"]
+- module: system
+  syslog:
+    enabled: true
+    var.paths: ["/usr/share/filebeat/logs/syslog*", "/usr/share/filebeat/logs/messages*"]
+- module: system
+  auth:
+    enabled: true
+    var.paths: ["/usr/share/filebeat/logs/auth.log*", "/usr/share/filebeat/logs/secure*"]
+    
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+
+setup.template.name: "filebeat-8.11.0"
+setup.template.pattern: "filebeat-*"
+setup.template.enabled: true
+setup.template.overwrite: true
+
+setup.kibana:
+  host: "http://kibana:5601"
+
+setup.dashboards.enabled: true
+
+logging.level: warning
