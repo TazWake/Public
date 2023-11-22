@@ -3,6 +3,16 @@
 ## Overview
 This is designed to allow incident responders to create a quick Elasticsearch/Kibana/Filebeat instance to ingest log data. The end result will have excess fields and may require tweaking to work in specific environments. It uses the Elastic modules to provide pre-configured dashboards.
 
+The configuration file assumes there are four types of event logs being ingested. This should be modified to fit your needs. It assumes the logs are
+
+- Apache HTTPd access logs in the root of the log folder.
+- Linux auditd logs in the root of the log folder.
+- Linux syslog logs in the root of the log folder.
+- Linux messages logs in the root of the log folder.
+- Linux auth.log logs in the root of the log folder.
+- Linux secure logs in the root of the log folder.
+- MySql/MariaDB logs in a folder called mariadb_webserver in the root of the log folder.
+
 ## Components
 The following files are required:
 
