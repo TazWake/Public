@@ -9,7 +9,7 @@ services:
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 8
@@ -24,8 +24,6 @@ services:
     environment:
       - SERVER_NAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=sansforensics
-      - ELASTICSEARCH_PASSWORD=forensics
     depends_on:
       elasticsearch:
         condition: service_healthy
