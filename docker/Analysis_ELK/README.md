@@ -16,6 +16,7 @@ The output should look something like this initially:
 
 ![image](https://github.com/TazWake/Public/assets/26778008/67e6b8ed-fbea-4767-ac8a-faac62c4ca28)
 
+**NOTE: It can take a few minutes for data to be ingested.**
 
 ## Components
 The following files are required:
