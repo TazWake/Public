@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 8
+    networks:
+      - dfirnet
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    ports:
+      - 8889:5601
+    environment:
+      - SERVER_NAME=kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=sansforensics
+      - ELASTICSEARCH_PASSWORD=forensics
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'", ]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+    networks:
+      - dfirnet
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - /cases/logstore:/usr/share/filebeat/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - setup.kibana.host=kibana:5601
+    depends_on:
+      kibana:
+        condition: service_healthy
+    networks:
+      - dfirnet
+
+networks:
+  dfirnet:
