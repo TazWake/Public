@@ -26,9 +26,11 @@ The following files are required:
 - filebeat.yml
 
 ### Preparation
-Ensure that docker is installed on the system. For Ubuntu Linux run:
+Ensure that docker is installed on the system. For Ubuntu Linux, you could run:
 
-`apt update && apt install docker -y`
+`apt update && apt install docker-ce -y`
+
+Alternatively, you can install docker desktop, docker or any other package that gives you the docker runtime and docker compose commands.
 
 ### Installation
 
