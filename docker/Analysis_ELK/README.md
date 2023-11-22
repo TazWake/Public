@@ -11,7 +11,11 @@ The configuration file assumes there are four types of event logs being ingested
 - Linux messages logs in the root of the log folder.
 - Linux auth.log logs in the root of the log folder.
 - Linux secure logs in the root of the log folder.
-- MySql/MariaDB logs in a folder called mariadb_webserver in the root of the log folder.
+
+The output should look something like this initially:
+
+![image](https://github.com/TazWake/Public/assets/26778008/67e6b8ed-fbea-4767-ac8a-faac62c4ca28)
+
 
 ## Components
 The following files are required:
