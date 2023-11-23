@@ -1,13 +1,13 @@
 version: '3'
 services:
   opensearch-node1:
-    image: opensearchproject/opensearch:2
+    image: opensearchproject/opensearch:2.11.0
     container_name: opensearch-node1
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node1
-      - discovery.seed_hosts=opensearch-node1
-      - cluster.initial_master_nodes=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2
+      - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - "DISABLE_INSTALL_DEMO_CONFIG=true"
@@ -27,6 +27,7 @@ services:
       - ./roles_mapping.yml:/usr/share/opensearch/plugins/opensearch-security/securityconfig/roles_mapping.yml
     ports:
       - 9200:9200
+      - 9600:9600
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200"]
       interval: 10s
@@ -36,13 +37,15 @@ services:
       - opensearch-net
 
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2
+    image: opensearchproject/opensearch-dashboards:2.11.0
     container_name: opensearch-dashboards
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5601"]
       interval: 10s
       timeout: 10s
       retries: 6
+    volumes:
+      - ./opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
     depends_on:
       opensearch-node1:
         condition: service_healthy
@@ -51,7 +54,7 @@ services:
     expose:
       - "5601"
     environment:
-      - OPENSEARCH_HOSTS=["http://opensearch-node1:9200"]
+      OPENSEARCH_HOSTS: '["http://opensearch-node1:9200"]'
     networks:
       - opensearch-net
 
@@ -63,7 +66,7 @@ services:
       - /cases/logstore:/usr/share/filebeat/logs:ro
     environment:
       - setup.kibana.host=opensearch-dashboards:5601
-      - output.elasticsearch.hosts=["opensearch-node1:9200"]
+      - output.elasticsearch.hosts=["http://opensearch-node1:9200"]
     depends_on:
       opensearch-node1:
         condition: service_healthy
