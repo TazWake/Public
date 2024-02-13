@@ -46,6 +46,17 @@ collect_cron_jobs() {
         if [ -f "$file" ]; then
             local mtime=$(stat -c %y "$file")
             while IFS= read -r line; do
+                if [[ "$line" =~ ^#.*$ || "$line" =~ ^$ || "$line" =~ ^.*[[:space:]]ls[[:space:]].*$ ]]; then
+                    continue
+                fi
+                # Extract timing intervals and commands correctly
+                # Assuming a standard cron line format: minute hour day month weekday command
+                local timing=$(echo "$line" | awk '{print $1,$2,$3,$4,$5}')
+                local command=$(echo "$line" | cut -d' ' -f6-)
+                echo "$file,$mtime,$timing,${user:-$(echo $line | awk '{print $6}')},$command" >> "$CSV_FILE"
+            done < "$file"
+            
+            while IFS= read -r line; do
                 if [[ "$line" =~ ^#.*$ || "$line" =~ ^$ ]]; then
                     continue
                 fi
