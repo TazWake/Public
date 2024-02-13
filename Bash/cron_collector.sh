@@ -17,7 +17,7 @@ if [[ $EUID != 0 ]]; then
     echo "[!] Exiting"
     exit 1;
 else 
-    echo "[+] Running as root.
+    echo "[+] Running as root."
 
 fi
 
