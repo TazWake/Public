@@ -80,6 +80,6 @@ journalctl -t audit --directory $EVIDENCEPATH 2>/dev/null | grep PROCTITLE | awk
             cmd = cmd " ";
     }
     print $1 " " $2 " " $3 "," cmd;
-}' > $STORAGEPATH/audit_commands.csv
+}' | uniq > $STORAGEPATH/audit_commands.csv
 echo "[ ] Auditd Command Lines Checked."
 echo "[+] Analysis Complete - output is in $STORAGEPATH."
