@@ -63,5 +63,23 @@ STORAGEPATH=$STORAGEPATH/JournalTriage
 journalctl -t sshd --directory $EVIDENCEPATH 2>/dev/null | grep 'invalid' | awk 'BEGIN {print "IP Address,Username,Count"} {userIP=$12 "," $11; count[userIP]++} END {for (pair in count) print pair "," count[pair]}' > $STORAGEPATH/FailedLogins.csv
 # Check for successful SSH logins and write to file.
 journalctl -t sshd --directory $EVIDENCEPATH 2>/dev/null | grep 'Accepted' | awk 'BEGIN {print "IP Address,Username,Count"} {userIP=$9 "," $11; count[userIP]++} END {for (pair in count) print pair "," count[pair]}' > $STORAGEPATH/SuccessfulLogins.csv
+echo "[ ] Logins checked"
 # Check for sudo command use.
 journalctl -t sudo --directory $EVIDENCEPATH 2>/dev/null | grep 'COMMAND' | awk 'BEGIN {print "User,Terminal,Directory,Running As,Command"}{user = gensub(/.*\]: +(\S+).*/, "\\1", 1);tty = gensub(/.*TTY=([^ ]+).*/, "\\1", 1);pwd = gensub(/.*PWD=([^ ;]+).*/, "\\1", 1);usr = gensub(/.*USER=([^ ;]+).*/, "\\1", 1);cmd = gensub(/.*COMMAND=(.*)/, "\\1", 1);print user "," tty "," pwd "," usr "," cmd}' > $STORAGEPATH/sudo_commands.csv
+echo "[ ] Sudo commands checked."
+# extract all command lines from Auditd data (if it exists)
+journalctl -t audit --directory $EVIDENCEPATH 2>/dev/null | grep PROCTITLE | awk 'BEGIN { print "time,command" } {
+    match($0, /proctitle=([0-9a-fA-F]+)/, arr);
+    hex_encoded = arr[1];
+    cmd = ""; 
+    for(i = 1; i <= length(hex_encoded); i+=2) {
+        c = strtonum("0x" substr(hex_encoded, i, 2));
+        if(c != 0) 
+            cmd = cmd sprintf("%c", c);
+        else 
+            cmd = cmd " ";
+    }
+    print $1 " " $2 " " $3 "," cmd;
+}' > $STORAGEPATH/audit_commands.csv
+echo "[ ] Auditd Command Lines Checked."
+echo "[+] Analysis Complete - output is in $STORAGEPATH."
