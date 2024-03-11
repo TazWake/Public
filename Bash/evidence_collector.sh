@@ -65,7 +65,7 @@ if [[ $EUID != 0 ]]; then
     echo "[!] Exiting"
     exit 255;
 else
-    echo "[ ] Running with correct privilges."
+    echo "[ ] Running with correct privileges."
 fi
 touch $TEMPFILE
 if [ -f $TEMPFILE  ]; then
@@ -94,7 +94,7 @@ echo "[+] Environment Settings" >> $EVIDENCEPATH/environment.txt
 printenv >> $EVIDENCEPATH/environment.txt
 echo "[+] lsb_release details" >> $EVIDENCEPATH/environment.txt
 lsb_release -a >> $EVIDENCEPATH/environment.txt
-echo "[ ] Sysem Manufacturer: $(dmidecode -s system-manufacturer)" >> $EVIDENCEPATH/environment.txt
+echo "[ ] System Manufacturer: $(dmidecode -s system-manufacturer)" >> $EVIDENCEPATH/environment.txt
 echo "[ ] System Product Name: $(dmidecode -s system-product-name)" >> $EVIDENCEPATH/environment.txt
 echo "[ ] System Version: $(dmidecode -s system-version)" >> $EVIDENCEPATH/environment.txt
 echo "[ ] System Serial Number: $(dmidecode -s system-serial-number)" >> $EVIDENCEPATH/environment.txt
