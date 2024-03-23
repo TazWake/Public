@@ -16,7 +16,7 @@ static struct kprobe kp = {
 unsigned long *__sys_call_table;
 
 #ifdef CONFIG_X86_64
-#if LINUX_VERSiON_CODE >= KERNEL_VERSION(4,17,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)
 #define PTREGS_SYSCALL_STUB 1
 typedef asmlinkage long (*ptregs_t)(const struct pt_regs *regs)
 static ptregs_t orig_kill;
