@@ -18,10 +18,10 @@ unsigned long *__sys_call_table;
 #ifdef CONFIG_X86_64
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)
 #define PTREGS_SYSCALL_STUB 1
-typedef asmlinkage long (*ptregs_t)(const struct pt_regs *regs)
+typedef asmlinkage long (*ptregs_t)(const struct pt_regs *regs);
 static ptregs_t orig_kill;
 #else
-typedef asmlinkage long (*orig_kill_t)(pid_t pid, int sig)
+typedef asmlinkage long (*orig_kill_t)(pid_t pid, int sig);
 static orig_kill_t orig_kill;
 #endif
 #endif
@@ -86,7 +86,7 @@ static void __exit app_exit(void) {
 module_init(app_init);
 module_exit(app_exit);
 
-MODULE_LICENCE("GPL")
+MODULE_LICENCE("GPL");
 MODULE_AUTHOR("Me");
 MODULE_DESCRIPTION("This is just an LKM");
 MODULE_VERSION("0.0.0.1");
