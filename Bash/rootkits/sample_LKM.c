@@ -85,3 +85,8 @@ static void __exit app_exit(void) {
 
 module_init(app_init);
 module_exit(app_exit);
+
+MODULE_LICENCE("GPL")
+MODULE_AUTHOR("Me")
+MODULE_DESCRIPTION("This is just an LKM")
+MODULE_VERSION("0.0.0.1")
