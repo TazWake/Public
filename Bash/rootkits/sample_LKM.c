@@ -49,11 +49,11 @@ static unsigned long *get_syscall_table(void) {
 #ifdef KPROBE_LOOKUP
     typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
     kallsyms_lookup_name_t kallsyms_lookup_name;
-    int ret;
-    ret = register_kprobe(&kp);
-    if (ret < 0) {
-        printk(KERN_INFO "systemctl:failed - returned %d\n", ret);
-        return ret;
+    int retrn;
+    retrn = register_kprobe(&kp);
+    if (retrn < 0) {
+        printk(KERN_INFO "systemctl:failed - returned %d\n", retrn);
+        return retrn;
     }
     kallsyms_lookup_name = (kallsyms_lookup_name_t) kp.addr;
     unregister_kprobe(&kp);
