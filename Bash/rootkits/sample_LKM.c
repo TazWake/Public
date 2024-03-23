@@ -53,11 +53,14 @@ static unsigned long *get_syscall_table(void) {
     retrn = register_kprobe(&kp);
     if (retrn < 0) {
         printk(KERN_INFO "systemctl:failed - returned %d\n", retrn);
-        return retrn;
+        return NULL;
     }
     kallsyms_lookup_name = (kallsyms_lookup_name_t) kp.addr;
     unregister_kprobe(&kp);
     __sys_call_table = (unsigned long*)kallsyms_lookup_name("sys_call_table");
+    return __sys_call_table; 
+#else
+    return NULL;
 #endif
 
 }
