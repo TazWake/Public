@@ -22,7 +22,7 @@ typedef asmlinkage long (*ptregs_t)(const struct pt_regs *regs)
 static ptregs_t orig_kill;
 #else
 typedef asmlinkage long (*orig_kill_t)(pid_t pid, int sig)
-static orig_kill_t orig_kill
+static orig_kill_t orig_kill;
 #endif
 #endif
 
@@ -87,6 +87,6 @@ module_init(app_init);
 module_exit(app_exit);
 
 MODULE_LICENCE("GPL")
-MODULE_AUTHOR("Me")
-MODULE_DESCRIPTION("This is just an LKM")
-MODULE_VERSION("0.0.0.1")
+MODULE_AUTHOR("Me");
+MODULE_DESCRIPTION("This is just an LKM");
+MODULE_VERSION("0.0.0.1");
