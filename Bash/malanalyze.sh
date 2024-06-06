@@ -1,6 +1,6 @@
 #!/bin/bash
-# This script is designed to run some basic checks on a suspicious 
-# file and save the output as a collection of text files, which can 
+# This script is designed to run some basic checks on a suspicious
+# file and save the output as a collection of text files, which can
 # then be passed to an LLM platform for analysis.
 # Usage:
 #    ./malanalyze.sh -f filename
@@ -18,10 +18,11 @@ show_help() {
 }
 log_and_run() {
     local cmd="$1"
-    local log_file="$2"
+    local output_file="$2"
+    local log_file="$3"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     echo "[$timestamp] Running command: $cmd" >> "$log_file"
-    $cmd >> "$log_file" 2>&1
+    bash -c "$cmd" > "$output_file" 2>> "$log_file"
 }
 resolve_full_path() {
     local filename="$1"
