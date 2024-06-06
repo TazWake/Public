@@ -64,15 +64,16 @@ log_and_run "sha1sum $FP > $FOLDER/sha1hash.txt" "$log_file"
 log_and_run "readelf -a $FP > $FOLDER/readelf.txt" "$log_file"
 log_and_run "objdump -d $FP >  $FOLDER/objdump.txt" "$log_file"
 log_and_run "strings -n8 $FP >  $FOLDER/strings.txt" "$log_file"
+log_and_run "ldd $FP >  $FOLDER/ldd.txt" "$log_file"
 
 echo "[ ] Static analysis complete. Starting some additional checks."
 log_and_run "gdb $FP -ex 'info files' -ex 'disassemble main' -ex 'info functions' -ex 'info variables' -ex 'backtrace' -ex 'quit' >  $FOLDER/gdb.txt" "$log_file"
 if [ -x "$FP" ]; then
-    echo "[!] WARNING: This script is about to run dynamic checks which will cause the file at $FP to execute and run. If this file is malicious it may compromise your device. Only run this if you are in an isolated or disposable analysis environment."
+    echo "[!] WARNING: This script is about to run dynamic checks which will cause the file at $FP to execute and run. If this file is malicious it may compromise your device. Only run this if you are in an isolated or disposable analysis environment. If you run this, it is likely to take 60 seconds to complete."
     if prompt_continue; then
-        log_and_run "timeout 30 strace -o $FOLDER/strace.txt $FP" "$log_file"
+        log_and_run "timeout 30 strace -o $FOLDER/strace.txt -f -tt -e trace=all $FP" "$log_file"
         if command -v ltrace &> /dev/null; then
-            log_and_run "timeout 30 ltrace -o $FOLDER/ltrace.txt $FP" "$log_file"
+            log_and_run "timeout 30 ltrace -o $FOLDER/ltrace.txt -f -S -C $FP" "$log_file"
         else
             echo "[!] ltrace is not installed, skipping ltrace analysis." >> "$log_file"
         fi
