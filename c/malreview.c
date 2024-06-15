@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <array>
+#include <memory>
 
 namespace fs = std::filesystem;
 
@@ -46,6 +47,53 @@ void resolve_full_path(const std::string &filename, std::string &full_path) {
         std::cerr << "Error: File " << filename << " not found." << std::endl;
         exit(1);
     }
+}
+
+void upload_to_chatgpt(const std::string &filepath, const std::string &logpath) {
+    const char* api_key = std::getenv("API");
+    if (!api_key) {
+        std::cerr << "Error: API key not found. Please set the API environment variable." << std::endl;
+        exit(1);
+    }
+
+    std::string prompt = "Please review the attached file and provide an assessment of what the sample does, and if it is likely to be malicious.";
+    std::cout << "[ ] Uploading " << filepath << " and " << logpath << " to ChatGPT for analysis..." << std::endl;
+
+    // Combine the file and log content for a comprehensive analysis
+    std::ifstream file_stream(filepath);
+    std::ifstream log_stream(logpath);
+    std::stringstream file_buffer, log_buffer;
+    file_buffer << file_stream.rdbuf();
+    log_buffer << log_stream.rdbuf();
+
+    std::string combined_content = "File Content:\n" + file_buffer.str() + "\n\nLog Content:\n" + log_buffer.str();
+
+    std::string data = "{\"model\": \"gpt-4\", \"messages\": [{\"role\": \"user\", \"content\": \"" + prompt + "\\n\\n" + combined_content + "\"}]}";
+
+    std::string curl_cmd = "curl -s -X POST \"https://api.openai.com/v1/chat/completions\" "
+                           "-H \"Authorization: Bearer " + std::string(api_key) + "\" "
+                           "-H \"Content-Type: application/json\" "
+                           "-d '" + data + "'";
+
+    std::array<char, 128> buffer;
+    std::string response;
+    std::shared_ptr<FILE> pipe(popen(curl_cmd.c_str(), "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        response += buffer.data();
+    }
+
+    // Save the response as Analysis_Response_TIMESTAMP.json
+    std::string timestamp = current_utc_time();
+    std::replace(timestamp.begin(), timestamp.end(), ':', '-');
+    std::replace(timestamp.begin(), timestamp.end(), 'T', '_');
+    timestamp.erase(std::remove(timestamp.begin(), timestamp.end(), 'Z'), timestamp.end());
+    std::string response_filename = "Analysis_Response_" + timestamp + ".json";
+
+    std::ofstream response_file(response_filename);
+    response_file << response;
+
+    std::cout << "[ ] Response saved to " << response_filename << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -89,6 +137,8 @@ int main(int argc, char *argv[]) {
 
     std::cout << "[ ] Evidence is stored in " << evidence_store << " and the log file is at " << log_file << "." << std::endl;
     std::cout << "[*] The SHA256 hash of the log file is " << hash << std::endl;
+
+    upload_to_chatgpt(full_path, log_file);
 
     return 0;
 }
