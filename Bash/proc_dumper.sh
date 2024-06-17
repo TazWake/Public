@@ -12,7 +12,6 @@
 # Example:
 # proc_dumper.sh 2337
 #
-#
 
 
 grep rw-p /proc/$1/maps | sed -n 's/^\([0-9a-f]*\)-\([0-9a-f]*\).*$/\1 \2/p' | while read start stop; do \
