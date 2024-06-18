@@ -6,17 +6,21 @@ services:
     container_name: kali-container
     build:
       context: ./kali
+      dockerfile: Dockerfile
     networks:
       range_net:
         ipv4_address: 10.10.10.10
     tty: true
     stdin_open: true
+    volumes:
+      - ./testing:/root/testing
 
   nmap:
     image: nmap-scanner
     container_name: nmap-container
     build:
       context: ./nmap
+      dockerfile: Dockerfile
     networks:
       range_net:
         ipv4_address: 10.10.10.11
@@ -28,6 +32,7 @@ services:
     container_name: ubuntu-container
     build:
       context: ./target
+      dockerfile: Dockerfile
     networks:
       range_net:
         ipv4_address: 10.10.10.12
