@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  kali:
+    image: kali-test
+    container_name: kali-container
+    build:
+      context: ./kali
+    networks:
+      range_net:
+        ipv4_address: 10.10.10.10
+    tty: true
+    stdin_open: true
+
+  nmap:
+    image: nmap-scanner
+    container_name: nmap-container
+    build:
+      context: ./nmap
+    networks:
+      range_net:
+        ipv4_address: 10.10.10.11
+    depends_on: 
+      - kali
+
+  target:
+    image: ubuntu-victim
+    container_name: ubuntu-container
+    build:
+      context: ./target
+    networks:
+      range_net:
+        ipv4_address: 10.10.10.12
+    volumes:
+      - ./data:/home/john/data
+    depends_on: 
+      - kali
+
+networks:
+  range_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24
