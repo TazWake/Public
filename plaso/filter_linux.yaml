@@ -8,19 +8,23 @@ description: Linux AuditD Log files.
 type: include
 paths:
 - '/var/log/audit/.+[.]log'
+- '/var/log/audit/.+[.]log[.].+'
 - '/var/log/audit/.+[.]log[.].+[.]gz'
 ---
 description: Webserver Log files.
 type: include
 paths:
 - '/var/log/(httpd|apache2|nginx)/access[.]log'
-- '/var/log/(httpd|apache2|nginx)/access.log[.].+[.]gz'
+- '/var/log/(httpd|apache2|nginx)/access[.]log[.].+'
+- '/var/log/(httpd|apache2|nginx)/access[.]log[.].+[.]gz'
 ---
-description: Webserver Log files.
+description: Webserver SSL Log files.
 type: include
 paths:
-- '/var/log/(httpd|apache2|nginx)/access[.]log'
-- '/var/log/(httpd|apache2|nginx)/access.log[.].+[.]gz'
+- '/var/log/(httpd|apache2|nginx)/ssl_access[.]log'
+- '/var/log/(httpd|apache2|nginx)/ssl_access[.]log[.].+'
+- '/var/log/(httpd|apache2|nginx)/ssl_request[.]log'
+- '/var/log/(httpd|apache2|nginx)/ssl_request[.]log[.].+'
 ---
 description: Authentication files.
 type: include
@@ -38,10 +42,10 @@ paths:
 description: Shell History Files.
 type: include
 paths:
-- '/home/.+/.bash_history'
-- '/home/.+/.zsh_history'
-- '/home/.+/.csh_history'
-- '/root/.bash_history'
-- '/root/.zsh_history'
-- '/root/.csh_history'
+- '/home/.+/[.]bash_history'
+- '/home/.+/[.]zsh_history'
+- '/home/.+/[.]csh_history'
+- '/root/[.]bash_history'
+- '/root/[.]zsh_history'
+- '/root/[.]csh_history'
 ---
