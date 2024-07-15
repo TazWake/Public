@@ -35,3 +35,13 @@ paths:
 - '/var/log/samba[.]log'
 - '/var/log/samba[.]log[.].+'
 ---
+description: Shell History Files.
+type: include
+paths:
+- '/home/.+/.bash_history'
+- '/home/.+/.zsh_history'
+- '/home/.+/.csh_history'
+- '/root/.bash_history'
+- '/root/.zsh_history'
+- '/root/.csh_history'
+---
