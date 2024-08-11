@@ -133,8 +133,8 @@ echo "-w /etc/sudoers -p wa -k scope
 
 # Ensure system administrator command executions (sudo) are collected
 echo "[ ] Auditing sudo use."
-echo "-a always,exit -F arch=b64 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions
--a always,exit -F arch=b32 -C euid!=uid -F euid=0 -Fauid>=1000 -F auid!=4294967295 -S execve -k actions" > /etc/audit/rules.d/60-actions.rules
+echo "-a always,exit -F arch=b64 -C euid!=uid -F euid=0 -F auid>=1000 -F auid!=4294967295 -S execve -k actions
+-a always,exit -F arch=b32 -C euid!=uid -F euid=0 -F auid>=1000 -F auid!=4294967295 -S execve -k actions" > /etc/audit/rules.d/60-actions.rules
 
 # Ensure kernel module loading and unloading is collected
 echo "[ ] Auditing kernel module loads."
