@@ -90,7 +90,7 @@ module_init(app_init);
 module_exit(app_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Me");
-MODULE_DESCRIPTION("This is just an LKM");
-MODULE_VERSION("0.0.0.1");
+MODULE_AUTHOR("Me, the mighty OZ. Wizard of all the lands.");
+MODULE_DESCRIPTION("This is just an LKM example for class.");
+MODULE_VERSION("4.2.3.1");
 MODULE_INFO(intree, "Y");
