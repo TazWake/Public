@@ -14,7 +14,6 @@ fi
 # Convert to binary to show the process is working:
 
 binary_string=$(echo "$hex_string" | sed 's/../&\n/g' | while read -r byte; do echo "ibase=16; obase=2; $byte" | bc; done | awk '{printf "%08d", $1}')
-# binary_string=(echo "ibase=16; obase=2"; echo "$hex_string" | sed 's/../&\n/g') | bc | awk '{printf "%08d", $1}'
 
 echo ""
 echo "Input string: $hex_string"
