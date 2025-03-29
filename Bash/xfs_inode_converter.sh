@@ -22,7 +22,7 @@ if [ "${#hex_string}" -ne 32 ]; then
   exit 1
 fi
 
-# Use a more reliable method to convert hex to binary
+# Use a more reliable method to convert hex to binary - if you can get this working with bc let me know.
 binary=""
 for (( i=0; i<${#hex_string}; i++ )); do
   case "${hex_string:$i:1}" in
@@ -56,7 +56,7 @@ chunk2="${binary:1:54}"       # Logical Offset (54 bits)
 chunk3="${binary:55:52}"      # Start Block (52 bits)
 chunk4="${binary:107:21}"     # Block Count (21 bits)
 
-# Output each chunk on its own line with some notes about what was found
+# Output each chunk on its own line, with the field summary
 echo "--------------------------------------------------------"
 echo "Splitting data"
 echo "FLAG:           $chunk1"
@@ -65,7 +65,7 @@ echo "Start Block:    $chunk3"
 echo "Block Count:    $chunk4"
 echo "--------------------------------------------------------"
 
-# Convert the Start Block binary to decimal
+# Convert the Start Block binary data to decimal notation
 start_dec=0
 for (( i=0; i<${#chunk3}; i++ )); do
   bit="${chunk3:$i:1}"
