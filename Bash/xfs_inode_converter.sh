@@ -2,6 +2,11 @@
 # This script takes a file address, in hex, from an XFS inode
 # converts it to binary to show you the working out and then
 # converts it to a hex address.
+#
+# The final output is the address in hex where the data should
+# reside. Currently, this is displayed assuming the filesystem
+# has 4096 (0x1000) bytes per block. If this is not correct
+# please adjust the output appropriately. 
 
 # Input a 16-byte hex address.
 # for example: 0000000000000000000000353F400001
@@ -25,15 +30,15 @@ chunk2="${binary_string:1:54}"
 chunk3="${binary_string:55:52}"
 chunk4="${binary_string:107:21}"
 # Output each chunk on its own line with some notes about what was found
-echo "--------------"
+echo "--------------------------------------------------------"
 echo "Splitting data"
 echo "FLAG:           $chunk1"
 echo "Logical Offset: $chunk2"
 echo "Start Block:    $chunk3"
 echo "Block Count:    $chunk4"
-echo "--------------"
+echo "--------------------------------------------------------"
 # Convert the start block:
 echo ""
 start=$(printf "obase=16; ibase=2; %s\n" "$chunk3" | bc)
-echo "The start address in hex is: 0x${start}000"
+echo "The start address (in hex) is 0x${start}000 bytes into the filesystem."
 echo ""
