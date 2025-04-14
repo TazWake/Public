@@ -1,18 +1,21 @@
 #!/bin/bash
-# This script takes a file address, in hex, from an XFS inode
-# converts it to binary to show you the working out and then
-# converts it to a hex address.
-#
-# The final output is the address in hex where the data should
-# reside. Currently, this is displayed assuming the filesystem
-# has 4096 (0x1000) bytes per block. If this is not correct
-# please adjust the output appropriately. 
-#
-# This script uses a manual conversion, because previous versions
-# using the bc command appeared to have erratic output. I have no
-# idea why this was the case, but this appears more stable...
-#
-# ¯\_(ツ)_/¯
+######################################################################
+# This script takes a file address, in hex, from an XFS inode        #
+# converts it to binary to show you the working out and then         #
+# converts it to a hex address.                                      #
+#                                                                    #
+# The final output is the address in hex where the data should       #
+# reside. Currently, this is displayed assuming the filesystem has   #
+# 4096 (0x1000) bytes per block. If this is not correct, please      #
+# adjust the output appropriately.                                   #
+#                                                                    #
+# This script uses a manual conversion, because previous versions    #
+# using the bc command appeared to have erratic output. I have no    #
+# idea why this was the case, but this appears more stable...        #
+#                                                                    #
+#                           ¯\_(ツ)_/¯                               #
+#                                                                    #
+######################################################################
 
 # Input a 16-byte hex address.
 # for example: 0000000000000000000000353F400001
