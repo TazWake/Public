@@ -1,169 +1,195 @@
-# Public Repository
-Previous repos have become a bit cluttered with a mix of scripts other people might be interested in and ones only I am ever going to use and even then for very specific tasks. As a result I have created this as a home for things other people might be interested in.
+# DFIR Tools Repository
 
-This README will act as the parent index with a summary of "how to use" if appropriate.
+A comprehensive collection of Digital Forensics and Incident Response (DFIR) tools, scripts, and containerized environments for cybersecurity professionals and researchers.
 
-Sections will include:
-- [x] Volatility 2.x Plugins (deprecated)
-- [ ] Volatility 3.x Plugins (TBC)
-- [x] Powershell Scripts
-- [x] Bash Scripts
-- [ ] Python Scripts
-- [ ] DFIR Notes (TBC)
+## 📁 Repository Structure
 
-# Volatility 2.x Plugins
-*Note: the plugins here have only ever been tested with volatility 2.6*
-## DEPRECATED
-Vol2.6 is being phased out.
+### 🔧 Applications/
+**C and Go implementations of analysis tools**
+- `malreview.c` - C implementation of malware analysis utility for file examination
+- `malreview.go` - Go implementation of malware analysis utility for file examination
 
-## RAMSCAN
-The first volatility plugin is `ramscan.py`. 
-This plugin lists running processes with PID and Parent PID, Command Line used to invoke the process and a check to see what the VAD settings are. If the VAD is set to Read, Write, Execute it is marked as suspicious.
+### 🐚 Bash/
+**Production-ready shell scripts for Linux/macOS forensic operations**
 
-### How to use ramscan.py
-1. Download the plugin to a folder on your local machine.
-2. Invoke volatility calling the plugins folder before anything else. eg: `python vol.py --plugins={path/to/plugins} --profile={profile for memory image} -f {path to image} ramscan`
-3. A more useable method is to set an output format and output file as the data presented by this plugin can quickly fill a console window.
+#### Evidence Collection & System Analysis
+- `evidence_collector.sh` - Comprehensive Linux evidence collection following RFC3227 guidelines
+- `triageScan.sh` - Quick system triage and suspicious activity detection
+- `triage_template.sh` - Template for standardized triage procedures
+- `docker_triage.sh` - Container-specific forensic data collection
+- `cron_collector.sh` - Automated collection of scheduled task artifacts
 
-*recommended use*
+#### Memory Analysis
+- `memory_precook.sh` - Automated Volatility analysis battery for memory images
+- `proc_dumper.sh` - Process memory dumping utility
+- `install_vol.sh` - Volatility framework installation script
 
-`python vol.py --plugins={path/to/plugins} --profile={profile for memory image} -f {path to image} ramscan --output=html --output-file=ramscan.html`
+#### File System & Disk Analysis
+- `VMDK_Carver.sh` - NTFS data carving from VMDK images using TSK
+- `ext4_inode_extractor.sh` - Extract inode information from ext4 filesystems
+- `xfs_inode_converter.sh` - XFS filesystem inode analysis tool
+- `check_lvm2.sh` - LVM2 logical volume analysis
+- `apfs_setup.sh` - APFS filesystem preparation and analysis
 
-### Example output
+#### Malware Analysis
+- `malanalyze.sh` - Basic malware analysis with output formatted for LLM analysis
+- `malanlyze_chatgpt.sh` - Malware analysis specifically formatted for ChatGPT input
+- `mkbomb.sh` - Test file generation for analysis validation
 
+#### Network & Security
+- `iplookups.sh` - Bulk IP address WHOIS analysis for threat intelligence
+- `authCheck.sh` - Authentication and authorization audit script
+- `setAuditD.sh` - Configure auditd for comprehensive system monitoring
+- `setAuditD_RHEL.sh` - RHEL-specific auditd configuration
+
+#### Log Analysis
+- `journalConverter.sh` - Convert systemd journal logs for analysis
+- `journalTriage.sh` - Triage systemd journal entries for incidents
+- `timestampCheck.sh` - Timestamp analysis and validation
+
+#### Specialized Tools
+- `GenELF_file_better.sh` - Generate sample ELF files for testing
+- `multi_Files.sh` - Batch file processing utility
+- `fileshred.sh` - Secure file deletion utility
+- `exifevidence.sh` - EXIF metadata extraction from images
+- `class_prep.sh` - Classroom/lab environment preparation
+- `sift_mac_apt.sh` - SIFT workstation macOS APT installation
+- `macos_evidence.sh` - macOS-specific evidence collection
+- `dockAnalyse.sh` - Docker container analysis
+- `install_container_diff.sh` - Container diff tool installation
+
+#### Rootkits/ (Educational)
+- `Makefile` - Build configuration for kernel module compilation
+- `sample_LKM.c` - Sample Linux Kernel Module for educational purposes
+
+### 🐍 Python/
+**Python utilities for forensic analysis**
+- `exifcheck.py` - DOCX metadata extraction utility
+- `fastfluxfinder.py` - Network analysis tool for detecting fast flux DNS patterns
+- `inode_reader.py` - Low-level filesystem inode analysis tool
+
+### 💻 Powershell/
+**Windows-specific forensic and security scripts**
+- `collectEvidence.ps1` - Comprehensive Windows evidence collection with KAPE and MRC
+- `Enable_PowerShellDetailedAuditing.ps1` - Enable detailed PowerShell execution logging
+- `set_logging.ps1` - Configure Windows security logging
+- `setAuditing.ps1` - Windows audit policy configuration
+- `setContextMenu.ps1` - Custom context menu entries for forensic tools
+- `FolderCheck.ps1` - Directory integrity and analysis script
+- `botnetcheck.ps1` - Botnet infection detection script
+- `collect_timestamps.ps1` - Windows timestamp collection and analysis
+
+### 🧠 Vol2.6/ (Deprecated)
+**Volatility 2.6 memory analysis plugins**
+- `ramscan.py` - Process listing with VAD analysis for suspicious RWX memory regions
+- `triagecheck.py` - Quick memory triage for obvious malicious activity indicators
+- `cmdcheck.py` - Analyzes cmd.exe handles for backdoor detection
+- `Fastvadscan.py` - Fast VAD scanning without file extraction
+- `pathcheck.py` - Identifies executables loaded from suspicious locations
+
+### 🧠 Vol3/
+**Volatility 3 memory analysis plugins**
+- `fasttriage.py` - Modernized triage plugin for Volatility 3 framework
+
+### 🐳 docker/
+**Containerized analysis and testing environments**
+
+#### Analysis_ELK/
+- Complete ELK stack (Elasticsearch, Kibana, Filebeat) for log analysis
+- Pre-configured for Apache, auditd, syslog, messages, auth.log, and secure logs
+- Access Kibana at http://localhost:8889
+
+#### Analysis_OpenSearch/
+- OpenSearch alternative to ELK stack
+- Access dashboards at http://localhost:8899
+
+#### testingweb/
+- Vulnerable PHP/MySQL web application for security testing
+- Includes phpMyAdmin interface
+- MySQL credentials: root/NINJAROOTPASSWORD
+
+#### Additional Containers
+- `maldoc/` - Malicious document analysis environment
+- `nmaper/` - Containerized nmap scanning environment
+
+### 🎯 Range/
+**Multi-container network testing environment**
+- Kali Linux container (10.10.10.10) - Attack platform
+- Nmap scanner container (10.10.10.11) - Network reconnaissance
+- Ubuntu target container (10.10.10.12) - Victim system
+- Isolated 10.10.10.0/24 network for safe testing
+
+### 📊 EvidenceGenerator/
+**Synthetic evidence generation for training and testing**
+- `generate_data.py` - Generate realistic forensic artifacts
+- `webgen.py` - Web log generation utility
+
+### 📚 Examples/
+**Sample data and documentation**
+- `GenericPotato.md` - Privilege escalation technique documentation
+- `GenericPotato.zip` - Sample files for potato attack vectors
+
+### 📋 Configuration Files
+- `dfir_collection.md` - DFIR collection methodology documentation
+- `Test2.ipynb` - Jupyter notebook for data analysis examples
+
+### 🔍 plaso/
+**Log2timeline/plaso configuration files**
+- `filter_linux.txt` - Linux-specific timeline filtering rules
+- `filter_linux.yaml` - YAML format Linux timeline filters
+
+## 🚀 Quick Start
+
+### Docker Environments
+```bash
+# Start ELK stack for log analysis
+cd docker/Analysis_ELK && docker-compose up -d
+
+# Start testing range
+cd Range && docker-compose up -d
+
+# Start vulnerable web app
+cd docker/testingweb && docker-compose up -d
 ```
-Name           PID  Parent Command Line   VAD               
-conhost.exe    6248    748 \??\C:\WINDOWS\system32\conhost.exe "9131723291973856416-156581232056986786412445124951738786652-244451647283318875 Suspicious RWX VAD
-scPopup.exe    6284   4616 "C:\Program Files\Xerox\scPopup.exe" /s /k /t /g Suspicious RWX VAD
-GROOVE.EXE     6384   4616 "C:\Program Files\Microsoft Office 15\root\office15\GROOVE.EXE" /RunFolderSync /TrayOnly  Suspicious RWX VAD
-mobsync.exe    6672    936 C:\WINDOWS\System32\mobsync.exe -Embedding Suspicious RWX VAD
-ucmapi.exe     5748    936 "C:\Program Files\Microsoft Office 15\Root\Office15\UcMapi.exe" -Embedding Suspicious RWX VAD
-powershell.exe 5772   6188 powershell -nop -exec bypass -EncodedCommand SQBFAFgAIAAoACgAbgBlAHcALQBvAGIA...ACcAaAB0AHQAcAA6AC8ALwAxADIANwAuADAALgAwAC4AMQA6ADUAMgA4ADAAOAAvACcAKQApAA== Suspicious RWX VAD
+
+### Memory Analysis
+```bash
+# Automated Volatility analysis
+./Bash/memory_precook.sh memory.img Win7SP1x64
+
+# Quick triage with Vol3
+python vol.py -p Vol3 -f memory.img windows.fasttriage
 ```
-### IR Notes
-* Look for command execution from unusual locations
-* Look for suspicious command execution: Eg encoded Powershell
-* Look for memory sections which allow read-write-execute
 
-## CMDCHECK
+### Evidence Collection
+```bash
+# Linux evidence collection
+sudo ./Bash/evidence_collector.sh /mnt/evidence
 
-This volatility plugin scans memory for `cmd.exe` execution and checks the standard handles.
+# Windows evidence collection
+.\Powershell\collectEvidence.ps1
+```
 
-If cmd.exe is being used for data exfiltration (or other unwanted activity) it is likely that the handles will change. This is a good way to check for backdoors / modification (Pages 230 - 232 of The Art of Memory Forensics).
+## ⚠️ Important Notes
 
-### Use
+- **Defensive Use Only**: All tools are designed for defensive security and legitimate forensic analysis
+- **Educational Purpose**: Sample exploits and vulnerabilities are for educational use only
+- **Root/Admin Required**: Many scripts require elevated privileges for system access
+- **Evidence Integrity**: All collection scripts include hash verification and logging
+- **RFC3227 Compliance**: Evidence collection follows established forensic guidelines
 
-1. Download the plugin to a local filesystem
-2. Run the plugin against a memory image: `python vol.py --plugins={path/to/plugin} --profile={image profile} -f {memory.img} cmdcheck`
-3. Any deviation from the norm will be annotated with **!*!**
-4. Note: *This does not work if the process has exited memory*
+## 📖 Documentation
 
-### IR Notes
+- See `CLAUDE.md` for detailed development and usage guidance
+- Individual scripts contain usage instructions in their headers
+- Docker environments include README files with setup instructions
 
-* Modified handles in cmd.exe is an indicator of malice.
+## 🔒 Security Context
 
-## Fast VAD Scan
+This repository contains legitimate cybersecurity tools for:
+- Digital forensic investigations
+- Incident response procedures
+- Security research and education
+- Vulnerability assessment (defensive)
 
-This is a volatility plugin, similar to malfind, which looks at the number of pages committed and the VAD settings. It **does not** extract files so may run faster.
-
-When executed this plugin will return the process name and PID for any process which has more than 30 pages committed and RWX set.
-
-### How to use Fast VAD Scan
-
-1. Download the plugin to a local filesystem location
-2. Run volatility calling the plugin: `python vol.py --plugins={path/to/plugins} --profile={image profile} -f {filename} fastvadscan`
-3. Review output and determine if any files warrant further investigation
-
-### IR Notes
-
-* This is a triage tool and works best if you have suspicious files
-* It can narrow down files for further analysis
-* If file extraction is required, run malfind
-
-## Path Check
-
-This plugin scans the capture and identifies an executables which appear to have been loaded from a temp, download or user location. The choice of locations is arbritrary and can be adjusted to suit the investigation.
-The location matching is case insensitive so will match `temp`, `Temp` and `TEMP` in a path.
-
-### How to use Path Check
-
-1. Download the plugin to a local files store
-2. Invoke volatility (with the plugins folder before anything else) calling pathcheck. For example: `python vol.py --plugins={path/to/plugins} --profile={profile for memory image} -f {path to image} pathcheck`
-3. Review the output - processes executed from temp / download or user locations are more likely to be malware and should be subject to further investigation.
-
-### IR Use
-
-This tool is best used as part of the triage process to get a quick feel for what suspicious activity is on the system.
-
-Alternatively, it can be used as part of a threat hunting review via a remote access agent (such as F-Response)
-
-## Triagecheck
-
-This volatility plugin is designed to quickly parse the process list and identify some **obvious** signs of malicious activity. It is not designed to act as an indepth assessment tool and works best for investigators looking to triage multiple platforms quickly. 
-
-The plugin highlights the following events:
-+ SMSS - there should only be one instance and it runs from system 32
-+ CSRSS - should be running from system32
-+ SERVICES - this should be running from system32
-+ SVCHOST - check for impersonation (e.g. scvhost / svch0st etc)
-+ LSASS - there should only be one instance and it should be running from system32
-+ DLLHOST - check for impersonataion (e.g. dl1host.exe)
-+ SHORT FILE NAMES - look for 1 or 2 character file names (e.g. a.exe)
-+ UNUSUAL EXTENSIONS - look for non exe files running in memory (e.g. c99shell.php)
-
-### How to use triagecheck
-1. Download the file to a local plugin store.
-2. Invoke volatility calling the plugin. Eg `python vol.py --plugins={path/to/plugins} --profile={profile for memory image} -f {path to image} triagecheck`
-3. Where the plugin generates a warning message, prioritise this for further investigation
-
-# Volatility 3.x Plugins
-This section is "coming soon" and any new plugins will be ported over to volatility 3.
-
-# Powershell Scripts
-TBC
-
-# Shell Scripts
-Note: This section now includes scripts designed to run on zsh, both for Linux and MacOS.
-
-## Memory Precook
-This is a script designed to run a standard range of data extraction commands against a memory image. Each command output is saved to a text file and a running log of activity is maintained.
-The objective of this script is to ensure a consistent approach to information capture across a team of multiple investigators with multiple memory images and reduce the need to re-run specific commands.
-After the script has completed, the investigator should analyse the data and determine if additional, targeted, collection is required.
-
-### How to use
-1. Save the script to the same folder as the memory image.
-2. Ensure `vol.py` is in the path - if not modify the script
-3. Ensure `bulk_extractor` is in the path - if not modify the script
-4. Determine the correct volatility profile
-5. Make sure the script is executable (`chmod +x scriptname.sh`)
-6. Invoke the script: `scriptname.sh imagefilename volatilityprofile`
-7. Wait
-8. Analyse the resulting data
-### IR Notes
-This is a tool for collecting data, the output needs to be analysed.
-
-## Evidence Collector
-This script captures process details, netstat, arp cache, routing tables and a disk image from a target linux machine. With modification it can capture the contents of /proc or take a memory image. However it is probably easier to do this with LMG.
-The objective of this script is to capture data in alignment to RFC3227 in an automated fashion to allow responders to capture at scale and record their actions.
-### How to use
-1. Store the script somewhere with access to the target system.
-2. Ensure there is an evidence storage drive mounted (consider capacity as a full disk image will be taken)
-3. Ensure elevated privs are available.
-4. Run the script from an elevated account (or via `sudo`) with: `evidence_collector.sh /path/to/storage/media`
-5. Wait.
-### IR Notes
-This is a tool for collecting evidence. The output needs to be analysed.
-
-## IP LOOKUPS
-This is a script to gather basic data when an incident responder or CTI analyst is trying to work through a large volume of suspicious addresses. 
-It is based on a script used in Investigate Like Rockstar which is definitely worth reading (ISBN-10: 1549527622 // ISBN-13: 978-1549527623).
-Note: The checks are carried out against WHOIS.
-### How to use
-1. Save the script
-2. Create a list of ips called `ips.txt` - **Make sure there are no blank lines**
-3. Invoke the script
-4. Analyse the resulting CSV
-### IR Notes
-This can be used to narrow down IP addresses of interest. Be aware that CDN use and privacy controls make the data dubious.
-# Python Scripts
-TBC
+All tools should be used responsibly and only on systems where you have proper authorization.
