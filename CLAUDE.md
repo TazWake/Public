@@ -62,18 +62,35 @@ D:\Development\Public\Bash\docker_triage.sh
 ```bash
 # In the rootkits directory for educational purposes
 cd D:\Development\Public\Bash\rootkits\
-make all  # Builds kernel module
+make all  # Builds kernel module (requires kernel headers)
 make clean  # Cleans build artifacts
+
+# Note: Modify FILENAME in Makefile to match your .c file
+# Requires /lib/modules/$(uname -r)/build directory
+```
+
+### Compilation and Building
+```bash
+# C applications (malreview.c)
+gcc -o malreview Applications/malreview.c
+
+# Go applications (malreview.go) 
+go build -o malreview Applications/malreview.go
+
+# Python scripts - no compilation needed, check script headers for dependencies
 ```
 
 ## Architecture and Structure
 
 ### Core Components
+- **Applications/**: C and Go implementations of malware analysis utilities
 - **Bash/**: Production shell scripts for evidence collection, memory analysis automation, and system triage
 - **Python/**: Forensic analysis utilities including EXIF extraction and network analysis tools  
 - **Powershell/**: Windows-specific scripts for auditing, logging configuration, and evidence collection
 - **Vol2.6/** & **Vol3/**: Volatility framework plugins for memory forensics analysis
 - **docker/**: Containerized analysis environments (ELK, OpenSearch, testing web apps)
+- **Range/**: Multi-container network testing environment with isolated 10.10.10.0/24 subnet
+- **EvidenceGenerator/**: Synthetic evidence generation tools for training and testing
 
 ### Key Technologies
 - **Volatility Framework**: Memory forensics analysis (both v2.6 and v3)
@@ -105,14 +122,25 @@ make clean  # Cleans build artifacts
 
 ### Evidence Collection Scripts
 - **evidence_collector.sh**: Comprehensive Linux evidence collection following RFC3227
-- **memory_precook.sh**: Automated volatility analysis battery
+- **memory_precook.sh**: Automated volatility analysis battery (requires vol.py in PATH)
 - **docker_triage.sh**: Container-specific forensic collection
 - **triageScan.sh**: Quick system triage and suspicious activity detection
+- **cron_collector.sh**: Automated collection of scheduled task artifacts
+- **macos_evidence.sh**: macOS-specific evidence collection
+- **collectEvidence.ps1**: Windows evidence collection with KAPE and MRC
 
 ### File Analysis Tools
 - **exifcheck.py**: DOCX metadata extraction
 - **fastfluxfinder.py**: Network analysis for fast flux detection  
 - **inode_reader.py**: Low-level filesystem analysis
+- **VMDK_Carver.sh**: NTFS data carving from VMDK images using TSK
+- **ext4_inode_extractor.sh**: Extract inode information from ext4 filesystems
+- **xfs_inode_converter.sh**: XFS filesystem inode analysis tool
+
+### Network and Malware Analysis
+- **iplookups.sh**: Bulk IP address WHOIS analysis for threat intelligence
+- **malanalyze.sh**: Basic malware analysis with LLM-formatted output
+- **botnetcheck.ps1**: Botnet infection detection script (Windows)
 
 ## Important Notes
 
@@ -122,8 +150,11 @@ All tools are designed for **defensive security and forensic analysis only**. Th
 ### Dependencies
 - Most Bash scripts assume standard Unix utilities are available
 - Python scripts may require additional packages (check individual script headers)
-- Volatility requires appropriate profiles for memory analysis
+- Volatility requires appropriate profiles for memory analysis and vol.py in PATH
 - Docker environments require Docker and Docker Compose
+- ELK stack expects logs in `/cases/logstore` directory (create if missing)
+- Kernel module compilation requires kernel headers package
+- C/Go applications may need compilation before use
 
 ### Evidence Handling
 - Scripts follow RFC3227 guidelines for evidence collection
