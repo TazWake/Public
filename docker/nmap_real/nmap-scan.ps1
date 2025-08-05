@@ -313,7 +313,7 @@ Output Location:
 Default Scan Options:
   -Pn -sC -sV -oA scan_tcp -vvvvvvvvv --reason -T4 -p-
 
-"@ "Yellow"
+"@ -ForegroundColor "Yellow"
 }
 
 # Main execution

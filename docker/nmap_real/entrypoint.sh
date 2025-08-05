@@ -1,20 +1,12 @@
 #!/bin/bash
 
 # Entrypoint script for nmap container
-# Handles default arguments, performance optimization, and allows customization
+# Handles default arguments and allows customization
 
 set -euo pipefail
 
-# Performance and resource optimization
-export NMAP_PRIVILEGED=${NMAP_PRIVILEGED:-0}
-export NMAP_TEMP_DIR=${NMAP_TEMP_DIR:-/tmp/nmap-temp}
-
-# Optimize memory usage for container environment
-ulimit -n 65536  # Increase file descriptor limit for large scans
-ulimit -u 4096   # Reasonable process limit
-
-# Default nmap arguments optimized for containerized environment
-DEFAULT_NMAP_ARGS="-Pn -sC -sV -oA scan_tcp -v --reason -T4 -p- --max-retries=1 --host-timeout=30m"
+# Default nmap arguments as specified
+DEFAULT_NMAP_ARGS="-Pn -sC -sV -oA scan_tcp -vvvvvvvvv --reason -T4 -p-"
 
 # Function to display usage information
 show_usage() {
@@ -65,19 +57,10 @@ validate_target() {
     fi
     
     # Additional validation for dangerous patterns
-    local dangerous_patterns=(
-        '\$\(' '\`' '&&' '\|\|' ';' '>' '<' 
-        'rm' 'wget' 'curl' 'nc' 'bash' 'sh'
-        '../' '/..' '/etc/' '/proc/' '/sys/'
-        'sudo' 'su' 'chmod' 'chown'
-    )
-    
-    for pattern in "${dangerous_patterns[@]}"; do
-        if [[ "$target" =~ $pattern ]]; then
-            echo "Error: Potentially dangerous pattern detected: $pattern"
-            return 1
-        fi
-    done
+    if [[ "$target" == *".."* ]] || [[ "$target" == *"/etc/"* ]] || [[ "$target" == *"/proc/"* ]] || [[ "$target" == *"/sys/"* ]]; then
+        echo "Error: Potentially dangerous path detected in target"
+        return 1
+    fi
     
     # Validate IP address format if it looks like an IP
     if [[ "$target" =~ ^[0-9] ]]; then
@@ -96,14 +79,14 @@ validate_nmap_arguments() {
     local -a args=("$@")
     
     for arg in "${args[@]}"; do
-        # Check for dangerous characters
-        if [[ "$arg" =~ [';|&`$(){}] ]]; then
+        # Check for dangerous characters using explicit comparisons
+        if [[ "$arg" == *";"* ]] || [[ "$arg" == *"|"* ]] || [[ "$arg" == *"&"* ]] || [[ "$arg" == *'`'* ]] || [[ "$arg" == *'$('* ]] || [[ "$arg" == *")"* ]] || [[ "$arg" == *"{"* ]] || [[ "$arg" == *"}"* ]]; then
             echo "Error: Potentially unsafe characters detected in argument: $arg"
             return 1
         fi
         
-        # Check for command injection attempts
-        if [[ "$arg" =~ (^|[[:space:]])(rm|wget|curl|nc|bash|sh|sudo|su|chmod|chown)([[:space:]]|$) ]]; then
+        # Check for dangerous commands
+        if [[ "$arg" == "rm" ]] || [[ "$arg" == "wget" ]] || [[ "$arg" == "curl" ]] || [[ "$arg" == "nc" ]] || [[ "$arg" == "bash" ]] || [[ "$arg" == "sh" ]] || [[ "$arg" == "sudo" ]] || [[ "$arg" == "su" ]] || [[ "$arg" == "chmod" ]] || [[ "$arg" == "chown" ]]; then
             echo "Error: Dangerous command detected in argument: $arg"
             return 1
         fi
@@ -112,66 +95,13 @@ validate_nmap_arguments() {
     return 0
 }
 
-# Function to set up output file naming with timestamp and performance logging
+# Function to set up output file naming with timestamp
 setup_output_files() {
     local timestamp=$(date +"%Y%m%d_%H%M%S")
     local target_clean=$(echo "$1" | sed 's/[^a-zA-Z0-9._-]/_/g')
     
     # Update output file names to include timestamp and target
     export OUTPUT_PREFIX="nmap_${target_clean}_${timestamp}"
-    
-    # Create performance log file
-    export PERF_LOG="/output/${OUTPUT_PREFIX}_performance.log"
-    
-    # Log system resources at start
-    {
-        echo "=== Scan Performance Metrics ==="
-        echo "Start Time: $(date)"
-        echo "Container Hostname: $(hostname)"
-        echo "Available Memory: $(free -h | grep '^Mem:' | awk '{print $7}')"
-        echo "Available CPU: $(nproc) cores"
-        echo "Disk Space: $(df -h /output | tail -1 | awk '{print $4}' | sed 's/G/ GB/')"
-        echo "================================"
-        echo ""
-    } > "$PERF_LOG"
-}
-
-# Function to log performance metrics during scan
-log_performance_metrics() {
-    if [[ -n "${PERF_LOG:-}" ]]; then
-        {
-            echo "Timestamp: $(date)"
-            echo "Memory Usage: $(free -h | grep '^Mem:' | awk '{print $3 "/" $2}')"
-            echo "Load Average: $(uptime | awk -F'load average:' '{ print $2 }')"
-            echo "Active Connections: $(ss -tuln | wc -l)"
-            echo "---"
-        } >> "$PERF_LOG" 2>/dev/null &
-    fi
-}
-
-# Function to optimize nmap arguments based on target and resources
-optimize_nmap_args() {
-    local target="$1"
-    local base_args="$2"
-    
-    # Detect target size for optimization
-    local target_count=1
-    if [[ "$target" =~ /[0-9]+$ ]]; then
-        local cidr=$(echo "$target" | cut -d'/' -f2)
-        target_count=$((2**(32-cidr)))
-    fi
-    
-    # Optimize timing and parallelism based on target size
-    if [[ $target_count -gt 1000 ]]; then
-        # Large network - use conservative timing
-        echo "$base_args" | sed 's/-T4/-T3/g' | sed 's/--max-retries=1/--max-retries=2/g'
-    elif [[ $target_count -gt 100 ]]; then
-        # Medium network - balanced approach
-        echo "$base_args" | sed 's/--host-timeout=30m/--host-timeout=20m/g'
-    else
-        # Small target - aggressive scanning
-        echo "$base_args" | sed 's/-T4/-T5/g' | sed 's/--host-timeout=30m/--host-timeout=10m/g'
-    fi
 }
 
 # Main execution logic
@@ -182,6 +112,14 @@ main() {
         exit 0
     fi
     
+    # Container startup info
+    echo "=== Nmap Container Runtime Initialization ==="
+    echo "Container started at: $(date)"
+    echo "Working directory: $(pwd)"
+    echo "Running as user: $(whoami) (UID: $(id -u))"
+    echo "Nmap version: $(nmap --version | head -1)"
+    echo ""
+    
     # Check if only a target is provided (use default scan)
     if [[ $# -eq 1 ]] && is_target_only "$1"; then
         local target="$1"
@@ -191,32 +129,17 @@ main() {
             exit 1
         fi
         
-        # Set up output files and performance monitoring
+        # Set up output files
         setup_output_files "$target"
         
-        # Optimize arguments based on target characteristics
-        local optimized_args=$(optimize_nmap_args "$target" "$DEFAULT_NMAP_ARGS")
-        
-        echo "Running optimized nmap scan against: $target"
-        echo "Scan options: $optimized_args"
+        echo "Running default nmap scan against: $target"
+        echo "Scan options: $DEFAULT_NMAP_ARGS"
         echo "Output files will be prefixed with: $OUTPUT_PREFIX"
-        echo "Performance log: $PERF_LOG"
         echo ""
         
-        # Start performance monitoring in background
-        (
-            while sleep 30; do
-                log_performance_metrics
-            done
-        ) &
-        local perf_monitor_pid=$!
-        
-        # Trap to ensure cleanup on exit
-        trap "kill $perf_monitor_pid 2>/dev/null; log_scan_completion" EXIT
-        
-        # Execute nmap with optimized arguments using secure array handling
+        # Execute nmap with default arguments using secure array handling
         # Replace -oA scan_tcp with our dynamic output prefix
-        local modified_args=$(echo "$optimized_args" | sed "s/-oA scan_tcp/-oA $OUTPUT_PREFIX/")
+        local modified_args=$(echo "$DEFAULT_NMAP_ARGS" | sed "s/-oA scan_tcp/-oA $OUTPUT_PREFIX/")
         
         # Convert arguments to array for secure execution
         local -a nmap_cmd_array=(nmap)
@@ -253,55 +176,10 @@ main() {
     fi
 }
 
-# Function to log scan completion with metrics
-log_scan_completion() {
-    if [[ -n "${PERF_LOG:-}" ]]; then
-        {
-            echo ""
-            echo "=== Scan Completion Metrics ==="
-            echo "End Time: $(date)"
-            echo "Final Memory Usage: $(free -h | grep '^Mem:' | awk '{print $3 "/" $2}')"
-            echo "Total Runtime: $SECONDS seconds"
-            echo "Output Files Generated:"
-            find /output -name "${OUTPUT_PREFIX}*" -type f -exec basename {} \; 2>/dev/null | sort
-            echo "==============================="
-        } >> "$PERF_LOG" 2>/dev/null
-    fi
-}
-
-# Ensure proper signal handling and cleanup
-cleanup() {
-    log_scan_completion
-    exit 0
-}
-trap cleanup SIGTERM SIGINT
-
-# Pre-flight checks and optimizations
-echo "=== Nmap Container Runtime Initialization ==="
-echo "Container started at: $(date)"
-echo "Working directory: $(pwd)"
-echo "Running as user: $(whoami) (UID: $(id -u))"
-echo "Available memory: $(free -h | grep '^Mem:' | awk '{print $7}')"
-echo "Available CPU cores: $(nproc)"
-
-# Ensure we're running as the correct non-root user
+# Ensure we're running as the correct user
 if [[ "$(id -u)" -eq 0 ]]; then
-    echo "WARNING: Running as root. This reduces security posture."
-    echo "Consider using --user flag with docker run."
+    echo "Warning: Running as root. Consider using --user flag with docker run."
 fi
-
-# Verify nmap installation and capabilities
-echo "Nmap version: $(nmap --version 2>/dev/null | head -1 || echo 'ERROR: nmap not found')"
-
-# Initialize temporary directory
-if [[ -n "$NMAP_TEMP_DIR" ]] && [[ -d "$NMAP_TEMP_DIR" ]]; then
-    echo "Using temporary directory: $NMAP_TEMP_DIR"
-else
-    echo "WARNING: Temporary directory not properly configured"
-fi
-
-echo "=============================================="
-echo ""
 
 # Execute main function with all arguments
 main "$@"
