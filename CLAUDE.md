@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a comprehensive DFIR (Digital Forensics and Incident Response) tools repository containing production-ready forensic analysis scripts, containerized lab environments, and specialized plugins for memory analysis frameworks.
 
+## Code Best Practices
+
+- Always use descriptive variable names unless asked to created obfuscated code.
+- If an instruction is unclear or it isn't possible to complete without more information ask questions.
+- You are running in a powershell environment, not Linux. If you need things to be created or built and it isn't working for you, ask me to do it.
+- Always try to follow good practice designs for code and content unless directed otherwise.
+
 ## Common Commands
 
 ### Docker Lab Environments

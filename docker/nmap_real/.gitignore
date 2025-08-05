@@ -1,0 +1,14 @@
+# Ignore nmap scan output files
+output/*.nmap
+output/*.xml
+output/*.gnmap
+output/*.txt
+output/*.log
+
+# Keep the .gitkeep file
+!output/.gitkeep
+
+# Ignore temporary Docker files
+.dockerignore
+*.tmp
+*.log

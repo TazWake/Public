@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  nmap-scanner:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: nmap-scanner:latest
+    container_name: nmap-scanner
+    
+    # Network configuration for scanning
+    network_mode: host
+    
+    # Volume mounts for output
+    volumes:
+      - ./output:/output:rw
+      
+    # Environment variables
+    environment:
+      - TZ=UTC
+      
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+      
+    # Resource limits to prevent abuse
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.5'
+    
+    # Read-only root filesystem for security (except /tmp and /output)
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      
+    # Default command - can be overridden
+    # Usage: docker-compose run --rm nmap-scanner 192.168.1.0/24
+    command: ["--help"]
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Alternative service for quick scans with different resource limits
+  nmap-quick:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: nmap-scanner:latest
+    container_name: nmap-quick
+    network_mode: host
+    volumes:
+      - ./output:/output:rw
+    environment:
+      - TZ=UTC
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    # Quick scan defaults - override with custom args
+    command: ["-T4", "--top-ports", "1000", "-sV", "--version-light"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# Network configuration (optional)
+networks:
+  default:
+    driver: bridge
