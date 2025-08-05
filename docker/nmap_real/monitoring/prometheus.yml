@@ -1,0 +1,77 @@
+# Prometheus Configuration for Nmap Container Monitoring
+# This configuration defines targets and scraping rules for monitoring the nmap containers
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'nmap-cluster'
+    environment: 'production'
+
+# Rules and alerting configuration
+rule_files:
+  - "alerts/*.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['nmap-monitor:9100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'nmap-host'
+
+  # Docker container metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['docker-exporter:9323']
+    scrape_interval: 30s
+
+  # Application-specific metrics (if implemented)
+  - job_name: 'nmap-scanner'
+    static_configs:
+      - targets: ['nmap-scanner:8080']
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    honor_labels: true
+
+  # Blackbox exporter for endpoint monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://nmap-scanner:8080/health
+        - http://grafana:3000/api/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+# Performance and resource optimization
+storage:
+  tsdb:
+    retention_time: "30d"
+    retention_size: "10GB"

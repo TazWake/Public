@@ -1,0 +1,38 @@
+# Grafana Dashboard Provisioning Configuration
+# Automatically loads dashboards for nmap container monitoring
+
+apiVersion: 1
+
+providers:
+  # Dashboard provider for nmap container monitoring
+  - name: 'nmap-dashboards'
+    orgId: 1
+    folder: 'Nmap Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/nmap
+
+  # System monitoring dashboards
+  - name: 'system-dashboards'
+    orgId: 1
+    folder: 'System Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/system
+
+  # Application performance monitoring
+  - name: 'performance-dashboards'
+    orgId: 1
+    folder: 'Performance'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/performance

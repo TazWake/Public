@@ -1,29 +1,100 @@
 version: '3.8'
 
+# Define custom networks for better isolation
+networks:
+  nmap-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: nmap-br0
+
+# Define reusable configuration anchors
+x-common-config: &common-config
+  image: nmap-scanner:latest
+  networks:
+    - nmap-network
+  volumes:
+    - type: bind
+      source: ./output
+      target: /output
+      consistency: cached
+    - type: tmpfs
+      target: /tmp/nmap-temp
+      tmpfs:
+        size: 100m
+        mode: 1777
+  environment:
+    - TZ=UTC
+    - NMAP_PRIVILEGED=0
+    - NMAP_TEMP_DIR=/tmp/nmap-temp
+  security_opt:
+    - no-new-privileges:true
+    - seccomp:unconfined  # Required for some nmap features
+  cap_add:
+    - NET_RAW    # Required for SYN scanning
+    - NET_ADMIN  # Required for advanced scanning features
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp:noexec,nosuid,size=100m
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      compress: "true"
+  restart: "no"
+
 services:
+  # Primary nmap scanner service
   nmap-scanner:
+    <<: *common-config
     build: 
       context: .
       dockerfile: Dockerfile
-    image: nmap-scanner:latest
+      cache_from:
+        - ubuntu:22.04
+        - nmap-scanner:latest
+      target: production
     container_name: nmap-scanner
+    hostname: nmap-scanner
     
-    # Network configuration for scanning
+    # Enhanced network configuration for scanning
+    network_mode: host  # Required for comprehensive network scanning
+    
+    # Resource limits optimized for network scanning workloads
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "nmap", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Default command - can be overridden
+    # Usage: docker-compose run --rm nmap-scanner 192.168.1.0/24
+    command: ["--help"]
+
+  # Alternative service for quick scans with optimized resource limits
+  nmap-quick:
+    <<: *common-config
+    container_name: nmap-quick
+    hostname: nmap-quick
     network_mode: host
     
-    # Volume mounts for output
-    volumes:
-      - ./output:/output:rw
-      
-    # Environment variables
-    environment:
-      - TZ=UTC
-      
-    # Security options
-    security_opt:
-      - no-new-privileges:true
-      
-    # Resource limits to prevent abuse
+    # Lower resource limits for quick scans
     deploy:
       resources:
         limits:
@@ -31,55 +102,71 @@ services:
           cpus: '1.0'
         reservations:
           memory: 128M
-          cpus: '0.5'
+          cpus: '0.25'
     
-    # Read-only root filesystem for security (except /tmp and /output)
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-      
-    # Default command - can be overridden
-    # Usage: docker-compose run --rm nmap-scanner 192.168.1.0/24
-    command: ["--help"]
-    
-    # Logging configuration
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # Alternative service for quick scans with different resource limits
-  nmap-quick:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    image: nmap-scanner:latest
-    container_name: nmap-quick
-    network_mode: host
-    volumes:
-      - ./output:/output:rw
-    environment:
-      - TZ=UTC
-    security_opt:
-      - no-new-privileges:true
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=50m
     # Quick scan defaults - override with custom args
     command: ["-T4", "--top-ports", "1000", "-sV", "--version-light"]
+    
+    # Optimized logging for quick scans
     logging:
       driver: "json-file"
       options:
         max-size: "5m"
         max-file: "2"
+        compress: "true"
 
-# Network configuration (optional)
-networks:
-  default:
-    driver: bridge
+  # Service for intensive deep scans with maximum resources
+  nmap-deep:
+    <<: *common-config
+    container_name: nmap-deep
+    hostname: nmap-deep
+    network_mode: host
+    
+    # Maximum resource allocation for comprehensive scans
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '4.0'
+        reservations:
+          memory: 512M
+          cpus: '1.0'
+    
+    # Enhanced tmpfs for large scan operations
+    tmpfs:
+      - /tmp:noexec,nosuid,size=200m
+    
+    # Default comprehensive scan options
+    command: ["-Pn", "-sC", "-sV", "-O", "--script=vuln", "-T3", "-p-"]
+    
+    # Extended health check for resource-intensive operations
+    healthcheck:
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+  # Monitoring and metrics collection service
+  nmap-monitor:
+    image: prom/node-exporter:latest
+    container_name: nmap-monitor
+    hostname: nmap-monitor
+    networks:
+      - nmap-network
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'

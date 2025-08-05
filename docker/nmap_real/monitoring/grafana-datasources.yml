@@ -1,0 +1,45 @@
+# Grafana Datasources Configuration
+# Automatically provisions Prometheus and Loki datasources
+
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource for metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    basicAuth: false
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: "15s"
+      queryTimeout: "60s"
+    secureJsonData: {}
+
+  # Loki datasource for logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    basicAuth: false
+    editable: true
+    jsonData:
+      maxLines: 1000
+      timeout: "60s"
+    secureJsonData: {}
+
+  # Optional: InfluxDB for time-series data (if needed)
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: nmap_metrics
+    user: admin
+    basicAuth: false
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+    secureJsonData:
+      password: "admin"

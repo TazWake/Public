@@ -103,22 +103,34 @@ output/
 ## 🛡️ Security Features
 
 ### Container Security
-- **Non-root execution**: Runs as unprivileged user (uid 1000)
-- **Read-only filesystem**: Prevents container tampering
-- **Resource limits**: CPU and memory constraints
+- **Multi-stage build**: Optimized image size with minimal attack surface
+- **Non-root execution**: Runs as unprivileged user (uid 1000) with locked account
+- **Read-only filesystem**: Prevents container tampering with minimal writeable tmpfs
+- **Resource limits**: CPU and memory constraints with intelligent optimization
 - **No new privileges**: Security flag prevents privilege escalation
-- **Minimal attack surface**: Ubuntu base with only required packages
+- **Capability restrictions**: Only NET_RAW and NET_ADMIN when required
+- **Tini init system**: Proper signal handling and zombie process reaping
+- **Health checks**: Continuous container health monitoring
 
-### Input Validation
-- Target format validation to prevent command injection
-- Argument sanitization for special characters
-- Path traversal protection
-- Network access controls
+### Enhanced Input Validation
+- **Whitelist validation**: Strict character validation for targets and arguments
+- **Command injection prevention**: Comprehensive dangerous pattern detection
+- **Argument sanitization**: Multi-layer validation with dangerous command filtering
+- **Path traversal protection**: Directory traversal attempt prevention
+- **Cross-platform validation**: Consistent security across PowerShell and Bash wrappers
+
+### Production Security
+- **Network isolation**: Custom bridge networks with ICC disabled
+- **Seccomp profiles**: Custom security computing profiles for system call filtering
+- **AppArmor/SELinux**: Mandatory access control integration
+- **User namespace remapping**: Additional isolation layer
+- **Audit logging**: Comprehensive security event logging with structured format
 
 ### Audit Trail
-- Comprehensive logging of all scan operations
-- Timestamped output files for forensic analysis
-- Command line argument preservation
+- **Comprehensive logging**: All scan operations with performance metrics
+- **Timestamped output**: Forensic-ready file naming with integrity verification
+- **Command preservation**: Full audit trail of all executed commands
+- **Performance monitoring**: Resource usage tracking and optimization metrics
 
 ## 🎛️ Configuration Options
 

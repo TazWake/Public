@@ -1,0 +1,147 @@
+version: '3.8'
+
+# Production-optimized configuration with enhanced security
+services:
+  nmap-scanner:
+    # Override network configuration for production
+    networks:
+      - nmap-production
+    
+    # Enhanced security configuration
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:docker/seccomp-profiles/nmap-seccomp.json
+      - apparmor:docker-nmap
+    
+    # Stricter capability management
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW        # Minimal required for SYN scanning
+      - NET_ADMIN      # Required for advanced features
+    
+    # User namespace remapping for additional security
+    user: "1000:1000"
+    
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+      restart_policy:
+        condition: none
+        max_attempts: 0
+    
+    # Production-grade logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+    
+    # Environment variables for production
+    environment:
+      - TZ=UTC
+      - NMAP_PRIVILEGED=0
+      - NMAP_TEMP_DIR=/tmp/nmap-temp
+      - NMAP_LOG_LEVEL=INFO
+      - CONTAINER_ENV=production
+    
+    # Read-only root filesystem with minimal writeable areas
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev,size=50m,mode=1777
+      - /var/tmp:noexec,nosuid,nodev,size=10m,mode=1777
+    
+    # Volume configuration with security options
+    volumes:
+      - type: bind
+        source: ./output
+        target: /output
+        bind:
+          propagation: rprivate
+      - type: tmpfs
+        target: /tmp/nmap-temp
+        tmpfs:
+          size: 50m
+          mode: 1777
+    
+    # Health check optimized for production
+    healthcheck:
+      test: ["CMD", "nmap", "--version"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    
+    # Production labels for monitoring and management
+    labels:
+      - "com.nmap.environment=production"
+      - "com.nmap.service=scanner"
+      - "com.nmap.version=2.0"
+      - "traefik.enable=false"
+
+  # Quick scan service for production
+  nmap-quick:
+    networks:
+      - nmap-production
+    
+    # Optimized for quick operations
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    
+    # Minimal logging for quick scans
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        compress: "true"
+    
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    
+    user: "1000:1000"
+    read_only: true
+    
+    # Minimal tmpfs allocation
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev,size=25m
+    
+    labels:
+      - "com.nmap.environment=production"
+      - "com.nmap.service=quick-scanner"
+
+# Production network configuration
+networks:
+  nmap-production:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: nmap-prod-br0
+      com.docker.network.bridge.enable_icc: "false"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1
+    labels:
+      - "com.nmap.network=production"
+      - "com.nmap.isolation=high"

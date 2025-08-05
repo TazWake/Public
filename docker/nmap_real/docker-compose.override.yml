@@ -1,0 +1,56 @@
+# Docker Compose Override File for Development Environment
+# This file provides development-specific configurations that override the base docker-compose.yml
+# Usage: docker-compose up (automatically applies overrides)
+
+version: '3.8'
+
+services:
+  nmap-scanner:
+    # Development specific configurations
+    environment:
+      - DEBUG=1
+      - NMAP_DEBUG=1
+    
+    # Mount source code for development (if needed)
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./configs:/configs:ro
+    
+    # Additional development labels
+    labels:
+      - "development=true"
+      - "traefik.enable=false"
+
+  nmap-quick:
+    environment:
+      - DEBUG=1
+    labels:
+      - "development=true"
+
+  nmap-deep:
+    environment:
+      - DEBUG=1
+    labels:
+      - "development=true"
+
+  # Development monitoring stack
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: nmap-portainer
+    restart: always
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - nmap-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+volumes:
+  portainer_data:
+    driver: local

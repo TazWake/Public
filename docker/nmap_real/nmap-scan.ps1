@@ -73,6 +73,63 @@ function Write-ColorOutput {
     Write-Host $Message -ForegroundColor $Color
 }
 
+# Function to safely split and validate arguments
+function Split-ArgumentsSafely {
+    param([string]$Arguments)
+    
+    if ([string]::IsNullOrEmpty($Arguments)) {
+        return @()
+    }
+    
+    $SafeArgs = @()
+    $Arguments -split '\s+' | ForEach-Object {
+        $arg = $_.Trim()
+        if (-not [string]::IsNullOrEmpty($arg)) {
+            # Validate argument for dangerous patterns
+            if ($arg -match '[;|&`$(){}]') {
+                throw "Invalid argument detected (dangerous characters): $arg"
+            }
+            
+            # Check for dangerous commands
+            if ($arg -match '^(rm|wget|curl|nc|bash|sh|sudo|su|chmod|chown)$') {
+                throw "Dangerous command detected in argument: $arg"
+            }
+            
+            # Check for path traversal attempts
+            if ($arg -match '\.\./|/\.\.|/etc/|/proc/|/sys/') {
+                throw "Path traversal attempt detected in argument: $arg"
+            }
+            
+            $SafeArgs += $arg
+        }
+    }
+    
+    return $SafeArgs
+}
+
+# Function to validate target format
+function Test-ValidTarget {
+    param([string]$Target)
+    
+    if ([string]::IsNullOrEmpty($Target)) {
+        return $false
+    }
+    
+    # Check for dangerous characters
+    if ($Target -match '[;|&`$(){}]') {
+        Write-ColorOutput "✗ Invalid characters in target specification" "Red"
+        return $false
+    }
+    
+    # Validate IP address or hostname format
+    if ($Target -match '^[a-zA-Z0-9._/-]+$') {
+        return $true
+    }
+    
+    Write-ColorOutput "✗ Target contains invalid characters" "Red"
+    return $false
+}
+
 # Function to check if Docker is available
 function Test-DockerAvailable {
     try {
@@ -162,16 +219,33 @@ function Invoke-NmapScan {
         $ImageName
     )
     
-    # Add scan parameters
+    # Add scan parameters with validation
     if ($UseQuick) {
+        # Validate target for quick scan
+        if (-not (Test-ValidTarget -Target $ScanTarget)) {
+            return $false
+        }
         Write-ColorOutput "Running quick scan..." "Cyan"
         $DockerArgs += @("-T4", "--top-ports", "1000", "-sV", "--version-light", $ScanTarget)
     }
     elseif (-not [string]::IsNullOrEmpty($ScanArguments)) {
         Write-ColorOutput "Running custom scan with arguments: $ScanArguments" "Cyan"
-        $DockerArgs += $ScanArguments.Split(' ')
+        
+        try {
+            # Secure argument parsing with validation
+            $SafeArgs = Split-ArgumentsSafely -Arguments $ScanArguments
+            $DockerArgs += $SafeArgs
+        }
+        catch {
+            Write-ColorOutput "✗ Argument validation failed: $($_.Exception.Message)" "Red"
+            return $false
+        }
     }
     elseif (-not [string]::IsNullOrEmpty($ScanTarget)) {
+        # Validate target for default scan
+        if (-not (Test-ValidTarget -Target $ScanTarget)) {
+            return $false
+        }
         Write-ColorOutput "Running default comprehensive scan against: $ScanTarget" "Cyan"
         $DockerArgs += $ScanTarget
     }
