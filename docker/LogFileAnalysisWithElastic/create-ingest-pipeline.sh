@@ -3,7 +3,7 @@
 echo "Creating Elasticsearch ingest pipeline for timestamp parsing..."
 
 # Create ingest pipeline for parsing various log timestamp formats
-curl -X PUT "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser" -H "Content-Type: application/json" -d '
+PIPELINE_RESULT=$(curl -s -X PUT "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser" -H "Content-Type: application/json" -d '
 {
   "description": "Parse timestamps from forensic log messages",
   "processors": [
@@ -44,16 +44,23 @@ curl -X PUT "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser" 
       }
     }
   ]
-}'
+}')
+
+# Check if pipeline creation was successful
+if echo "$PIPELINE_RESULT" | grep -q '"acknowledged".*true'; then
+    echo "✅ Pipeline created successfully"
+else
+    echo "⚠️  Pipeline creation may have had issues"
+    echo "$PIPELINE_RESULT"
+fi
 
 echo ""
-echo "Ingest pipeline created!"
 echo ""
 
 # Test the pipeline with sample data
 echo "Testing pipeline with sample log entries..."
 
-curl -X POST "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser/_simulate" -H "Content-Type: application/json" -d '
+PIPELINE_TEST=$(curl -s -X POST "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser/_simulate" -H "Content-Type: application/json" -d '
 {
   "docs": [
     {
@@ -72,7 +79,14 @@ curl -X POST "http://localhost:9200/_ingest/pipeline/forensics-timestamp-parser/
       }
     }
   ]
-}'
+}')
+
+# Check if test was successful
+if echo "$PIPELINE_TEST" | grep -q '"@timestamp"'; then
+    echo "✅ Pipeline test successful - timestamps extracted correctly"
+else
+    echo "⚠️  Pipeline test had issues. Check manually if needed."
+fi
 
 echo ""
 echo ""
