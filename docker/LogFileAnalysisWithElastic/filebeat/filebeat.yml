@@ -1,0 +1,142 @@
+filebeat.inputs:
+# Syslog/messages
+- type: log
+  enabled: true
+  paths:
+    - /evidence/syslog*
+    - /evidence/messages*
+    - /evidence/var/log/syslog*
+    - /evidence/var/log/messages*
+  fields:
+    log_type: syslog
+  fields_under_root: true
+  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Apache access logs
+- type: log
+  enabled: true
+  paths:
+    - /evidence/access.log*
+    - /evidence/access_log*
+    - /evidence/var/log/apache*/access*.log*
+    - /evidence/var/log/httpd/access*.log*
+  fields:
+    log_type: apache_access
+  fields_under_root: true
+
+# Apache error logs
+- type: log
+  enabled: true
+  paths:
+    - /evidence/error.log*
+    - /evidence/error_log*
+    - /evidence/var/log/apache*/error*.log*
+    - /evidence/var/log/httpd/error*.log*
+  fields:
+    log_type: apache_error
+  fields_under_root: true
+  multiline.pattern: '^\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Audit logs
+- type: log
+  enabled: true
+  paths:
+    - /evidence/audit.log*
+    - /evidence/var/log/audit/audit.log*
+  fields:
+    log_type: audit
+  fields_under_root: true
+
+# Auth logs (auth.log/secure)
+- type: log
+  enabled: true
+  paths:
+    - /evidence/auth.log*
+    - /evidence/secure*
+    - /evidence/var/log/auth.log*
+    - /evidence/var/log/secure*
+  fields:
+    log_type: auth
+  fields_under_root: true
+  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Dmesg logs
+- type: log
+  enabled: true
+  paths:
+    - /evidence/dmesg*
+    - /evidence/var/log/dmesg*
+    - /evidence/var/log/kern.log*
+  fields:
+    log_type: dmesg
+  fields_under_root: true
+
+# Journal logs (if exported to text)
+- type: log
+  enabled: true
+  paths:
+    - /evidence/journal*.log*
+    - /evidence/systemd*.log*
+  fields:
+    log_type: journal
+  fields_under_root: true
+  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Generic catch-all for other log files
+- type: log
+  enabled: true
+  paths:
+    - /evidence/*.log*
+    - /evidence/var/log/**/*.log*
+  exclude_files: ['\.gz$', '\.zip$', '\.tar$', '\.bz2$']
+  fields:
+    log_type: generic
+  fields_under_root: true
+
+processors:
+- add_host_metadata:
+    when.not.contains.tags: forwarded
+- add_docker_metadata: ~
+- add_kubernetes_metadata: ~
+- timestamp:
+    field: "@timestamp"
+    layouts:
+      - '2006-01-02T15:04:05.000Z'
+      - '2006-01-02T15:04:05Z'
+      - 'Jan _2 15:04:05'
+      - 'Jan 02 15:04:05'
+    test:
+      - '2023-10-15T14:30:45.123Z'
+      - 'Oct 15 14:30:45'
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "forensics-logs-%{+yyyy.MM.dd}"
+  template.name: "forensics-logs"
+  template.pattern: "forensics-logs-*"
+  template.settings:
+    index.number_of_shards: 1
+    index.number_of_replicas: 0
+
+setup.kibana:
+  host: "kibana:5601"
+
+setup.template.enabled: true
+setup.template.name: "forensics-logs"
+setup.template.pattern: "forensics-logs-*"
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
