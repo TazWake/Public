@@ -3,6 +3,37 @@
 # Linux Log Analysis ELK Stack Setup Script
 set -e
 
+# Check for help option
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "ELK Stack Setup Script"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --clean, -c    Clean start: remove all existing data and containers first"
+    echo "  --help, -h     Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0             # Normal setup"
+    echo "  $0 --clean     # Clean start (removes all data)"
+    echo ""
+    exit 0
+fi
+
+# Check for clean start option
+if [ "$1" = "--clean" ] || [ "$1" = "-c" ]; then
+    echo "🧹 Clean start requested - running cleanup first..."
+    if [ -f "./cleanup.sh" ]; then
+        ./cleanup.sh
+        echo ""
+        echo "Proceeding with fresh setup..."
+        echo ""
+    else
+        echo "❌ cleanup.sh not found. Please run cleanup manually if needed."
+        exit 1
+    fi
+fi
+
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
     echo "ERROR: This script requires root privileges to run Docker commands."
@@ -22,9 +53,46 @@ mkdir -p evidence
 mkdir -p filebeat/modules.d
 mkdir -p kibana
 
-# Set proper permissions
+# Set proper permissions and ownership
 chmod 755 evidence filebeat kibana
 chmod 644 filebeat/filebeat.yml kibana/kibana.yml 2>/dev/null || true
+
+# Check and fix file ownership for Docker compatibility
+echo "Checking file ownership..."
+CURRENT_USER=$(id -u):$(id -g)
+if [ -f "filebeat/filebeat.yml" ]; then
+    FILEBEAT_OWNER=$(stat -c "%u:%g" filebeat/filebeat.yml)
+    if [ "$FILEBEAT_OWNER" != "$CURRENT_USER" ]; then
+        echo "⚠️  WARNING: filebeat.yml ownership needs to be corrected"
+        echo "   Current owner: $FILEBEAT_OWNER"
+        echo "   Required owner: $CURRENT_USER"
+        echo "   Fixing ownership..."
+        chown $CURRENT_USER filebeat/filebeat.yml || {
+            echo "❌ Failed to change ownership. Try running:"
+            echo "   sudo chown $USER:$USER filebeat/filebeat.yml"
+            exit 1
+        }
+        echo "✅ File ownership corrected"
+    fi
+fi
+
+if [ -f "kibana/kibana.yml" ]; then
+    KIBANA_OWNER=$(stat -c "%u:%g" kibana/kibana.yml)
+    if [ "$KIBANA_OWNER" != "$CURRENT_USER" ]; then
+        echo "⚠️  WARNING: kibana.yml ownership needs to be corrected"
+        chown $CURRENT_USER kibana/kibana.yml 2>/dev/null || {
+            echo "❌ Failed to change kibana.yml ownership. Try running:"
+            echo "   sudo chown $USER:$USER kibana/kibana.yml"
+        }
+    fi
+fi
+
+# Set proper permissions for evidence directory
+if [ -d "evidence" ]; then
+    chown -R $CURRENT_USER evidence/ 2>/dev/null || true
+    chmod -R 644 evidence/* 2>/dev/null || true
+    chmod 755 evidence/ 2>/dev/null || true
+fi
 
 # Create .env file for configuration
 cat > .env << EOF
@@ -122,6 +190,26 @@ echo ""
 echo "⚠️  IMPORTANT: Kibana may take 3-5 minutes to fully initialize."
 echo "    If http://localhost:5601 shows 'connection reset', wait a few minutes and try again."
 echo ""
+
+# Check if evidence files exist and show status
+echo "📁 Evidence Directory Status:"
+if [ -d "./evidence" ] && [ "$(ls -A ./evidence 2>/dev/null)" ]; then
+    echo "   Files found in evidence directory:"
+    ls -la ./evidence/ | grep -v "^total" | head -10
+    if [ "$(ls ./evidence/ | wc -l)" -gt 10 ]; then
+        echo "   ... and $(($(ls ./evidence/ | wc -l) - 10)) more files"
+    fi
+    echo ""
+    echo "   ⏳ Filebeat will start processing these files automatically."
+    echo "   🔍 Check data ingestion in 1-2 minutes with:"
+    echo "      curl 'http://localhost:9200/_cat/indices/forensics-logs-*?v'"
+else
+    echo "   ⚠️  No files found in ./evidence/ directory"
+    echo "   📝 Add your log files to ./evidence/ then restart Filebeat:"
+    echo "      docker-compose restart filebeat"
+fi
+echo ""
+
 echo "Instructions:"
 echo "1. Place your log files in the './evidence/' directory"
 echo "2. Access Kibana at: http://localhost:5601 (wait 3-5 minutes after setup)"
