@@ -57,7 +57,6 @@ services:
       - elasticsearch
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - xpack.security.enabled=false
       - xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c33a6c10925682e591bffcab6911c06786d}
     ports:
       - "5601:5601"
@@ -98,7 +97,7 @@ services:
       - filebeat_data:/usr/share/filebeat/data
     networks:
       - elk
-    command: filebeat -e -strict.perms=false
+    command: filebeat -e --strict.perms=false
     healthcheck:
       test: ["CMD-SHELL", "filebeat test config"]
       interval: 30s
