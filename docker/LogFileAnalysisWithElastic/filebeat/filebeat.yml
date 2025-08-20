@@ -50,29 +50,75 @@ filebeat.inputs:
   ignore_older: 72h
 
 processors:
+# Extract timestamp from log message and parse various formats
+- script:
+    lang: javascript
+    source: >
+      function process(event) {
+        var message = event.Get("message");
+        if (!message) return;
+        
+        // Patterns for different log formats
+        var patterns = [
+          // ISO format: 2025-07-23T16:01:48.376244+01:00
+          {regex: /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[+-]\d{2}:\d{2}|Z)?)/,
+           format: "timestamp_iso"},
+          // Syslog format: Aug 20 17:45:01 or Jul 23 16:01:48
+          {regex: /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{2}:\d{2}:\d{2})/,
+           format: "timestamp_syslog"},
+          // Apache format: [20/Aug/2025:17:45:08 +0000]
+          {regex: /\[(\d{2}\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+-]\d{4})\]/,
+           format: "timestamp_apache"},
+          // RFC3339: 2025-08-20 17:45:01
+          {regex: /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/,
+           format: "timestamp_rfc3339"}
+        ];
+        
+        for (var i = 0; i < patterns.length; i++) {
+          var match = message.match(patterns[i].regex);
+          if (match) {
+            event.Put("extracted_timestamp", match[1] || match[0]);
+            event.Put("timestamp_format", patterns[i].format);
+            break;
+          }
+        }
+      }
+
+# Parse the extracted timestamp into proper @timestamp
+- timestamp:
+    field: "extracted_timestamp"
+    layouts:
+      - '2006-01-02T15:04:05.000000-07:00'  # ISO with microseconds and timezone
+      - '2006-01-02T15:04:05.000000+07:00'
+      - '2006-01-02T15:04:05.000-07:00'     # ISO with milliseconds
+      - '2006-01-02T15:04:05.000+07:00'
+      - '2006-01-02T15:04:05-07:00'        # ISO with timezone
+      - '2006-01-02T15:04:05+07:00'
+      - '2006-01-02T15:04:05Z'             # ISO UTC
+      - '2006-01-02T15:04:05'              # ISO without timezone
+      - '2006-01-02 15:04:05'              # RFC3339 style
+      - 'Jan _2 15:04:05'                  # Syslog format
+      - 'Jan 02 15:04:05'                  # Syslog format
+      - '02/Jan/2006:15:04:05 -0700'       # Apache format
+    target_field: "@timestamp"
+    ignore_failure: false
+
+# Add metadata
 - add_host_metadata:
     when.not.contains.tags: forwarded
 - add_docker_metadata: ~
-- add_kubernetes_metadata: ~
-- timestamp:
-    field: "@timestamp"
-    layouts:
-      - '2006-01-02T15:04:05.000Z'
-      - '2006-01-02T15:04:05Z'
-      - 'Jan _2 15:04:05'
-      - 'Jan 02 15:04:05'
-    test:
-      - '2023-10-15T14:30:45.123Z'
-      - 'Oct 15 14:30:45'
 
 output.elasticsearch:
   hosts: ["elasticsearch:9200"]
   index: "forensics-logs-%{+yyyy.MM.dd}"
+  pipeline: "forensics-timestamp-parser"
   template.name: "forensics-logs"
   template.pattern: "forensics-logs-*"
   template.settings:
     index.number_of_shards: 1
     index.number_of_replicas: 0
+  # Disable data streams to use traditional indices
+  allow_older_versions: true
 
 setup.kibana:
   host: "kibana:5601"

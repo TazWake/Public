@@ -167,17 +167,46 @@ echo 'root hard nofile 65536' | sudo tee -a /etc/security/limits.d/99-docker.con
    - `journal*.log` (systemd journal exports)
 
 4. **Access Kibana:**
-   Open http://localhost:5601 in your browser
+   Open http://localhost:5601 in your browser (wait 3-5 minutes for full initialization)
 
-5. **Create index pattern:**
-   - Go to Stack Management → Index Patterns
-   - Create pattern: `forensics-logs-*`
-   - Select `@timestamp` as time field
+5. **Create Data View in Kibana 9.x:**
+   - Click the hamburger menu (☰) in the top-left
+   - Navigate to **Management** → **Stack Management**
+   - Under **Kibana** section, click **Data Views**
+   - Click **Create data view**
+   - Name: `Forensics Logs`
+   - Index pattern: `forensics-logs-*`
+   - Select `@timestamp` as timestamp field
+   - Click **Save data view to Kibana**
+
+## Log Type Filtering
+
+6. **Access your data:**
+   - Go to **Analytics** → **Discover** 
+   - Select your **Forensics Logs** data view
+   - You should now see all ingested log data
+
+## Timestamp Parsing
+
+By default, Filebeat uses ingestion timestamps. To parse original event timestamps from log messages:
+
+```bash
+./setup-timestamp-parsing.sh
+```
+
+This creates an Elasticsearch ingest pipeline that extracts timestamps from various log formats:
+- **ISO 8601**: `2025-07-23T16:01:48.376244+01:00`
+- **Syslog**: `Aug 20 17:45:01`
+- **Apache**: `[20/Aug/2025:17:45:08 +0000]`
+- **RFC 3339**: `2025-08-20 17:45:01`
+
+After setup, new log entries will use their original event timestamps instead of ingestion time.
 
 ## Log Type Filtering
 
 Use the `log_type` field in Kibana to filter logs by source:
-- `log_type:syslog` - System logs (syslog/messages)
+- `log_type:forensic` - All log files from evidence directory
+- `log_type:misc_evidence` - Non-log files from evidence directory
 - `log_type:apache_access` - Apache access logs
 - `log_type:apache_error` - Apache error logs  
 - `log_type:audit` - Linux audit logs
@@ -281,6 +310,9 @@ The system monitors the `evidence/` directory for these file patterns:
 - Check Filebeat logs: `docker compose logs filebeat`
 - Restart Filebeat: `docker compose restart filebeat`
 - Verify file permissions: `ls -la evidence/`
+- Ensure you created the Data View with correct index pattern: `forensics-logs-*`
+- Check data exists in Elasticsearch: `curl 'http://localhost:9200/_cat/indices/forensics-logs-*?v'`
+- If using data streams (.ds- indices), run: `./create-alias.sh` to create a simpler alias
 
 **Permission issues:**
 - Ensure evidence files are readable: `chmod -R 644 evidence/`
