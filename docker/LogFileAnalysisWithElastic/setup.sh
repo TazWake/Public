@@ -3,6 +3,18 @@
 # Linux Log Analysis ELK Stack Setup Script
 set -e
 
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo "ERROR: This script requires root privileges to run Docker commands."
+    echo "Please run with: sudo $0"
+    echo ""
+    echo "Note: Docker requires root privileges to manage containers and networks."
+    echo "Alternatively, you can add your user to the docker group and run without sudo:"
+    echo "  sudo usermod -aG docker \$USER"
+    echo "  # Then log out and back in, or run: newgrp docker"
+    exit 1
+fi
+
 echo "Setting up Linux Log Analysis ELK Stack..."
 
 # Create directory structure
@@ -99,5 +111,5 @@ echo "Services running:"
 echo "  - Elasticsearch: http://localhost:9200"
 echo "  - Kibana: http://localhost:5601"
 echo ""
-echo "To stop the stack: docker-compose down"
-echo "To view logs: docker-compose logs -f [service_name]"
+echo "To stop the stack: docker compose down"
+echo "To view logs: docker compose logs -f [service_name]"
