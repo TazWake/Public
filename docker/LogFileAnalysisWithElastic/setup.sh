@@ -78,15 +78,41 @@ done
 
 # Check if Kibana is ready
 echo "Checking Kibana health..."
-for i in {1..30}; do
-    if curl -s "http://localhost:5601/api/status" > /dev/null 2>&1; then
+for i in {1..60}; do
+    # First check if container is running
+    if ! docker ps | grep -q kibana; then
+        echo "Kibana container not running, checking logs..."
+        docker-compose logs --tail 10 kibana
+    fi
+    
+    # Check Kibana status endpoint
+    if curl -s -I "http://localhost:5601" | grep -q "200\|302"; then
         echo "Kibana is ready!"
         break
     fi
-    if [ $i -eq 30 ]; then
+    
+    # More detailed check for Kibana API
+    if curl -s "http://localhost:5601/api/status" > /dev/null 2>&1; then
+        echo "Kibana API is ready!"
+        break
+    fi
+    
+    if [ $i -eq 60 ]; then
         echo "ERROR: Kibana failed to start within timeout"
+        echo "Checking Kibana logs for errors:"
+        docker-compose logs --tail 20 kibana
+        echo ""
+        echo "Checking container status:"
+        docker-compose ps
         exit 1
     fi
+    
+    # Show progress every 10 iterations
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "Still waiting for Kibana... ($i/60)"
+        docker-compose logs --tail 5 kibana
+    fi
+    
     sleep 2
 done
 
