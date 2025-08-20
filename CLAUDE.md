@@ -13,6 +13,13 @@ This is a comprehensive DFIR (Digital Forensics and Incident Response) tools rep
 - You are running in a powershell environment, not Linux. If you need things to be created or built and it isn't working for you, ask me to do it.
 - Always try to follow good practice designs for code and content unless directed otherwise.
 
+## Environment Notes
+
+- **Host Environment**: Windows with PowerShell (not Linux)
+- **Container Development**: Use Docker for Linux-specific testing and tools
+- **Cross-Platform Compatibility**: Bash scripts are designed for Linux/macOS execution
+- **Building**: Request assistance for compilation if cross-platform issues occur
+
 ## Common Commands
 
 ### Docker Lab Environments
@@ -78,13 +85,18 @@ make clean  # Cleans build artifacts
 
 ### Compilation and Building
 ```bash
-# C applications (malreview.c)
-gcc -o malreview Applications/malreview.c
+# C applications (malreview.c) - requires C++17 support
+g++ -std=c++17 -o malreview Applications/malreview.c -lstdc++fs
 
 # Go applications (malreview.go) 
 go build -o malreview Applications/malreview.go
 
 # Python scripts - no compilation needed, check script headers for dependencies
+
+# Kernel modules (educational rootkits) - requires kernel headers
+cd Bash/rootkits/
+make all    # Builds kernel module
+make clean  # Cleans build artifacts
 ```
 
 ## Architecture and Structure
@@ -121,11 +133,22 @@ go build -o malreview Applications/malreview.go
 ### Docker Environments
 #### Analysis Platforms
 - **Analysis_ELK/**: Full ELK stack with Filebeat for log ingestion (assumes logs in `/cases/logstore`)
+  - Elasticsearch on default port 9200
+  - Kibana accessible at http://localhost:8889
+  - Auto-configured for common log formats (Apache, auditd, syslog, auth.log)
 - **Analysis_OpenSearch/**: Alternative to ELK using OpenSearch and Dashboards
+  - Access dashboards at http://localhost:8899
 
 #### Testing/Lab Environments  
 - **Range/**: Multi-container network with Kali (10.10.10.10), nmap scanner (10.10.10.11), and Ubuntu target (10.10.10.12)
+  - Isolated 10.10.10.0/24 network for safe testing
+  - Kali container includes standard penetration testing tools
 - **testingweb/**: Vulnerable PHP/MySQL web application for testing (MySQL root: NINJAROOTPASSWORD)
+  - Web interface at http://localhost:9999
+  - Includes phpMyAdmin for database management
+- **nmap_real/**: Production-ready nmap scanning environment with monitoring
+  - Includes Grafana dashboards and Prometheus metrics
+  - Optimized for large-scale scanning operations
 
 ### Evidence Collection Scripts
 - **evidence_collector.sh**: Comprehensive Linux evidence collection following RFC3227
@@ -160,8 +183,12 @@ All tools are designed for **defensive security and forensic analysis only**. Th
 - Volatility requires appropriate profiles for memory analysis and vol.py in PATH
 - Docker environments require Docker and Docker Compose
 - ELK stack expects logs in `/cases/logstore` directory (create if missing)
-- Kernel module compilation requires kernel headers package
-- C/Go applications may need compilation before use
+- Kernel module compilation requires kernel headers package (`linux-headers-$(uname -r)`)
+- C applications require C++17 compiler support and filesystem library
+- Go applications require Go 1.16+ for module support
+- LiME kernel module source required for memory capture (evidence_collector.sh)
+- TSK (The Sleuth Kit) required for VMDK carving operations
+- dwarfdump utility needed for memory analysis (can be local or system-wide)
 
 ### Evidence Handling
 - Scripts follow RFC3227 guidelines for evidence collection
