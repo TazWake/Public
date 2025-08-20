@@ -1,0 +1,23 @@
+---
+description: Ensure bash scripts are well designed.
+globs: **/*.sh
+alwaysApply: false
+---
+- Follow these rules unless an instruction explicitly contradicts them. 
+- If you are unsure as to whether or not the rule applies, as questions to get clarity.
+- When writing bash scripts include help output and comments to inform users as to why things are being done the way they are.
+- Error Handling and Strict Mode: Begin every script with set -euo pipefail. This ensures the script exits immediately if a command fails (-e), a variable is used without being set (-u), and a command in a pipeline fails (-o pipefail).
+- Input Validation: Always validate and sanitize user input. Don't trust any input. Use regular expressions to check for expected patterns and escape or filter out potentially dangerous characters to prevent command injection.
+- Principle of Least Privilege: Scripts should be designed to run with the minimum necessary privileges. Avoid sudo unless absolutely required, and if so, limit its use to specific commands.
+- Avoid Hardcoding: Never hardcode sensitive information like passwords, API keys, or IP addresses directly in the script. Use environment variables, configuration files with strict permissions, or secure vaults.
+- Use Full Paths: Use the full, absolute path for all commands (e.g., /usr/bin/nmap instead of nmap). This prevents path manipulation attacks and ensures the correct command is executed.
+- Quote Variables: Always use double quotes around variables (e.g., "$variable") to prevent word splitting and globbing, which can lead to unexpected behavior and security vulnerabilities.
+- Leverage Functions: Break down complex tasks into smaller, reusable functions. This makes the code more readable, maintainable, and easier to debug. Use local for variables within functions to prevent namespace pollution.
+- Descriptive Naming: Use clear, descriptive names for variables and functions. Avoid single-letter variable names.
+- Add Comments: Include comments to explain complex logic, unexpected behavior, or the purpose of a specific section of code. Commenting should explain the "why," not just the "what."
+- Graceful Error Messages: Include clear, human-readable error messages. If a script fails, it should provide a concise explanation of what went wrong and how to fix it, guiding the user towards a resolution.
+- Modular Design: When appropriate, use modular design principles. A script that performs multiple, distinct functions should be split into smaller, single-purpose scripts.
+- Version Control: Include a version or Changelog header. This helps track updates and changes, which is vital in a team environment.
+- Integrate Static Analysis: For larger or more critical scripts, advise the user to run a static analysis tool like ShellCheck to identify potential bugs and security issues before deployment.
+- Handle Exit Codes: Explicitly check the exit status of commands using if [ $? -ne 0 ] to ensure critical commands executed successfully. This provides a fine-grained approach to error handling beyond the set -e option.
+- Log Activity: Scripts should be designed to log their actions to a file or standard output. This is crucial for forensic analysis, incident response, and general auditing within a SOC environment.
