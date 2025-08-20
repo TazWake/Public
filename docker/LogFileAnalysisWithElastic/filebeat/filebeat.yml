@@ -1,113 +1,53 @@
+# Simplified Filebeat 9.x configuration using filestream inputs
 filebeat.inputs:
-# Syslog/messages
+# Primary catch-all input for all log files in evidence directory
 - type: filestream
+  id: evidence-logs
   enabled: true
   paths:
+    - /evidence/*.log
+    - /evidence/*log*
     - /evidence/syslog*
     - /evidence/messages*
-    - /evidence/var/log/syslog*
-    - /evidence/var/log/messages*
-  fields:
-    log_type: syslog
-  fields_under_root: true
-  parsers:
-    - multiline:
-        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-        negate: true
-        match: after
-
-# Apache access logs
-- type: filestream
-  enabled: true
-  paths:
+    - /evidence/secure*
+    - /evidence/auth.log*
+    - /evidence/audit.log*
     - /evidence/access.log*
     - /evidence/access_log*
-    - /evidence/var/log/apache*/access*.log*
-    - /evidence/var/log/httpd/access*.log*
-  fields:
-    log_type: apache_access
-  fields_under_root: true
-
-# Apache error logs
-- type: filestream
-  enabled: true
-  paths:
     - /evidence/error.log*
     - /evidence/error_log*
-    - /evidence/var/log/apache*/error*.log*
-    - /evidence/var/log/httpd/error*.log*
-  fields:
-    log_type: apache_error
-  fields_under_root: true
-  parsers:
-    - multiline:
-        pattern: '^\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}'
-        negate: true
-        match: after
-
-# Audit logs
-- type: filestream
-  enabled: true
-  paths:
-    - /evidence/audit.log*
-    - /evidence/var/log/audit/audit.log*
-  fields:
-    log_type: audit
-  fields_under_root: true
-
-# Auth logs (auth.log/secure)
-- type: filestream
-  enabled: true
-  paths:
-    - /evidence/auth.log*
-    - /evidence/secure*
-    - /evidence/var/log/auth.log*
-    - /evidence/var/log/secure*
-  fields:
-    log_type: auth
-  fields_under_root: true
-  parsers:
-    - multiline:
-        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-        negate: true
-        match: after
-
-# Dmesg logs
-- type: filestream
-  enabled: true
-  paths:
     - /evidence/dmesg*
-    - /evidence/var/log/dmesg*
-    - /evidence/var/log/kern.log*
-  fields:
-    log_type: dmesg
-  fields_under_root: true
-
-# Journal logs (if exported to text)
-- type: filestream
-  enabled: true
-  paths:
     - /evidence/journal*.log*
     - /evidence/systemd*.log*
+    - /evidence/var/log/**/*.log*
+    - /evidence/var/log/syslog*
+    - /evidence/var/log/messages*
+    - /evidence/var/log/secure*
+    - /evidence/var/log/auth.log*
+    - /evidence/var/log/audit/audit.log*
+    - /evidence/var/log/apache*/*.log*
+    - /evidence/var/log/httpd/*.log*
+  exclude_files: ['\.gz$', '\.zip$', '\.tar$', '\.bz2$', '\.xz$']
   fields:
-    log_type: journal
+    log_type: forensic
+    evidence_source: "manual_upload"
   fields_under_root: true
-  parsers:
-    - multiline:
-        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-        negate: true
-        match: after
+  close_inactive: 5m
+  ignore_older: 72h
 
-# Generic catch-all for other log files
-- type: filestream
+# Secondary input for any other files in evidence directory
+- type: filestream  
+  id: evidence-misc
   enabled: true
   paths:
-    - /evidence/*.log*
-    - /evidence/var/log/**/*.log*
-  exclude_files: ['\.gz$', '\.zip$', '\.tar$', '\.bz2$']
+    - /evidence/*
+  exclude_files: ['\.gz$', '\.zip$', '\.tar$', '\.bz2$', '\.xz$', '\.log$']
   fields:
-    log_type: generic
+    log_type: misc_evidence
+    evidence_source: "manual_upload"  
   fields_under_root: true
+  close_inactive: 5m
+  ignore_older: 72h
 
 processors:
 - add_host_metadata:
