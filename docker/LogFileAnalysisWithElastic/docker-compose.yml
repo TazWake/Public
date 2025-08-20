@@ -1,0 +1,63 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:latest
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=forensics-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:latest
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+      - xpack.encryptedSavedObjects.encryptionKey=a7a6311933d3503b89bc2dbc36572c33a6c10925682e591bffcab6911c06786d
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:latest
+    container_name: filebeat
+    depends_on:
+      - elasticsearch
+    user: root
+    volumes:
+      - ./evidence:/evidence:ro
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./filebeat/modules.d:/usr/share/filebeat/modules.d:ro
+      - filebeat_data:/usr/share/filebeat/data
+    networks:
+      - elk
+    command: filebeat -e -strict.perms=false
+
+volumes:
+  elasticsearch_data:
+  filebeat_data:
+
+networks:
+  elk:
+    driver: bridge
