@@ -1,6 +1,6 @@
 filebeat.inputs:
 # Syslog/messages
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/syslog*
@@ -10,12 +10,14 @@ filebeat.inputs:
   fields:
     log_type: syslog
   fields_under_root: true
-  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-  multiline.negate: true
-  multiline.match: after
+  parsers:
+    - multiline:
+        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+        negate: true
+        match: after
 
 # Apache access logs
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/access.log*
@@ -27,7 +29,7 @@ filebeat.inputs:
   fields_under_root: true
 
 # Apache error logs
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/error.log*
@@ -37,12 +39,14 @@ filebeat.inputs:
   fields:
     log_type: apache_error
   fields_under_root: true
-  multiline.pattern: '^\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}'
-  multiline.negate: true
-  multiline.match: after
+  parsers:
+    - multiline:
+        pattern: '^\[[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{2}\s+\d{2}:\d{2}:\d{2}'
+        negate: true
+        match: after
 
 # Audit logs
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/audit.log*
@@ -52,7 +56,7 @@ filebeat.inputs:
   fields_under_root: true
 
 # Auth logs (auth.log/secure)
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/auth.log*
@@ -62,12 +66,14 @@ filebeat.inputs:
   fields:
     log_type: auth
   fields_under_root: true
-  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-  multiline.negate: true
-  multiline.match: after
+  parsers:
+    - multiline:
+        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+        negate: true
+        match: after
 
 # Dmesg logs
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/dmesg*
@@ -78,7 +84,7 @@ filebeat.inputs:
   fields_under_root: true
 
 # Journal logs (if exported to text)
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/journal*.log*
@@ -86,12 +92,14 @@ filebeat.inputs:
   fields:
     log_type: journal
   fields_under_root: true
-  multiline.pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
-  multiline.negate: true
-  multiline.match: after
+  parsers:
+    - multiline:
+        pattern: '^[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+        negate: true
+        match: after
 
 # Generic catch-all for other log files
-- type: log
+- type: filestream
   enabled: true
   paths:
     - /evidence/*.log*
