@@ -7,6 +7,7 @@ This directory contains production-ready shell scripts for digital forensics and
 ### 🔍 Evidence Collection & System Triage
 
 #### Core Evidence Collection
+
 - **`evidence_collector.sh`** - Comprehensive Linux evidence collection following RFC3227 guidelines
   - Requires: LiME, dwarfdump, ewfacquire (or dd as fallback)
   - Usage: `sudo ./evidence_collector.sh /path/to/storage/device`
@@ -21,6 +22,7 @@ This directory contains production-ready shell scripts for digital forensics and
   - Framework for consistent incident response procedures
 
 #### Specialized Evidence Collection
+
 - **`docker_triage.sh`** - Container-specific forensic data collection
   - Docker environment analysis and artifact extraction
 
@@ -49,6 +51,7 @@ This directory contains production-ready shell scripts for digital forensics and
 ### 💾 File System & Disk Analysis
 
 #### Disk and Image Analysis
+
 - **`VMDK_Carver.sh`** - NTFS data carving from VMDK images using The Sleuth Kit
   - Forensic analysis of virtual machine disk images
 
@@ -68,6 +71,7 @@ This directory contains production-ready shell scripts for digital forensics and
   - Apple File System forensic preparation tools
 
 #### File Operations and Analysis
+
 - **`multi_Files.sh`** - Batch file processing utility
   - Mass file operation and analysis tool
 
@@ -104,6 +108,7 @@ This directory contains production-ready shell scripts for digital forensics and
 ### 📊 Log Analysis & System Monitoring
 
 #### Log Processing
+
 - **`journalConverter.sh`** - Convert systemd journal logs for analysis
   - Systemd journal forensic extraction and conversion
 
@@ -111,6 +116,7 @@ This directory contains production-ready shell scripts for digital forensics and
   - Rapid journal log analysis for incident response
 
 #### System Auditing
+
 - **`setAuditD.sh`** - Configure auditd for comprehensive system monitoring
   - Linux audit daemon configuration for forensic logging
 
@@ -142,6 +148,7 @@ This directory contains production-ready shell scripts for digital forensics and
 ### 🔐 Educational Security Tools
 
 #### rootkits/ Directory
+
 - **`Makefile`** - Build configuration for kernel module compilation
   - Educational kernel module development
   - Usage: `make all` to build, `make clean` to clean
@@ -153,6 +160,7 @@ This directory contains production-ready shell scripts for digital forensics and
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
+
 ```bash
 # Essential tools (install as needed)
 sudo apt-get install volatility-tools sleuthkit ewf-tools
@@ -165,6 +173,7 @@ export PATH=$PATH:/path/to/volatility
 ### Common Usage Patterns
 
 #### Evidence Collection
+
 ```bash
 # Full Linux evidence collection
 sudo ./evidence_collector.sh /mnt/evidence_drive
@@ -177,6 +186,7 @@ sudo ./macos_evidence.sh
 ```
 
 #### Memory Analysis
+
 ```bash
 # Automated memory analysis
 ./memory_precook.sh memory.dump Win7SP1x64
@@ -186,6 +196,7 @@ sudo ./macos_evidence.sh
 ```
 
 #### Malware Analysis
+
 ```bash
 # Analyze suspicious file
 ./malanalyze.sh -f suspicious_file.exe
@@ -195,6 +206,7 @@ sudo ./macos_evidence.sh
 ```
 
 #### System Configuration
+
 ```bash
 # Setup audit logging
 sudo ./setAuditD.sh
@@ -206,23 +218,27 @@ sudo ./setAuditD.sh
 ## ⚠️ Important Notes
 
 ### Security Context
+
 - All tools are designed for **defensive security and legitimate forensic analysis**
 - Educational components (rootkits/) are for learning purposes only
 - Many scripts require root/sudo privileges for system access
 
 ### Prerequisites & Dependencies
+
 - Most scripts assume standard Unix utilities (dd, find, grep, etc.)
 - Specific tools noted in individual script headers
 - Python scripts may require additional packages
 - Some tools require external forensic utilities (TSK, Volatility, etc.)
 
 ### Evidence Handling
+
 - Scripts follow RFC3227 guidelines for digital evidence
 - Automatic integrity verification (MD5/SHA1 hashing)
 - Comprehensive logging of all operations
 - Chain of custody documentation included
 
 ### Script Status
+
 - **Production**: Tested and ready for operational use
 - **Template**: Examples requiring customization  
 - **DRAFT**: Under development or testing
@@ -247,6 +263,3 @@ head -30 script_name.sh
 - **`../Python/`** - Python forensic utilities
 - **`../Powershell/`** - Windows-specific forensic scripts
 - **`../docker/`** - Containerized analysis environments
-
----
-*For additional documentation, see the main repository CLAUDE.md file*
