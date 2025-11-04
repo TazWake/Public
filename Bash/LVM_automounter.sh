@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 #
-# mount_lvm_image.sh
-#
 # Given a full-disk image that contains an LVM2 partition, this script:
 #   1) Finds the LVM partition and its offset (mmls if available, else fdisk)
 #   2) Attaches it to a loop device (read-only) at that offset
@@ -43,8 +41,6 @@ EOF
     exit 1
 }
 
-# --- argument & root checks ---------------------------------------------------
-
 [ "${1:-}" ] || usage
 IMAGE="$1"
 
@@ -53,8 +49,6 @@ IMAGE="$1"
 if [ "$(id -u)" -ne 0 ]; then
     error "This script must be run as root."
 fi
-
-# --- step 1: find LVM partition and offset -----------------------------------
 
 SECTOR_SIZE=""
 START_SECTOR=""
@@ -101,9 +95,6 @@ echo "[*] LVM partition start sector : $START_SECTOR"
 echo "[*] Sector size                : $SECTOR_SIZE bytes"
 echo "[*] Byte offset                : $OFFSET_BYTES"
 
-
-# --- step 2: attach loop device at offset (read-only) ------------------------
-
 command -v losetup >/dev/null 2>&1 || error "losetup not found."
 
 echo "[*] Attaching image at offset to a loop device (read-only)..."
@@ -114,13 +105,9 @@ LOOPDEV=$(losetup --find --show --read-only -o "$OFFSET_BYTES" "$IMAGE") || \
 
 echo "[+] Image attached as: $LOOPDEV"
 
-# --- sanity-check LVM tools ---------------------------------------------------
-
 for cmd in pvs vgchange lvs blkid mount; do
     command -v "$cmd" >/dev/null 2>&1 || error "Required command '$cmd' not found in PATH."
 done
-
-# --- step 3: get VG name from that PV ----------------------------------------
 
 echo "[*] Identifying volume group on $LOOPDEV..."
 
@@ -129,12 +116,8 @@ VGNAME=$(pvs --noheadings -o vg_name "$LOOPDEV" 2>/dev/null | awk '{$1=$1; print
 
 echo "[+] Volume Group detected: $VGNAME"
 
-# --- step 4: activate the VG --------------------------------------------------
-
 echo "[*] Activating volume group $VGNAME..."
 vgchange -ay "$VGNAME" >/dev/null
-
-# --- step 5: list logical volumes in this VG ---------------------------------
 
 echo "[*] Enumerating logical volumes in VG $VGNAME..."
 
@@ -151,8 +134,6 @@ echo "[+] Found ${#LV_PATHS[@]} logical volume(s):"
 for lv in "${LV_PATHS[@]}"; do
     echo "    $lv"
 done
-
-# --- step 6: mount LVs read-only under /mnt/lvmevidenceN ---------------------
 
 MOUNT_BASE="/mnt/lvmevidence"
 
@@ -208,7 +189,6 @@ for LV in "${LV_PATHS[@]}"; do
 
     i=$((i + 1))
 done
-
 
 echo
 echo "[✓] Done."
