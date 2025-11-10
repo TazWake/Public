@@ -268,6 +268,43 @@ sudo ./setAuditD.sh
 ./authCheck.sh
 ```
 
+#### Log Analysis
+
+```bash
+# Convert systemd journal to standard format
+./systemdJournalConverter.sh
+
+# Triage journal entries for incidents
+./OS_Journal_Triage.sh
+```
+
+#### LVM and Advanced Filesystem Analysis
+
+```bash
+# Mount LVM volumes from forensic images
+sudo ./LVM_ImageMounter.sh /path/to/image
+
+# Analyze LVM2 logical volumes
+./check_lvm2.sh
+```
+
+#### Educational Tools
+
+```bash
+# Generate test ELF files
+cd lab_ctf_generators/
+./GenELF_file_better.sh
+
+# Prepare classroom environment
+./class_prep.sh
+
+# Educational rootkit demonstration (requires kernel headers)
+cd rootkits/lkm_example_2/
+make
+sudo ./demo.sh
+./detect.sh
+```
+
 ## ⚠️ Important Notes
 
 ### Security Context
