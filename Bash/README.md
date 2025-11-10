@@ -320,9 +320,11 @@ sudo ./demo.sh
 ### Prerequisites & Dependencies
 
 - Most scripts assume standard Unix utilities (dd, find, grep, etc.)
+- **Windows Users**: These scripts should be executed via WSL2 (Windows Subsystem for Linux) or in Docker containers
 - Specific tools noted in individual script headers
 - Python scripts may require additional packages
 - Some tools require external forensic utilities (TSK, Volatility, etc.)
+- Educational rootkit modules require Linux kernel headers package (`linux-headers-$(uname -r)`)
 
 ### Evidence Handling
 
