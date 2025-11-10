@@ -1,5 +1,6 @@
 #!/bin/bash
-# This script will run some basic checks against the system journal to see
+
+# This script will run some basic checks against the systemd journal to see
 # if there are any clear indications of malicious activity.
 
 # Check arguments
