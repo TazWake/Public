@@ -311,6 +311,10 @@ sudo ./demo.sh
 
 - All tools are designed for **defensive security and legitimate forensic analysis**
 - Educational components (rootkits/) are for learning purposes only
+  - Use only in isolated lab environments (VMs or containers)
+  - Designed to teach defensive security professionals how to detect and analyze rootkits
+  - Never deploy on production systems
+  - Includes detection scripts to demonstrate identification techniques
 - Many scripts require root/sudo privileges for system access
 
 ### Prerequisites & Dependencies
