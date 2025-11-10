@@ -2,6 +2,17 @@
 
 This directory contains production-ready shell scripts for digital forensics and incident response operations. All scripts are designed for defensive security purposes and legitimate forensic analysis.
 
+## 📂 Directory Structure
+
+```
+Bash/
+├── Core Scripts (root level) - Production forensic tools
+├── lab_ctf_generators/ - Educational and CTF lab preparation scripts
+└── rootkits/ - Educational kernel modules for security training
+    ├── sample_LKM.c - Basic example
+    └── lkm_example_2/ - Advanced example with detection
+```
+
 ## 📋 Script Categories
 
 ### 🔍 Evidence Collection & System Triage
@@ -34,6 +45,9 @@ This directory contains production-ready shell scripts for digital forensics and
 
 - **`mk_collector.sh`** - Custom evidence collector utility
 
+- **`example_proc_check.sh`** - Example process checking and analysis script
+  - Template for process monitoring and suspicious activity detection
+
 ### 🧠 Memory Analysis
 
 - **`memory_precook.sh`** - Automated Volatility analysis battery
@@ -61,19 +75,17 @@ This directory contains production-ready shell scripts for digital forensics and
 - **`xfs_inode_converter.sh`** - XFS filesystem inode analysis tool
   - XFS-specific forensic analysis utilities
 
-- **`XFS_Extent_Address_Parser.py`** - XFS extent address parsing utility
-  - Python tool for XFS filesystem forensics
-
 - **`check_lvm2.sh`** - LVM2 logical volume analysis
   - Linux Volume Manager forensic analysis
+
+- **`LVM_ImageMounter.sh`** - LVM volume image mounting utility
+  - Automated mounting of LVM volumes from forensic images
+  - Handles complex volume group configurations
 
 - **`apfs_setup.sh`** - APFS filesystem preparation and analysis
   - Apple File System forensic preparation tools
 
 #### File Operations and Analysis
-
-- **`multi_Files.sh`** - Batch file processing utility
-  - Mass file operation and analysis tool
 
 - **`fileshred.sh`** - Secure file deletion utility
   - Forensically secure file destruction
@@ -109,11 +121,13 @@ This directory contains production-ready shell scripts for digital forensics and
 
 #### Log Processing
 
-- **`journalConverter.sh`** - Convert systemd journal logs for analysis
+- **`systemdJournalConverter.sh`** - Convert systemd journal logs for analysis
   - Systemd journal forensic extraction and conversion
+  - Exports journal data to standard log formats
 
-- **`journalTriage.sh`** - Triage systemd journal entries for incidents
+- **`OS_Journal_Triage.sh`** - Triage systemd journal entries for incidents
   - Rapid journal log analysis for incident response
+  - Automated detection of suspicious system events
 
 #### System Auditing
 
@@ -133,29 +147,68 @@ This directory contains production-ready shell scripts for digital forensics and
 
 ### 🔧 Development & Testing Tools
 
+- **`sift_mac_apt.sh`** - SIFT workstation macOS APT installation
+  - SANS SIFT toolkit installation for macOS
+
+#### lab_ctf_generators/ Directory
+
+Educational and CTF lab preparation scripts:
+
 - **`GenELF_file.sh`** - Generate sample ELF files for testing
   - ELF file generation for forensic tool testing
+  - Creates controlled malformed binaries for analysis practice
 
 - **`GenELF_file_better.sh`** - Enhanced ELF file generation utility
-  - Improved version of ELF file generator
+  - Improved version with more configuration options
+  - Better control over generated binary characteristics
 
 - **`class_prep.sh`** - Classroom/lab environment preparation
   - Educational environment setup for DFIR training
+  - Automated student environment configuration
 
-- **`sift_mac_apt.sh`** - SIFT workstation macOS APT installation
-  - SANS SIFT toolkit installation for macOS
+- **`multi_Files.sh`** - Batch file processing utility
+  - Mass file operation and analysis tool
+  - Useful for creating test datasets
 
 ### 🔐 Educational Security Tools
 
 #### rootkits/ Directory
+
+Educational kernel module examples for learning defensive security and rootkit detection:
 
 - **`Makefile`** - Build configuration for kernel module compilation
   - Educational kernel module development
   - Usage: `make all` to build, `make clean` to clean
 
 - **`sample_LKM.c`** - Sample Linux Kernel Module for educational purposes
-  - Educational rootkit development example
+  - Basic educational rootkit development example
   - Requires kernel headers for compilation
+
+##### lkm_example_2/ Subdirectory
+
+Advanced educational rootkit with detection examples:
+
+- **`educational_rootkit.c`** - Advanced educational kernel module
+  - Demonstrates common rootkit techniques for defensive training
+  - Includes syscall hooking, process hiding, and file hiding examples
+
+- **`demo.sh`** - Demonstration script
+  - Shows rootkit functionality in action
+  - Educational walkthrough of rootkit capabilities
+
+- **`detect.sh`** - Detection script
+  - Demonstrates various rootkit detection techniques
+  - Shows how to identify hidden processes and files
+
+- **`INSTRUCTOR_GUIDE.md`** - Teaching guide
+  - Instructions for using in educational settings
+  - Lesson plans and learning objectives
+
+- **`README.md`** - Detailed documentation
+  - Technical explanation of rootkit components
+  - Compilation and usage instructions
+
+- **`Makefile`** - Build configuration for the educational rootkit
 
 ## 🚀 Quick Start Guide
 
