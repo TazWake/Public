@@ -3,7 +3,8 @@
     "allow": [
       "Bash(docker build:*)",
       "Bash(docker run:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(dir:*)"
     ],
     "deny": []
   }

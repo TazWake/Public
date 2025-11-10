@@ -6,24 +6,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a comprehensive DFIR (Digital Forensics and Incident Response) tools repository containing production-ready forensic analysis scripts, containerized lab environments, and specialized plugins for memory analysis frameworks.
 
-## Code Best Practices
-
-- Always use descriptive variable names unless asked to created obfuscated code.
-- If an instruction is unclear or it isn't possible to complete without more information ask questions.
-- You are running in a powershell environment, not Linux. If you need things to be created or built and it isn't working for you, ask me to do it.
-- Always try to follow good practice designs for code and content unless directed otherwise.
-
 ## Environment Notes
 
 - **Host Environment**: Windows with PowerShell (not Linux)
+- **WSL2 Access**: Bash is available via WSL2 for Linux-specific commands
+- **CRITICAL**: Avoid piping output to `nul` - this creates a file in Windows that breaks git push and other commands. Use `>$null` in PowerShell or `>/dev/null` in WSL2/bash instead.
 - **Container Development**: Use Docker for Linux-specific testing and tools
-- **Cross-Platform Compatibility**: Bash scripts are designed for Linux/macOS execution
+- **Cross-Platform Compatibility**: Bash scripts are designed for Linux/macOS execution or WSL2
 - **Building**: Request assistance for compilation if cross-platform issues occur
+
+## Code Best Practices
+
+### General Guidelines
+- Always use descriptive variable names unless specifically asked to create obfuscated code
+- If an instruction is unclear or impossible to complete without more information, ask questions
+- Follow good practice designs for code and content unless directed otherwise
+
+### Bash Script Development
+When writing or modifying bash scripts, follow these principles:
+- Begin scripts with `set -euo pipefail` for strict error handling
+- Include help output and comments explaining the "why" behind implementation choices
+- Use full absolute paths for commands (e.g., `/usr/bin/nmap` instead of `nmap`)
+- Always quote variables (e.g., `"$variable"`) to prevent word splitting
+- Validate and sanitize all user input to prevent command injection
+- Use functions for complex tasks with `local` variables to prevent namespace pollution
+- Include clear error messages that explain what went wrong and how to fix it
+- Add logging for actions to support forensic analysis and auditing
+- Run ShellCheck on critical scripts before deployment
+
+## Working with Paths and Environments
+
+- **Windows Paths**: Use for Docker commands and when working directly in PowerShell (e.g., `D:\Development\Public\`)
+- **WSL2/Linux Paths**: Required when executing bash scripts that expect Unix-style paths
+- **Docker Volume Mounts**: Windows paths work in docker-compose.yml files on Windows hosts
+- **Script Execution**: Bash scripts (.sh) should be run via WSL2 or in Docker containers, not directly in PowerShell
 
 ## Common Commands
 
 ### Docker Lab Environments
-Multiple containerized environments are available for testing and analysis:
+Multiple containerized environments are available for testing and analysis. Use PowerShell or WSL2 for these commands:
 
 ```bash
 # Range testing environment (Kali, nmap, target containers)
@@ -39,6 +60,15 @@ docker-compose up -d
 cd D:\Development\Public\docker\Analysis_OpenSearch\
 docker-compose up -d
 # Access dashboards at http://localhost:8899
+
+# Enhanced log analysis with automated setup
+cd D:\Development\Public\docker\LogFileAnalysisWithElastic\
+./setup.sh  # Run setup first
+docker-compose up -d
+
+# Malware analysis environment
+cd D:\Development\Public\docker\MalwareAnalyzer\
+docker-compose up -d
 
 # Testing web environment with PHP/MySQL
 cd D:\Development\Public\docker\testingweb\
@@ -104,12 +134,18 @@ make clean  # Cleans build artifacts
 ### Core Components
 - **Applications/**: C and Go implementations of malware analysis utilities
 - **Bash/**: Production shell scripts for evidence collection, memory analysis automation, and system triage
-- **Python/**: Forensic analysis utilities including EXIF extraction and network analysis tools  
+- **Python/**: Forensic analysis utilities including EXIF extraction and network analysis tools
 - **Powershell/**: Windows-specific scripts for auditing, logging configuration, and evidence collection
 - **Vol2.6/** & **Vol3/**: Volatility framework plugins for memory forensics analysis
-- **docker/**: Containerized analysis environments (ELK, OpenSearch, testing web apps)
+- **docker/**: Containerized analysis environments (ELK, OpenSearch, testing web apps, malware analysis)
 - **Range/**: Multi-container network testing environment with isolated 10.10.10.0/24 subnet
 - **EvidenceGenerator/**: Synthetic evidence generation tools for training and testing
+  - Generate realistic web logs and forensic artifacts
+  - Use grep filtering to remove private IP addresses from generated logs
+- **JupyterNotebooks/**: Jupyter notebooks for data analysis and forensic workflow examples
+- **plaso/**: Log2timeline/plaso configuration files for timeline analysis
+  - `filter_linux.txt` and `filter_linux.yaml`: Linux-specific timeline filtering rules
+- **Examples/**: Sample data and privilege escalation technique documentation
 
 ### Key Technologies
 - **Volatility Framework**: Memory forensics analysis (both v2.6 and v3)
@@ -138,8 +174,20 @@ make clean  # Cleans build artifacts
   - Auto-configured for common log formats (Apache, auditd, syslog, auth.log)
 - **Analysis_OpenSearch/**: Alternative to ELK using OpenSearch and Dashboards
   - Access dashboards at http://localhost:8899
+- **LogFileAnalysisWithElastic/**: Enhanced log analysis environment with setup automation
+  - Includes setup scripts for ingest pipelines and timestamp parsing
+  - Run `setup.sh` for automated configuration
+  - Status checking via `check-status.sh`
 
-#### Testing/Lab Environments  
+#### Malware Analysis
+- **MalwareAnalyzer/**: Containerized malware analysis environment
+  - Isolated environment for safe malware examination
+  - Mounts current directory to `/analysis` for file analysis
+  - Results written to `./results` directory
+- **maldoc/**: Malicious document analysis container
+  - Specialized environment for analyzing suspicious documents
+
+#### Testing/Lab Environments
 - **Range/**: Multi-container network with Kali (10.10.10.10), nmap scanner (10.10.10.11), and Ubuntu target (10.10.10.12)
   - Isolated 10.10.10.0/24 network for safe testing
   - Kali container includes standard penetration testing tools
@@ -149,6 +197,7 @@ make clean  # Cleans build artifacts
 - **nmap_real/**: Production-ready nmap scanning environment with monitoring
   - Includes Grafana dashboards and Prometheus metrics
   - Optimized for large-scale scanning operations
+- **re_docker/**: Reverse engineering Docker environment
 
 ### Evidence Collection Scripts
 - **evidence_collector.sh**: Comprehensive Linux evidence collection following RFC3227
