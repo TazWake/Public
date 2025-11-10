@@ -114,27 +114,56 @@ Volatility 3 memory analysis plugins
 
 Containerized analysis and testing environments
 
-#### Analysis_ELK/
+#### Log Analysis Platforms
 
+**Analysis_ELK/**
 - Complete ELK stack (Elasticsearch, Kibana, Filebeat) for log analysis
 - Pre-configured for Apache, auditd, syslog, messages, auth.log, and secure logs
+- Expects logs in `/cases/logstore` directory
 - Access Kibana at <http://localhost:8889>
 
-#### Analysis_OpenSearch/
-
+**Analysis_OpenSearch/**
 - OpenSearch alternative to ELK stack
 - Access dashboards at <http://localhost:8899>
 
-#### testingweb/
+**LogFileAnalysisWithElastic/**
+- Enhanced log analysis environment with automated setup
+- Includes setup scripts for ingest pipelines and timestamp parsing
+- Run `./setup.sh` for automated configuration
+- Status checking via `./check-status.sh`
 
+#### Malware Analysis Environments
+
+**MalwareAnalyzer/**
+- Containerized malware analysis environment
+- Isolated environment for safe malware examination
+- Mounts current directory to `/analysis` for file analysis
+- Results written to `./results` directory
+
+**maldoc/**
+- Specialized environment for analyzing malicious documents
+- Tools for document metadata extraction and embedded object analysis
+
+#### Security Testing Environments
+
+**testingweb/**
 - Vulnerable PHP/MySQL web application for security testing
 - Includes phpMyAdmin interface
 - MySQL credentials: root/NINJAROOTPASSWORD
+- Access web interface at <http://localhost:9999>
 
-#### Additional Containers
+**nmap_real/**
+- Production-ready nmap scanning environment with monitoring
+- Includes Grafana dashboards and Prometheus metrics
+- Optimized for large-scale scanning operations
 
-- `maldoc/` - Malicious document analysis environment
-- `nmaper/` - Containerized nmap scanning environment
+**nmaper/**
+- Lightweight containerized nmap scanning environment
+- Quick deployment for network reconnaissance tasks
+
+**re_docker/**
+- Reverse engineering Docker environment
+- Tools for binary analysis and reverse engineering tasks
 
 ### 🎯 Range/
 
@@ -151,6 +180,7 @@ Synthetic evidence generation for training and testing
 
 - `generate_data.py` - Generate realistic forensic artifacts
 - `webgen.py` - Web log generation utility
+- Filter generated logs to remove private IP addresses using provided grep patterns
 
 ### 📚 Examples/
 
@@ -159,10 +189,12 @@ Sample data and documentation
 - `GenericPotato.md` - Privilege escalation technique documentation
 - `GenericPotato.zip` - Sample files for potato attack vectors
 
-### 📋 Configuration Files
+### 📓 JupyterNotebooks/
 
-- `dfir_collection.md` - DFIR collection methodology documentation
-- `Test2.ipynb` - Jupyter notebook for data analysis examples
+Jupyter notebooks for data analysis and forensic workflows
+
+- `Test2.ipynb` - Example notebook demonstrating data analysis techniques
+- Interactive environment for forensic data exploration and visualization
 
 ### 🔍 plaso/
 
@@ -170,6 +202,13 @@ Log2timeline/plaso configuration files
 
 - `filter_linux.txt` - Linux-specific timeline filtering rules
 - `filter_linux.yaml` - YAML format Linux timeline filters
+- Pre-configured filters for efficient timeline analysis on Linux systems
+
+### 📋 Documentation
+
+- `dfir_collection.md` - DFIR collection methodology documentation
+- `README.md` - This file, comprehensive repository documentation
+- `CLAUDE.md` - Guidelines for Claude Code when working with this repository
 
 ## 🚀 Quick Start
 
@@ -178,12 +217,29 @@ Log2timeline/plaso configuration files
 ```bash
 # Start ELK stack for log analysis
 cd docker/Analysis_ELK && docker-compose up -d
+# Access Kibana at http://localhost:8889
 
-# Start testing range
+# Start enhanced log analysis with automated setup
+cd docker/LogFileAnalysisWithElastic
+./setup.sh
+docker-compose up -d
+
+# Start OpenSearch alternative
+cd docker/Analysis_OpenSearch && docker-compose up -d
+# Access dashboards at http://localhost:8899
+
+# Start malware analysis environment
+cd docker/MalwareAnalyzer && docker-compose up -d
+
+# Start testing range (isolated network)
 cd Range && docker-compose up -d
 
-# Start vulnerable web app
+# Start vulnerable web app for security testing
 cd docker/testingweb && docker-compose up -d
+# Access at http://localhost:9999
+
+# Start nmap scanning environment with monitoring
+cd docker/nmap_real && docker-compose up -d
 ```
 
 ### Memory Analysis with Volatility
@@ -205,3 +261,100 @@ sudo ./Bash/evidence_collector.sh /mnt/evidence
 # Windows evidence collection
 .\Powershell\collectEvidence.ps1
 ```
+
+### Building Applications
+
+```bash
+# C applications (requires C++17 support)
+g++ -std=c++17 -o malreview Applications/malreview.c -lstdc++fs
+
+# Go applications (requires Go 1.16+)
+go build -o malreview Applications/malreview.go
+
+# Kernel modules (requires kernel headers)
+cd Bash/rootkits/
+make all    # Build kernel module
+make clean  # Clean build artifacts
+```
+
+## 📦 Prerequisites & Dependencies
+
+### Core Requirements
+
+- **Docker & Docker Compose** - For containerized analysis environments
+- **Python 3.x** - For Python utilities and Volatility plugins
+- **Bash/Shell** - For shell script execution (WSL2 on Windows)
+
+### Memory Analysis
+
+- **Volatility Framework** - vol.py must be in PATH
+- **Appropriate memory profiles** - Match your memory image OS version
+- **dwarfdump utility** - For advanced memory analysis
+
+### Evidence Collection Tools
+
+- **LiME (Linux Memory Extractor)** - For memory capture on Linux
+- **The Sleuth Kit (TSK)** - For VMDK carving and filesystem analysis
+- **ewfacquire** - For disk imaging (or dd as fallback)
+
+### Log Analysis Platforms
+
+- **ELK Stack** - Expects logs in `/cases/logstore` directory
+- Create `/cases/logstore` if missing before starting ELK containers
+
+### Development Tools
+
+- **C++17 compiler** - For C application compilation
+- **Go 1.16+** - For Go application development
+- **Kernel headers** - For Linux kernel module development (`linux-headers-$(uname -r)`)
+- **ShellCheck** - Recommended for bash script validation
+
+### Optional Tools
+
+- **KAPE** - Windows evidence collection (collectEvidence.ps1)
+- **MRC (Magnet Response Collection)** - Windows forensics
+- **Jupyter** - For interactive data analysis notebooks
+
+## ⚠️ Important Notes
+
+### Security Context
+
+All tools in this repository are designed for **defensive security and legitimate forensic analysis only**. The repository contains:
+- Educational materials (kernel modules, rootkits)
+- Legitimate forensic utilities
+- Security testing environments
+
+### Evidence Handling
+
+Scripts follow RFC3227 guidelines for digital evidence:
+- Automatic integrity verification (MD5/SHA1 hashing)
+- Comprehensive logging of all operations
+- Chain of custody documentation included
+
+### Best Practices
+
+- Always run evidence collection scripts with appropriate privileges
+- Verify checksums of collected evidence
+- Maintain proper chain of custody documentation
+- Use isolated environments for malware analysis
+- Review script headers for specific dependencies
+
+## 📄 License
+
+See [LICENSE](LICENSE) for details.
+
+## 🤝 Contributing
+
+This repository contains production DFIR tools. Contributions should:
+- Follow existing code style and structure
+- Include appropriate documentation
+- Use descriptive variable/function names
+- Add error handling and logging
+- Follow security best practices outlined in `.cursor/rules/`
+
+## 📚 Additional Resources
+
+- **CLAUDE.md** - Guidelines for AI assistants working with this repository
+- **dfir_collection.md** - DFIR collection methodology
+- **Bash/README.md** - Detailed bash script documentation
+- Individual script headers contain usage instructions
