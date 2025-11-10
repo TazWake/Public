@@ -1,0 +1,180 @@
+# filter_linux.yaml
+# Purpose: Speed up Plaso timeline generation for Linux IR in the way filter_windows.yaml works...
+# Based on: MITRE ATT&CK Linux persistence/execution techniques and common IR artifacts.
+
+# === INCLUDE HIGH-VALUE FORENSIC ARTIFACTS ===
+
+# Authentication and session logs
+---
+type: include
+description: Core authentication and user session logs (wtmp, btmp, utmp)
+paths:
+  - '/var/log/wtmp'
+  - '/var/log/btmp'
+  - '/var/run/utmp'
+  - '/var/log/lastlog'
+
+# System and application logs
+---
+type: include
+description: System logs (syslog, messages, auth) and common service logs
+paths:
+  - '/var/log/syslog'
+  - '/var/log/messages'
+  - '/var/log/auth.log'
+  - '/var/log/secure'
+  - '/var/log/kern.log'
+  - '/var/log/mail.log'
+  - '/var/log/apache2/.*'
+  - '/var/log/httpd/.*'
+  - '/var/log/nginx/.*'
+
+# Systemd journal (persistent and runtime)
+---
+type: include
+description: Systemd journal files (persistent and runtime)
+paths:
+  - '/var/log/journal/.*/.*\.journal'
+  - '/run/log/journal/.*/.*\.journal'
+
+# Shell history files (critical for user activity)
+---
+type: include
+description: Bash and other shell history files across user home folders
+paths:
+  - '/home/.*/\.bash_history'
+  - '/root/\.bash_history'
+  - '/home/.*/\.zsh_history'
+  - '/root/\.zsh_history'
+
+# SSH configuration and authorized_keys (common persistence vector)
+---
+type: include
+description: SSH configuration and authorized keys for persistence detection
+paths:
+  - '/etc/ssh/.*'
+  - '/home/.*/\.ssh/authorized_keys'
+  - '/root/\.ssh/authorized_keys'
+  - '/home/.*/\.ssh/known_hosts'
+  - '/root/\.ssh/known_hosts'
+
+# Cron and scheduled tasks (persistence)
+---
+type: include
+description: Cron jobs and anacron configurations
+paths:
+  - '/etc/crontab'
+  - '/etc/cron.d/.*'
+  - '/etc/cron.daily/.*'
+  - '/etc/cron.hourly/.*'
+  - '/etc/cron.monthly/.*'
+  - '/etc/cron.weekly/.*'
+  - '/var/spool/cron/.*'
+  - '/var/spool/cron/crontabs/.*'
+
+# Systemd services and timers (persistence)
+---
+type: include
+description: Systemd unit files and timers for persistence
+paths:
+  - '/etc/systemd/system/.*'
+  - '/lib/systemd/system/.*'
+  - '/usr/lib/systemd/system/.*'
+  - '/etc/systemd/user/.*'
+
+# Startup scripts and init files
+---
+type: include
+description: RC scripts and init configurations
+paths:
+  - '/etc/rc.local'
+  - '/etc/init/.*'
+  - '/etc/init.d/.*'
+  - '/etc/profile'
+  - '/etc/profile.d/.*'
+  - '/home/.*/\.profile'
+  - '/root/\.profile'
+  - '/home/.*/\.bashrc'
+  - '/root/\.bashrc'
+
+# Temporary and memory-backed storage (execution staging)
+---
+type: include
+description: /tmp, /var/tmp, and /dev/shm for malicious file staging
+paths:
+  - '/tmp/.*'
+  - '/var/tmp/.*'
+  - '/dev/shm/.*'
+
+# Package manager logs (for software installation evidence)
+---
+type: include
+description: APT and YUM/DNF history logs
+paths:
+  - '/var/log/apt/history.log'
+  - '/var/log/apt/term.log'
+  - '/var/log/yum.log'
+  - '/var/log/dnf.log'
+  - '/var/log/dnf.rpm.log'
+
+# Web server document roots (for web shell detection)
+---
+type: include
+description: Common web server document roots
+paths:
+  - '/var/www/.*'
+  - '/srv/www/.*'
+  - '/usr/share/nginx/html/.*'
+
+# Audit logs (if enabled)
+---
+type: include
+description: Linux auditd logs
+paths:
+  - '/var/log/audit/.*'
+
+# === EXCLUDE LOW-SIGNAL, HIGH-VOLUME DIRECTORIES ===
+
+# Exclude standard application and library directories
+---
+type: exclude
+description: Exclude /usr to avoid parsing massive binary and library trees
+paths:
+  - '/usr/.*'
+
+# Exclude most of /var/lib (except specific high-value subdirs if needed, but generally low-signal)
+---
+type: exclude
+description: Exclude /var/lib to skip VM images, databases, container layers
+paths:
+  - '/var/lib/.*'
+
+# Exclude /proc and /sys (virtual filesystems, not parsed by Plaso anyway, but explicit for clarity)
+---
+type: exclude
+description: Exclude virtual filesystems
+paths:
+  - '/proc/.*'
+  - '/sys/.*'
+
+# Exclude /dev (device files)
+---
+type: exclude
+description: Exclude device files
+paths:
+  - '/dev/.*'
+
+# Exclude Linux kernel and bootloader (already covered by specific forensic artifacts if needed)
+---
+type: exclude
+description: Exclude /boot
+paths:
+  - '/boot/.*'
+
+# Exclude standard user cache and config (unless specifically targeted)
+---
+type: exclude
+description: Exclude noisy user cache directories
+paths:
+  - '/home/.*/\.cache/.*'
+  - '/root/\.cache/.*'
