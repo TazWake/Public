@@ -13,6 +13,10 @@ Usage examples:
   python3 parse_utmp.py /var/log/btmp --type USER_PROCESS --format jsonl
 """
 
+############################
+# This is an ALPHA release #
+############################
+
 import argparse
 import struct
 import datetime
