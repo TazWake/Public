@@ -2,9 +2,6 @@
 
 # LVM_automount_update.sh
 #
-# Comprehensive LVM image mounting tool combining the best features from
-# lvm_automount.sh and LVM_ImageMounter.sh
-#
 # Features:
 #   - E01/EWF image support via ewfmount
 #   - Mount single LV or all LVs in a volume group
