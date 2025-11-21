@@ -254,15 +254,83 @@ handle_ewf_image() {
 }
 
 # ============================================================================
+# IMAGE TYPE DETECTION
+# ============================================================================
+
+detect_image_type() {
+    local image_path=$1
+
+    if ! command -v file >/dev/null 2>&1; then
+        echo "unknown"
+        return
+    fi
+
+    local file_output
+    file_output=$(file -b "$image_path" 2>/dev/null || echo "")
+
+    # Extract filesystem type from file output
+    case "$file_output" in
+        *"XFS filesystem"*)
+            echo "XFS"
+            ;;
+        *"BTRFS Filesystem"*)
+            echo "BTRFS"
+            ;;
+        *"ext2 filesystem"*|*"ext3 filesystem"*|*"ext4 filesystem"*)
+            echo "EXT"
+            ;;
+        *"NTFS"*)
+            echo "NTFS"
+            ;;
+        *"FAT"*|*"DOS/MBR boot sector"*)
+            echo "FAT"
+            ;;
+        *"data"*|*"DOS/MBR"*)
+            echo "partitioned"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
+# ============================================================================
 # LVM PARTITION DETECTION
 # ============================================================================
 
 detect_lvm_partition() {
     info "Running mmls on image: $RAW_IMAGE"
 
+    # Capture full mmls output to check if there are any partitions
+    local mmls_output
+    mmls_output=$(mmls "$RAW_IMAGE" 2>/dev/null || echo "")
+
+    # Check if mmls produced any partition table output
+    local has_partitions=false
+    if echo "$mmls_output" | grep -qE "^\s*[0-9]+:"; then
+        has_partitions=true
+    fi
+
+    # If no partitions found, this is likely a logical image (single filesystem)
+    if [[ "$has_partitions" == "false" ]]; then
+        local img_type
+        img_type=$(detect_image_type "$RAW_IMAGE")
+
+        echo "[-] This appears to be a logical image (single filesystem without partition table)" >&2
+        echo "    Image type detected: $img_type" >&2
+        echo >&2
+        echo "    This script is designed for full disk images containing LVM partitions." >&2
+        echo "    For logical images, use standard loop mounting instead:" >&2
+        echo >&2
+        echo "    sudo mkdir -p /mnt/evidence" >&2
+        echo "    sudo mount -o ro,noexec,nodev,nosuid \"$RAW_IMAGE\" /mnt/evidence" >&2
+        echo >&2
+        exit 1
+    fi
+
     # Extract sector size
     local sector_size
-    sector_size=$(mmls "$RAW_IMAGE" 2>/dev/null | awk '
+    sector_size=$(echo "$mmls_output" | awk '
         /^Units are in/ {
             gsub(/-byte/, "", $4);
             print $4;
@@ -279,7 +347,7 @@ detect_lvm_partition() {
 
     # Find first LVM (0x8e) partition
     local lvm_start_sector
-    lvm_start_sector=$(mmls "$RAW_IMAGE" 2>/dev/null | awk '
+    lvm_start_sector=$(echo "$mmls_output" | awk '
         $0 ~ /\(0x8e\)/ && $3 ~ /^[0-9]+$/ {
             print $3;
             exit
@@ -287,7 +355,16 @@ detect_lvm_partition() {
     ')
 
     if [[ -z "${lvm_start_sector:-}" ]]; then
-        error_exit "No LVM (0x8e) partition found in image"
+        echo "[-] No LVM (0x8e) partition found in image" >&2
+        echo >&2
+        echo "    The image contains a partition table, but no LVM partitions." >&2
+        echo "    Available partitions:" >&2
+        echo "$mmls_output" | grep -E "^\s*[0-9]+:" | head -10 >&2
+        echo >&2
+        echo "    This script requires an LVM partition (type 0x8e)." >&2
+        echo "    For non-LVM partitions, use standard mounting tools or mmls/mmcat." >&2
+        echo >&2
+        exit 1
     fi
 
     success "LVM partition start sector: $lvm_start_sector"
