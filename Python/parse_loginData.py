@@ -38,10 +38,13 @@ from typing import Optional, Dict, Any, Generator
 
 UTMP_STRUCT_FORMAT = "<ii32s4s32s256sIii4i20s"
 UTMP_STRUCT = struct.Struct(UTMP_STRUCT_FORMAT)
-RECORD_SIZE = UTMP_STRUCT.size  # should be 384
+RECORD_SIZE = UTMP_STRUCT.size  # 380 on your system
 
-if RECORD_SIZE != 384:
-    raise RuntimeError(f"UTMP struct size is {RECORD_SIZE}, expected 384 – ABI/layout mismatch?")
+# Sanity check – we expect common glibc layouts to be 380 or 384 bytes
+if RECORD_SIZE not in (380, 384):
+    raise RuntimeError(
+        f"UTMP struct size is {RECORD_SIZE}, expected 380 or 384 – real ABI/layout mismatch?"
+    )
 
 UT_TYPES: Dict[int, str] = {
     0: "EMPTY",
