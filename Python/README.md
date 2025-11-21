@@ -205,14 +205,16 @@ Parsed Extent Entry:
 
 #### parse_loginData.py
 
-Comprehensive parser for Linux utmp-style binary files (wtmp, btmp, utmp) that track user authentication events.
+Comprehensive parser for Linux utmp-style binary files (wtmp, btmp, utmp) that track user authentication events with support for multiple output formats.
 
-**Purpose**: Extract and analyze login/logout records, system boots, and authentication failures for incident response and forensic analysis.
+**Purpose**: Extract and analyze login/logout records, system boots, and authentication failures for incident response and forensic analysis. Supports machine-readable formats for integration with SIEM systems and analysis tools.
 
 **Key Features**:
 
 - Parses wtmp (login history), btmp (failed logins), and utmp (current logins)
 - Decodes IPv4 and IPv6 addresses
+- Multiple output formats: table (human-readable), CSV, and JSONL
+- Event-based labeling for intuitive record interpretation (login/logout/boot/etc.)
 - Filters by record type (USER_PROCESS, BOOT_TIME, etc.)
 - Human-readable timestamp formatting
 - Optional filtering to hide empty records
@@ -220,7 +222,7 @@ Comprehensive parser for Linux utmp-style binary files (wtmp, btmp, utmp) that t
 **Usage**:
 
 ```bash
-# Parse login history
+# Parse login history (default table format)
 python3 parse_loginData.py /var/log/wtmp
 
 # Parse failed login attempts
@@ -231,34 +233,77 @@ python3 parse_loginData.py --type USER_PROCESS /var/log/wtmp
 
 # Include all records, even empty ones
 python3 parse_loginData.py --show-empty /var/log/wtmp
+
+# Output as CSV for spreadsheet analysis
+python3 parse_loginData.py --format csv /var/log/wtmp > logins.csv
+
+# Output as JSONL for log aggregation systems
+python3 parse_loginData.py --format jsonl /var/log/wtmp > logins.jsonl
+
+# Filter by multiple types with CSV output
+python3 parse_loginData.py --type USER_PROCESS --type BOOT_TIME --format csv /var/log/wtmp
 ```
 
-**Example Output**:
+**Output Formats**:
 
-```python
-2025-01-15 09:23:41  USER_PROCESS   user=admin            line=pts/0        host=192.168.1.100                   pid=1234
-2025-01-15 10:15:22  BOOT_TIME      user=-               line=~            host=5.10.0-28-amd64                 pid=0
-2025-01-15 14:30:05  DEAD_PROCESS   user=-               line=pts/0        host=-                               pid=1234
+*Table Format (Default)*:
 ```
+2025-01-15 09:23:41  LOGIN    USER_PROCESS   user=admin            line=pts/0        host=192.168.1.100                   pid=1234
+2025-01-15 10:15:22  BOOT     BOOT_TIME      user=-               line=~            host=5.10.0-28-amd64                 pid=0
+2025-01-15 14:30:05  LOGOUT   DEAD_PROCESS   user=-               line=pts/0        host=-                               pid=1234
+```
+
+*CSV Format*:
+```csv
+timestamp_iso,event,type,type_name,user,line,host,ip,pid,session,exit_termination,exit_status,tv_sec,tv_usec
+2025-01-15 09:23:41,login,7,USER_PROCESS,admin,pts/0,192.168.1.100,,1234,0,0,0,1705315421,0
+```
+
+*JSONL Format*:
+```json
+{"timestamp_iso": "2025-01-15 09:23:41", "event": "login", "type": 7, "type_name": "USER_PROCESS", "user": "admin", "line": "pts/0", "host": "192.168.1.100", "ip": null, "pid": 1234, "session": 0, "exit_termination": 0, "exit_status": 0, "tv_sec": 1705315421, "tv_usec": 0}
+```
+
+**Command-Line Options**:
+
+- `--show-empty` - Include empty records (default: skip them)
+- `--type TYPE` - Filter by record type name (can be specified multiple times)
+- `--format {table,csv,jsonl}` or `-F` - Select output format (default: table)
 
 **Record Types**:
 
-- EMPTY: Empty record slot
-- RUN_LVL: System runlevel change
-- BOOT_TIME: System boot
-- USER_PROCESS: User login
-- DEAD_PROCESS: Process termination
-- LOGIN_PROCESS: Login process initiated
+- EMPTY (0): Empty record slot
+- RUN_LVL (1): System runlevel change
+- BOOT_TIME (2): System boot
+- NEW_TIME (3): System time changed (new time)
+- OLD_TIME (4): System time changed (old time)
+- INIT_PROCESS (5): Init process spawn
+- LOGIN_PROCESS (6): Login process initiated
+- USER_PROCESS (7): User login session
+- DEAD_PROCESS (8): Process/session termination
+- ACCOUNTING (9): Accounting record
+
+**Event Labels**:
+
+For enhanced readability, records include semantic event labels:
+- `login` (USER_PROCESS) - User session started
+- `logout` (DEAD_PROCESS) - User session ended
+- `boot` (BOOT_TIME) - System boot event
+- `runlevel` (RUN_LVL) - Runlevel change
+- `login-process` (LOGIN_PROCESS) - Login process started
+- `time-change-new`/`time-change-old` - System time modifications
 
 **Dependencies**: None (pure Python using standard library)
 
 **Forensic Applications**:
 
-- Timeline analysis of user activity
-- Identifying unauthorized access attempts
+- Timeline analysis of user activity (JSONL output for Elasticsearch/Splunk)
+- Identifying unauthorized access attempts (btmp analysis)
 - Tracking remote connections and source IPs
 - System boot/shutdown correlation
-- Brute force attack detection (btmp analysis)
+- Brute force attack detection (failed login patterns in btmp)
+- CSV export for spreadsheet pivot analysis
+- Automated log aggregation and SIEM integration
 
 ---
 
