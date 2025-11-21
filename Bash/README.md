@@ -24,13 +24,16 @@ Bash/
   - Usage: `sudo ./evidence_collector.sh /path/to/storage/device`
   - Collects memory dumps, disk images, system artifacts with integrity verification
 
-- **`triageScan.sh`** - Scaled triage collection tool for subnet-wide analysis
+- **`triageScan.sh`** - Scaled triage collection tool for subnet-wide analysis (TEMPLATE)
   - Example script for running CyLR across multiple systems via SSH
   - Requires modification for specific environments
-  - Status: Template/Example - needs customization
+  - Not intended for direct "as-is" usage - customize for your network
+  - Shows pattern for automated multi-host evidence collection
 
-- **`triage_template.sh`** - Standardized triage procedure template
+- **`triage_template.sh`** - Standardized triage procedure template (TEMPLATE)
   - Framework for consistent incident response procedures
+  - Requires customization for specific organizational needs
+  - Provides structure for systematic evidence collection
 
 #### Specialized Evidence Collection
 
@@ -43,10 +46,15 @@ Bash/
 - **`macos_evidence.sh`** - macOS-specific evidence collection
   - Apple filesystem and artifact collection tools
 
-- **`mk_collector.sh`** - Custom evidence collector utility
+- **`mk_collector.sh`** - Evidence collection device preparation utility
+  - Prepares USB devices or storage media as evidence collection kits
+  - Installs required forensic tools and scripts
+  - Creates standardized directory structure for evidence storage
 
-- **`example_proc_check.sh`** - Example process checking and analysis script
+- **`example_proc_check.sh`** - Example process validation and checking script
+  - Demonstrates usage of proc_check.py for process analysis
   - Template for process monitoring and suspicious activity detection
+  - Shows how to validate process attributes and detect anomalies
 
 ### 🧠 Memory Analysis
 
@@ -75,12 +83,20 @@ Bash/
 - **`xfs_inode_converter.sh`** - XFS filesystem inode analysis tool
   - XFS-specific forensic analysis utilities
 
-- **`check_lvm2.sh`** - LVM2 logical volume analysis
-  - Linux Volume Manager forensic analysis
+- **`check_lvm2.sh`** - LVM2 detection and validation utility
+  - Quick check if LVM2 is in use on live filesystem
+  - Linux Volume Manager preliminary analysis
 
-- **`LVM_ImageMounter.sh`** - LVM volume image mounting utility
+- **`LVM_automount_update.sh`** - Unified LVM forensic image mounting tool
   - Automated mounting of LVM volumes from forensic images
-  - Handles complex volume group configurations
+  - E01/EWF image support via ewfmount
+  - Mount single LV or all LVs in volume group
+  - Comprehensive filesystem support (ext*, XFS, btrfs, NTFS, FAT, etc.)
+  - Forensically sound: read-only mounts with noexec,nodev,nosuid
+  - Automatic cleanup with trap mechanism (optional keep-mounted)
+  - Gracefully handles logical images without partition tables
+  - Usage: Single LV: `sudo ./LVM_automount_update.sh [OPTIONS] IMAGE MOUNTPOINT`
+  - Usage: All LVs: `sudo ./LVM_automount_update.sh --all IMAGE`
 
 - **`apfs_setup.sh`** - APFS filesystem preparation and analysis
   - Apple File System forensic preparation tools
@@ -98,16 +114,22 @@ Bash/
 
 ### 🦠 Malware Analysis
 
-- **`malanalyze.sh`** - Basic malware analysis with LLM-formatted output
+- **`malanalyze.sh`** - Basic malware analysis with LLM-formatted output (DRAFT v0.0.1)
   - Usage: `./malanalyze.sh -f filename`
   - Automated suspicious file analysis for AI/LLM consumption
-  - Status: DRAFT v0.0.1
+  - Offline version without API requirements
+  - Extracts strings, metadata, and file characteristics
 
-- **`malanlyze_chatgpt.sh`** - Malware analysis specifically formatted for ChatGPT
-  - ChatGPT-optimized malware analysis output
+- **`malanlyze_chatgpt.sh`** - Advanced malware analysis with ChatGPT API integration (DRAFT v0.0.3)
+  - More mature version with ChatGPT API integration
+  - Enhanced error checking and command validation
+  - Direct API-based analysis and reporting
+  - Note: Filename has typo in "malanlyze" (should be "malanalyze")
 
-- **`mkbomb.sh`** - Test file generation for analysis validation
-  - Creates test files for malware analysis tool validation
+- **`mkbomb.sh`** - Zipbomb/decompression bomb generator for testing
+  - Creates zipbomb test files for analysis validation
+  - Tests decompression handling and resource limits
+  - Useful for validating malware analysis sandboxes
 
 ### 🌐 Network & Security Analysis
 
@@ -124,18 +146,24 @@ Bash/
 - **`systemdJournalConverter.sh`** - Convert systemd journal logs for analysis
   - Systemd journal forensic extraction and conversion
   - Exports journal data to standard log formats
+  - Converts binary journal to text/CSV formats
 
 - **`OS_Journal_Triage.sh`** - Triage systemd journal entries for incidents
   - Rapid journal log analysis for incident response
   - Automated detection of suspicious system events
+  - Filters and highlights potential malicious activity
 
 #### System Auditing
 
-- **`setAuditD.sh`** - Configure auditd for comprehensive system monitoring
+- **`setAuditD.sh`** - Configure auditd for comprehensive system monitoring (DRAFT)
   - Linux audit daemon configuration for forensic logging
+  - Ubuntu/Debian-specific implementation
+  - Sets up comprehensive system call auditing rules
 
-- **`setAuditD_RHEL.sh`** - RHEL-specific auditd configuration
+- **`setAuditD_RHEL.sh`** - RHEL-specific auditd configuration (DRAFT)
   - Red Hat Enterprise Linux audit configuration
+  - Optimized for RHEL/CentOS/Fedora/SuSE systems
+  - Platform-specific audit rules and paths
 
 ### 🐳 Container & Virtualization
 
@@ -166,9 +194,10 @@ Educational and CTF lab preparation scripts:
   - Educational environment setup for DFIR training
   - Automated student environment configuration
 
-- **`multi_Files.sh`** - Batch file processing utility
-  - Mass file operation and analysis tool
-  - Useful for creating test datasets
+- **`multi_Files.sh`** - Batch ELF file generator for CTF challenges
+  - Generates multiple ELF test files with varying characteristics
+  - Creates diverse forensic artifacts for lab exercises
+  - Useful for creating comprehensive test datasets for students
 
 ### 🔐 Educational Security Tools
 
@@ -191,24 +220,33 @@ Advanced educational rootkit with detection examples:
 - **`educational_rootkit.c`** - Advanced educational kernel module
   - Demonstrates common rootkit techniques for defensive training
   - Includes syscall hooking, process hiding, and file hiding examples
+  - FOR EDUCATIONAL USE ONLY - teaches defensive security
 
-- **`demo.sh`** - Demonstration script
-  - Shows rootkit functionality in action
-  - Educational walkthrough of rootkit capabilities
+- **`demo.sh`** - Rootkit functionality demonstration script
+  - Interactive demonstration showing rootkit capabilities in action
+  - Shows process hiding, file hiding, and privilege escalation
+  - Educational walkthrough for understanding attacker techniques
+  - Usage: `sudo ./demo.sh` (after loading the kernel module)
 
-- **`detect.sh`** - Detection script
-  - Demonstrates various rootkit detection techniques
-  - Shows how to identify hidden processes and files
+- **`detect.sh`** - Rootkit detection techniques demonstration
+  - Demonstrates various methods to detect hidden processes and files
+  - Shows discrepancies between /proc and system calls
+  - Teaches defensive security analysts how to identify rootkits
+  - Usage: `./detect.sh` (while rootkit is loaded)
 
-- **`INSTRUCTOR_GUIDE.md`** - Teaching guide
+- **`INSTRUCTOR_GUIDE.md`** - Teaching guide for classroom use
   - Instructions for using in educational settings
   - Lesson plans and learning objectives
+  - Safety precautions and VM requirements
 
-- **`README.md`** - Detailed documentation
+- **`README.md`** - Detailed technical documentation
   - Technical explanation of rootkit components
   - Compilation and usage instructions
+  - Architecture and detection methodology
 
 - **`Makefile`** - Build configuration for the educational rootkit
+  - Compiles kernel module against current kernel headers
+  - Usage: `make` to build, `make clean` to remove artifacts
 
 ## 🚀 Quick Start Guide
 
@@ -251,10 +289,13 @@ sudo ./macos_evidence.sh
 #### Malware Analysis
 
 ```bash
-# Analyze suspicious file
+# Analyze suspicious file (offline, no API)
 ./malanalyze.sh -f suspicious_file.exe
 
-# Generate test files
+# Analyze suspicious file with ChatGPT API integration
+./malanlyze_chatgpt.sh -f suspicious_file.exe
+
+# Generate zipbomb test file
 ./mkbomb.sh
 ```
 
@@ -281,10 +322,22 @@ sudo ./setAuditD.sh
 #### LVM and Advanced Filesystem Analysis
 
 ```bash
-# Mount LVM volumes from forensic images
-sudo ./LVM_ImageMounter.sh /path/to/image
+# Mount single root LV from forensic image
+sudo ./LVM_automount_update.sh /path/to/image.dd /mnt/evidence
 
-# Analyze LVM2 logical volumes
+# Mount single root LV from E01 image
+sudo ./LVM_automount_update.sh case001.E01 /mnt/case001
+
+# Mount all LVs from raw image (auto-creates /mnt/lvmevidence1, 2, 3...)
+sudo ./LVM_automount_update.sh --all /path/to/image.raw
+
+# Mount all LVs and keep them mounted for extended analysis
+sudo ./LVM_automount_update.sh --all --keep-mounted evidence.dd
+
+# Mount specific LV (e.g., 'home' instead of 'root')
+sudo ./LVM_automount_update.sh --lv-name home disk.dd /mnt/home
+
+# Check if LVM2 is in use on live system
 ./check_lvm2.sh
 ```
 
@@ -295,14 +348,19 @@ sudo ./LVM_ImageMounter.sh /path/to/image
 cd lab_ctf_generators/
 ./GenELF_file_better.sh
 
+# Generate multiple test files for lab exercises
+./multi_Files.sh
+
 # Prepare classroom environment
 ./class_prep.sh
 
 # Educational rootkit demonstration (requires kernel headers)
 cd rootkits/lkm_example_2/
-make
-sudo ./demo.sh
-./detect.sh
+make                    # Build the kernel module
+sudo insmod educational_rootkit.ko    # Load the module
+sudo ./demo.sh         # Demonstrate rootkit functionality
+./detect.sh            # Show detection techniques
+sudo rmmod educational_rootkit        # Unload the module
 ```
 
 ## ⚠️ Important Notes
