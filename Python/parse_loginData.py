@@ -11,6 +11,7 @@ import argparse
 import struct
 import datetime
 import ipaddress
+import string
 from typing import Optional, Dict, Any, Generator
 
 ###################################
@@ -18,27 +19,29 @@ from typing import Optional, Dict, Any, Generator
 ###################################
 
 # ---------------------------------------------------------------------------
-# UTMP record format (on-disk, Linux, 384 bytes)
+# Glibc utmp on-disk layout (384 bytes), per Kaitai spec:
+# https://formats.kaitai.io/glibc_utmp/graphviz.html
 #
-#   short  ut_type;
-#   pid_t  ut_pid;              (int32)
-#   char   ut_line[32];
-#   char   ut_id[4];
-#   char   ut_user[32];
-#   char   ut_host[256];
-#   short  ut_exit.e_termination;
-#   short  ut_exit.e_exit;
-#   int    ut_session;
-#   int    ut_tv.tv_sec;
-#   int    ut_tv.tv_usec;
-#   int    ut_addr_v6[4];
-#   char   __unused[20];
-#   (2 bytes padding)
+#   int32  ut_type;
+#   int32  pid;
+#   char   line[32];
+#   char   id[4];
+#   char   user[32];
+#   char   host[256];
+#   uint32 exit;         // packed exit_status (2x uint16)
+#   int32  session;
+#   uint32 tv_sec;
+#   int32  tv_usec;
+#   int32  addr_v6[4];
+#   char   reserved[20];
 # ---------------------------------------------------------------------------
 
-UTMP_STRUCT_FORMAT = "<hi32s4s32s256shhiii4i20s2x"
+UTMP_STRUCT_FORMAT = "<ii32s4s32s256sIii4i20s"
 UTMP_STRUCT = struct.Struct(UTMP_STRUCT_FORMAT)
 RECORD_SIZE = UTMP_STRUCT.size  # should be 384
+
+if RECORD_SIZE != 384:
+    raise RuntimeError(f"UTMP struct size is {RECORD_SIZE}, expected 384 – ABI/layout mismatch?")
 
 UT_TYPES: Dict[int, str] = {
     0: "EMPTY",
@@ -54,34 +57,58 @@ UT_TYPES: Dict[int, str] = {
 }
 
 
+def clean_str(raw: bytes) -> str:
+    """
+    Decode a fixed-length C string, remove trailing NULs, and strip
+    control characters / weird whitespace (except regular space).
+    """
+    s = raw.rstrip(b"\x00").decode(errors="ignore")
+    out = []
+    for ch in s:
+        if ch in string.printable and ch not in "\r\n\t\v\f":
+            out.append(ch)
+        elif ch == " ":
+            out.append(ch)
+        # else drop control chars
+    return "".join(out).strip()
+
+
 def decode_ip(addr_v6) -> Optional[str]:
     """
     Decode ut_addr_v6[4] into an IPv4/IPv6 string if present.
 
-    The fields are stored as int32_t, so they may be negative; we interpret
-    them as unsigned 32-bit values by masking with 0xffffffff.
+    Fields are stored as 4 x int32, little endian. We reinterpret
+    them as unsigned for packing.
     """
-    # Reinterpret as unsigned 32-bit
     a0, a1, a2, a3 = (x & 0xFFFFFFFF for x in addr_v6)
 
     # All zeros -> no address
     if a0 == 0 and a1 == 0 and a2 == 0 and a3 == 0:
         return None
 
-    # Common pattern: IPv4 stored in last element only
+    # Common pattern: IPv4 stored in last element
     if a0 == 0 and a1 == 0 and a2 == 0:
         try:
             return str(ipaddress.IPv4Address(struct.pack("!I", a3)))
         except ipaddress.AddressValueError:
-            # Fall through to IPv6 attempt
             pass
 
-    # Fallback: treat entire 16 bytes as IPv6
+    # Fallback: treat full 16 bytes as IPv6
     try:
         packed = struct.pack("!4I", a0, a1, a2, a3)
         return str(ipaddress.IPv6Address(packed))
     except (ipaddress.AddressValueError, struct.error):
         return None
+
+
+def split_exit_status(raw_exit: int) -> (int, int):
+    """
+    exit_status is 2 x uint16 (termination, exit) packed in a u32.
+    Layout is little endian, so lower 16 bits = termination.
+    """
+    e_term = raw_exit & 0xFFFF
+    e_exit = (raw_exit >> 16) & 0xFFFF
+    return e_term, e_exit
 
 
 def parse_utmp_record(rec: bytes) -> Dict[str, Any]:
@@ -90,33 +117,36 @@ def parse_utmp_record(rec: bytes) -> Dict[str, Any]:
     """
     (ut_type,
      ut_pid,
-     ut_line,
-     ut_id,
-     ut_user,
-     ut_host,
-     e_term,
-     e_exit,
+     raw_line,
+     raw_id,
+     raw_user,
+     raw_host,
+     raw_exit,
      ut_session,
      tv_sec,
      tv_usec,
      a0, a1, a2, a3,
-     unused) = UTMP_STRUCT.unpack(rec)
+     reserved) = UTMP_STRUCT.unpack(rec)
 
-    ut_line = ut_line.rstrip(b"\x00").decode(errors="ignore")
-    ut_id = ut_id.rstrip(b"\x00").decode(errors="ignore")
-    ut_user = ut_user.rstrip(b"\x00").decode(errors="ignore")
-    ut_host = ut_host.rstrip(b"\x00").decode(errors="ignore")
+    ut_line = clean_str(raw_line)
+    ut_id = clean_str(raw_id)
+    ut_user = clean_str(raw_user)
+    ut_host = clean_str(raw_host)
 
+    # tv_sec is uint32, tv_usec is int32
     if tv_sec > 0:
-        timestamp = datetime.datetime.fromtimestamp(tv_sec)
+        try:
+            timestamp = datetime.datetime.fromtimestamp(tv_sec)
+        except (OSError, OverflowError, ValueError):
+            timestamp = None
     else:
         timestamp = None
 
-    # Only bother decoding IP if host field is empty. This avoids
-    # spurious "ip=0:a::" style nonsense on local entries.
     ip_str = None
     if not ut_host:
         ip_str = decode_ip((a0, a1, a2, a3))
+
+    e_term, e_exit = split_exit_status(raw_exit)
 
     return {
         "type": ut_type,
@@ -159,7 +189,6 @@ def format_record(rec: Dict[str, Any]) -> str:
     ts = rec["timestamp"].strftime("%Y-%m-%d %H:%M:%S") if rec["timestamp"] else "N/A"
     user = rec["user"] or "-"
     line = rec["line"] or "-"
-    # Prefer host, fall back to IP if host is empty
     host = rec["host"] or (rec["ip"] or "-")
     type_name = rec["type_name"]
     pid = rec["pid"]
@@ -169,7 +198,6 @@ def format_record(rec: Dict[str, Any]) -> str:
         extra.append(f"exit={rec['exit_termination']}/{rec['exit_status']}")
     if rec["session"]:
         extra.append(f"session={rec['session']}")
-    # If both host and ip exist and differ (rare but possible), show ip as extra
     if rec["ip"] and rec["host"] and rec["ip"] != rec["host"]:
         extra.append(f"ip={rec['ip']}")
 
@@ -202,7 +230,6 @@ def main():
 
     type_filter = None
     if args.types:
-        # Normalise to upper case and strip
         type_filter = {t.strip().upper() for t in args.types}
 
     for rec in read_utmp_file(args.path):
