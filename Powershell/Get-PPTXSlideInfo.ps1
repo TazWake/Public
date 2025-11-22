@@ -15,7 +15,7 @@
 .PARAMETER FilePath
     The full path to the PPTX file to analyze.
 
-.PARAMETER Verbose
+.PARAMETER Detail
     Display detailed output including file information and individual slide status.
 
 .PARAMETER Help
@@ -27,7 +27,7 @@
     Analyzes MySlides.pptx and displays slide count information.
 
 .EXAMPLE
-    .\Get-PPTXSlideInfo.ps1 "D:\Documents\Presentation.pptx" -Verbose
+    .\Get-PPTXSlideInfo.ps1 "D:\Documents\Presentation.pptx" -Detail
 
     Analyzes Presentation.pptx with detailed verbose output.
 
@@ -51,7 +51,7 @@ param(
     [string]$FilePath,
 
     [Parameter(HelpMessage="Display detailed verbose output")]
-    [switch]$Verbose,
+    [switch]$Detail,
 
     [Parameter(HelpMessage="Display help information")]
     [Alias("h")]
@@ -100,7 +100,7 @@ try {
 
     # Get file information
     $fileInfo = Get-Item -Path $FilePath
-    if ($Verbose) {
+    if ($Detail) {
         Write-Host -ForegroundColor Gray "[*] Analyzing: $($fileInfo.Name)"
         Write-Host -ForegroundColor Gray "[*] File size: $([math]::Round($fileInfo.Length / 1MB, 2)) MB"
         Write-Host -ForegroundColor Gray "[*] Last modified: $($fileInfo.LastWriteTime)"
@@ -109,13 +109,13 @@ try {
 
     # Create temporary extraction directory
     $tempDir = Join-Path -Path $env:TEMP -ChildPath "PPTX_Analysis_$(Get-Random)"
-    if ($Verbose) {
+    if ($Detail) {
         Write-Host -ForegroundColor Yellow "[+] Creating temporary directory: $tempDir"
     }
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
     # Extract PPTX file (it's a ZIP archive)
-    if ($Verbose) {
+    if ($Detail) {
         Write-Host -ForegroundColor Yellow "[+] Extracting PPTX archive..."
     }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -131,7 +131,7 @@ try {
     }
 
     # Get all slide XML files (exclude slide layouts and masters)
-    if ($Verbose) {
+    if ($Detail) {
         Write-Host -ForegroundColor Yellow "[+] Analyzing slide files..."
     }
     $slideFiles = Get-ChildItem -Path $slidesPath -Filter "slide*.xml" | Where-Object {
@@ -159,12 +159,12 @@ try {
 
         if ($showAttribute -eq "0") {
             $hiddenSlides++
-            if ($Verbose) {
+            if ($Detail) {
                 Write-Host -ForegroundColor DarkGray "    [H] $($slideFile.Name) - Hidden"
             }
         } else {
             $visibleSlides++
-            if ($Verbose) {
+            if ($Detail) {
                 Write-Host -ForegroundColor Green "    [V] $($slideFile.Name) - Visible"
             }
         }
