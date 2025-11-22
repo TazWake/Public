@@ -1,142 +1,233 @@
 <#
 .SYNOPSIS
-    Ensure baseline auditing
+    Ensure baseline auditing for Windows systems
 
 .DESCRIPTION
-    This script establishes baseline audit settings
-    for windows 10 / server 2016 or newer systems.
-    This script is based on the settings found in 
-    https://www.malwarearchaeology.com/cheat-sheets/
-    NOTE: This script must be run with elevated privs
+    This script establishes baseline audit settings for Windows 10, Server 2016,
+    or newer systems. Configuration is based on recommendations from Malware Archaeology.
+
+    IMPORTANT: This script only affects FUTURE logging. Retrospective auditing is not possible.
+
+.PARAMETER Force
+    Skip advanced auditing prompt and apply recommended baseline only
+
+.PARAMETER EnableAdvanced
+    Automatically enable advanced auditing options without prompting
 
 .EXAMPLE
-    .setAuditing.ps1
-    
+    .\setAuditing.ps1
+
+    Runs baseline auditing and prompts for advanced options
+
+.EXAMPLE
+    .\setAuditing.ps1 -Force
+
+    Applies baseline auditing only, skipping advanced options prompt
+
+.EXAMPLE
+    .\setAuditing.ps1 -EnableAdvanced
+
+    Applies baseline AND advanced auditing without prompting
+
 .NOTES
     Author: Taz Wake
-    Last Edit: 17 September 2023
-    Version 1.2 - Updated to increase logsizes and include USB logging.
+    Last Edit: $(Get-Date -Format 'dd MMMM yyyy')
+    Version 1.4 - Added admin check, error handling, Force parameter, removed legacy code
     Version 1.3 - Firewall logging removed
+    Version 1.2 - Updated to increase logsizes and include USB logging
 
+    Based on: https://www.malwarearchaeology.com/cheat-sheets/
+
+    Requires: Administrator privileges
 #>
 
-# Initial
-write-host "This script will ensure baseline audting has been applied. NOTE: It requires admin rights to run and retrospective auditing is not possible"
+[CmdletBinding()]
+param(
+    [Parameter(HelpMessage="Skip advanced auditing prompt")]
+    [switch]$Force,
 
-write-host "[!] Setting Security log to 1048576000 - this should ensure 7 days logs are retained as a minimum."
-wevtutil sl Security /ms:1048576000
-#reg add hklm\system\CurrentControlSet\services\eventlog\Security /v MaxSize /t REG_DWORD /d 524288000 /f
+    [Parameter(HelpMessage="Enable advanced auditing automatically")]
+    [switch]$EnableAdvanced
+)
 
-write-host "[!] Setting System and Application logs to 262144000 - this should ensure 7 days logs are retained as a minimum."
-wevtutil sl System /ms:262144000
-#reg add hklm\system\CurrentControlSet\services\eventlog\System /v MaxSize /t REG_DWORD /d 262144000 /f
-wevtutil sl Application /ms:262144000
-#reg add hklm\system\CurrentControlSet\services\eventlog\Application /v MaxSize /t REG_DWORD /d 262144000 /f
-
-write-host "[!] Setting Powershell logging to a minimum of 512mb. This can be increased if needed and you should set up powershell command line history."
-wevtUtil sl "Windows PowerShell" /ms:524288000
-#reg add "hklm\system\CurrentControlSet\services\eventlog\Windows PowerShell" /v MaxSize /t REG_DWORD /d 262144000 /f
-wevtUtil sl "Microsoft-Windows-PowerShell/Operational" /ms:524288000
-#reg add "hklm\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-PowerShell/Operational" /v MaxSize /t REG_DWORD /d 524288000 /f
-
-write-host "[!] Enabling Powershell Module Logging and ScriptBlock Logging."
-reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 
-reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1
-
-write-host "[!] Enabling Command Line Auditing. This makes event ID 4688 useful."
-reg add "hklm\software\microsoft\windows\currentversion\policies\system\audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1
-
-write-host "[!] Enabling DNS Client Logging"
-wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
-#reg add "hklm\software\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-DNS-Client/Operational" /v Enabled /t REG_DWORD /d 1
-
-write-host "[!] Enabling Task Scheduler Logging"
-reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-TaskScheduler/Operational" /v Enabled /t REG_DWORD /d 1
-#wevtutil set-log Microsoft-Windows-TaskScheduler/Operational /enabled:true
-
-write-host "[!] Enabling USB History Logging"
-reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-DriverFrameworks-UserMode/Operational" /v Enabled /t REG_DWORD /d 1
-
-write-host "[!] Forcing advanced auditing policy."
-reg add "hklm\System\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1
-
-write-host "[!] Setting auditing policies now."
-
-# set success only
-Auditpol /set /subcategory:"Plug and Play Events" /success:enable /failure:disable
-Auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:disable
-Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:disable
-Auditpol /set /subcategory:"Group Membership" /success:enable /failure:disable
-Auditpol /set /subcategory:"Logoff" /success:enable /failure:disable
-Auditpol /set /subcategory:"Detailed File Share" /success:enable /failure:disable
-Auditpol /set /subcategory:"File System" /success:enable /failure:disable
-Auditpol /set /subcategory:"Registry" /success:enable /failure:disable
-Auditpol /set /subcategory:"SAM" /success:enable /failure:disable
-Auditpol /set /subcategory:"Filtering Platform Policy Change" /success:enable /failure:disable
-Auditpol /set /subcategory:"IPsec Driver" /success:enable /failure:disable
-write-host "[!] Success only audit policies set."
-
-# set failure only
-Auditpol /set /subcategory:"Other System Events" /success:disable /failure:enable
-
-# set success and failure to enable
-Auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable
-Auditpol /set /subcategory:"Other Account Logon Events" /success:enable /failure:enable
-Auditpol /set /category:"Account Management" /success:enable /failure:enable
-Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
-Auditpol /set /subcategory:"RPC Events" /success:enable /failure:enable
-Auditpol /set /subcategory:"Directory Service Changes" /success:enable /failure:enable
-Auditpol /set /subcategory:"Logon" /success:enable /failure:enable
-Auditpol /set /subcategory:"Network Policy Server" /success:enable /failure:enable
-Auditpol /set /subcategory:"Other Logon/Logoff Events" /success:enable /failure:enable
-Auditpol /set /subcategory:"Special Logon" /success:enable /failure:enable
-Auditpol /set /subcategory:"Application Generated" /success:enable /failure:enable
-Auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable
-Auditpol /set /subcategory:"File Share" /success:enable /failure:enable
-Auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable
-Auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
-Auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failure:enable
-Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failure:enable
-write-host "[ ] "
-write-host "[!] Sensitive Privilege Use auditing has been disabled. This is very noisy with limited DFIR value. If you require it, please run"
-write-host "     auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable"
-write-host "    Enabling it will make your policies compliant with the Malwarearcheology recommendations."
-Auditpol /set /subcategory:"Sensitive Privilege Use" /success:disable /failure:disable
-# This is VERY noisy and doesn't offer much value - if you really must enable it, uncomment the next line
-# Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable
-# write-host "[ ] If you absolutely require Sensitive Privilege Use auditing, please edit the script and re-run it or"
-# write-host "[ ] run + Auditpol /set /subcategory:"Sensitive Privilege Use" /success:enable /failure:enable + from a command prompt."
-# write-host "[ ] "
-write-host "[ ] "
-Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
-Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable
-# This is VERY noisy
-write-host "[!] NOTE System Integrity auditing will be disabled. This may generate a very large number of ID 5061 events that are simply down to normal system use."
-Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable 
-write-host "[ ] if you need to log this, run + Auditpol /set /subcategory:"System Integrity" /success:enable /failure:enable + from a command prompt."
-write-host "[ ] "
-write-host "[ ] "
-write-host "[!] Advanced auditing options can generate a lot more events and should only be enabled if required. Most systems will not need this level of auditing."
-write-host "[ ] "
-$adv = Read-Host -Prompt "[?] Do you want to enable advanced auditing? [y/n]"
-if ($adv -eq "y") {
-    write-host "[!] Advanced auditing enabled"
-    Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable
-    write-host "[!] NOTE: The firewall settings have not been changed to reduce noise."
-    #Auditpol /set /subcategory:"Filtering Platform Connection" /success:enable /failure:enable
-    #Auditpol /set /subcategory:"Filtering Platform Packet Drop" /success:enable /failure:disable
-    Auditpol /set /subcategory:"Directory Service Access" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Handle Manipulation" /success:enable /failure:disable
-    Auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
-    Auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
-    write-host "[!] Advanced auditing established"
-} else {
-    write-host "[ ] No advanced auditing selected."
-    write-host " "
+# Check for Administrator privileges
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host -ForegroundColor Red "`n[!] ERROR: This script requires Administrator privileges"
+    Write-Host -ForegroundColor Yellow "[*] Please run PowerShell as Administrator and try again`n"
+    exit 1
 }
 
-write-host "Script execution has completed. Thank you!"
+# Display header
+Write-Host -ForegroundColor Cyan "`n========== Windows Baseline Auditing Configuration =========="
+Write-Host -ForegroundColor Yellow "[!] This script will establish baseline auditing"
+Write-Host -ForegroundColor Yellow "[!] NOTE: Retrospective auditing is not possible - this affects future events only"
+Write-Host -ForegroundColor Gray "[*] Based on Malware Archaeology recommendations"
+Write-Host ""
+
+try {
+    # Configure Event Log Sizes
+    Write-Host -ForegroundColor Yellow "[*] Configuring event log sizes..."
+
+    Write-Host "[+] Setting Security log to 1GB (ensures ~7 days retention minimum)"
+    wevtutil sl Security /ms:1048576000
+
+    Write-Host "[+] Setting System and Application logs to 250MB"
+    wevtutil sl System /ms:262144000
+    wevtutil sl Application /ms:262144000
+
+    Write-Host "[+] Setting PowerShell logs to 512MB minimum"
+    wevtutil sl "Windows PowerShell" /ms:524288000
+    wevtutil sl "Microsoft-Windows-PowerShell/Operational" /ms:524288000
+
+    Write-Host -ForegroundColor Green "[+] Event log sizes configured"
+    Write-Host ""
+
+    # Enable PowerShell Logging
+    Write-Host -ForegroundColor Yellow "[*] Enabling PowerShell auditing..."
+
+    Write-Host "[+] Enabling PowerShell Module Logging"
+    reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ModuleLogging" /v EnableModuleLogging /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host "[+] Enabling PowerShell ScriptBlock Logging"
+    reg add "hklm\Software\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging" /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host -ForegroundColor Green "[+] PowerShell auditing enabled"
+    Write-Host ""
+
+    # Enable Process Command Line Auditing
+    Write-Host -ForegroundColor Yellow "[*] Enabling process auditing..."
+
+    Write-Host "[+] Enabling Command Line Auditing (Event ID 4688 enhancement)"
+    reg add "hklm\software\microsoft\windows\currentversion\policies\system\audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host -ForegroundColor Green "[+] Process auditing enabled"
+    Write-Host ""
+
+    # Enable Additional Event Sources
+    Write-Host -ForegroundColor Yellow "[*] Enabling additional event sources..."
+
+    Write-Host "[+] Enabling DNS Client Logging"
+    wevtutil sl "Microsoft-Windows-DNS-Client/Operational" /e:true
+
+    Write-Host "[+] Enabling Task Scheduler Logging"
+    reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-TaskScheduler/Operational" /v Enabled /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host "[+] Enabling USB History Logging"
+    reg add "hklm\software\microsoft\windows\currentversion\WINEVT\Channels\Microsoft-Windows-DriverFrameworks-UserMode/Operational" /v Enabled /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host -ForegroundColor Green "[+] Additional event sources enabled"
+    Write-Host ""
+
+    # Force Advanced Auditing Policy
+    Write-Host -ForegroundColor Yellow "[*] Configuring advanced audit policy framework..."
+
+    Write-Host "[+] Forcing advanced auditing policy (disabling legacy audit policy)"
+    reg add "hklm\System\CurrentControlSet\Control\Lsa" /v SCENoApplyLegacyAuditPolicy /t REG_DWORD /d 1 /f | Out-Null
+
+    Write-Host -ForegroundColor Green "[+] Advanced audit policy framework enabled"
+    Write-Host ""
+
+    # Apply Audit Policies
+    Write-Host -ForegroundColor Yellow "[*] Applying audit policies..."
+
+    # Baseline Audit Policies - Success Only
+    Write-Host "[+] Configuring success-only audit policies..."
+    Auditpol /set /subcategory:"Plug and Play Events" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Group Membership" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Logoff" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Detailed File Share" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"File System" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Registry" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"SAM" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"Filtering Platform Policy Change" /success:enable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"IPsec Driver" /success:enable /failure:disable | Out-Null
+
+    # Baseline Audit Policies - Failure Only
+    Write-Host "[+] Configuring failure-only audit policies..."
+    Auditpol /set /subcategory:"Other System Events" /success:disable /failure:enable | Out-Null
+
+    # Baseline Audit Policies - Success and Failure
+    Write-Host "[+] Configuring success and failure audit policies..."
+    Auditpol /set /subcategory:"Credential Validation" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Other Account Logon Events" /success:enable /failure:enable | Out-Null
+    Auditpol /set /category:"Account Management" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"RPC Events" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Directory Service Changes" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Logon" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Network Policy Server" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Other Logon/Logoff Events" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Special Logon" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Application Generated" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"File Share" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Removable Storage" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Authentication Policy Change" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Authorization Policy Change" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable | Out-Null
+    Auditpol /set /subcategory:"Security System Extension" /success:enable /failure:enable | Out-Null
+
+    # Intentionally Disabled Policies (noisy with limited DFIR value)
+    Write-Host "[+] Disabling noisy audit policies with limited forensic value..."
+    Auditpol /set /subcategory:"Sensitive Privilege Use" /success:disable /failure:disable | Out-Null
+    Auditpol /set /subcategory:"System Integrity" /success:disable /failure:disable | Out-Null
+
+    Write-Host -ForegroundColor Green "[+] Baseline audit policies applied"
+    Write-Host -ForegroundColor Yellow "[!] Note: 'Sensitive Privilege Use' and 'System Integrity' auditing disabled (very noisy)"
+    Write-Host ""
+
+} catch {
+    Write-Host -ForegroundColor Red "[!] ERROR applying baseline auditing:"
+    Write-Host -ForegroundColor Red "    $($_.Exception.Message)"
+    Write-Host -ForegroundColor Yellow "[*] Some settings may not have been applied"
+    exit 1
+}
+
+# Advanced Auditing Section
+Write-Host -ForegroundColor Cyan "========== Advanced Auditing Options =========="
+Write-Host -ForegroundColor Yellow "[!] Advanced auditing generates significantly more events"
+Write-Host -ForegroundColor Yellow "[!] Only enable if required - most systems don't need this level"
+Write-Host ""
+
+if ($Force) {
+    Write-Host -ForegroundColor Cyan "[*] Force mode enabled - skipping advanced auditing"
+    $enableAdvanced = $false
+} elseif ($EnableAdvanced) {
+    Write-Host -ForegroundColor Yellow "[*] EnableAdvanced flag set - applying advanced auditing"
+    $enableAdvanced = $true
+} else {
+    $response = Read-Host "[?] Do you want to enable advanced auditing? (Y/N)"
+    $enableAdvanced = $response -match "^[Yy]"
+}
+
+if ($enableAdvanced) {
+    try {
+        Write-Host -ForegroundColor Yellow "[*] Applying advanced auditing policies..."
+
+        Auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Process Termination" /success:enable /failure:disable | Out-Null
+        Auditpol /set /subcategory:"Directory Service Access" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Handle Manipulation" /success:enable /failure:disable | Out-Null
+        Auditpol /set /subcategory:"Token Right Adjusted Events" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable | Out-Null
+        Auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable | Out-Null
+
+        Write-Host -ForegroundColor Green "[+] Advanced auditing enabled successfully"
+        Write-Host -ForegroundColor Yellow "[!] Note: Firewall auditing NOT enabled to reduce noise"
+
+    } catch {
+        Write-Host -ForegroundColor Red "[!] ERROR applying advanced auditing:"
+        Write-Host -ForegroundColor Red "    $($_.Exception.Message)"
+    }
+} else {
+    Write-Host -ForegroundColor Cyan "[*] Advanced auditing skipped"
+}
+
+Write-Host ""
+Write-Host -ForegroundColor Green "[+] Script execution completed successfully!"
+Write-Host -ForegroundColor Cyan "========================================`n"
