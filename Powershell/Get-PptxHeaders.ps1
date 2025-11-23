@@ -49,7 +49,7 @@
 #>
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]$PptxPath,
 
     [ValidateSet("Text","CSV","JSON")]
@@ -65,6 +65,12 @@ param(
 if ($Help) {
     Get-Help $MyInvocation.MyCommand.Definition -Detailed
     exit
+}
+
+# --- Validate PptxPath is provided ---
+if (-not $PptxPath) {
+    Write-Error "The -PptxPath parameter is required. Use -Help or -H for usage information."
+    exit 1
 }
 
 # --- Resolve path ---
@@ -121,21 +127,27 @@ if ($HideHidden) {
 switch ($OutputFormat) {
     "Text" {
         foreach ($r in $results) {
+            Write-Host "Slide " -NoNewline
+            Write-Host "$($r.SlideNumber)" -ForegroundColor Green -NoNewline
+            Write-Host ": $($r.Header)" -NoNewline
             if ($r.Hidden) {
-                "Slide $($r.SlideNumber): $($r.Header) (Hidden)"
+                Write-Host " (Hidden)" -ForegroundColor DarkYellow
             } else {
-                "Slide $($r.SlideNumber): $($r.Header)"
+                Write-Host ""
             }
         }
         # Summary
         $total = $results.Count
         $hiddenCount = ($results | Where-Object { $_.Hidden }).Count
         $visibleCount = $total - $hiddenCount
-        ""
-        "Summary:"
-        "Total slides: $total"
-        "Visible slides: $visibleCount"
-        "Hidden slides: $hiddenCount"
+        Write-Host ""
+        Write-Host "Summary:"
+        Write-Host "Total slides: " -NoNewline
+        Write-Host "$total" -ForegroundColor Green
+        Write-Host "Visible slides: " -NoNewline
+        Write-Host "$visibleCount" -ForegroundColor Green
+        Write-Host "Hidden slides: " -NoNewline
+        Write-Host "$hiddenCount" -ForegroundColor DarkYellow
     }
     "CSV" {
         $results | Export-Csv -Path "slide_headers.csv" -NoTypeInformation
