@@ -2,7 +2,12 @@
 .SYNOPSIS
     Reset notes page layout for all slides to match the Notes Master.
 
-    WARNING! This is not yet functional!
+    WARNING!
+    WARNING! This is not yet functional! When run, it breaks the notes part of the notes pages and does not fully reset the page structure.
+    The test example used had notes pages with a top box for the slide (as shown) and a bottom box for the speaker's notes. This script
+    seems to shrink the speaker's notes to a few pixels wide and makes no changes to the top box.
+    WARNING!
+    WARNING!
 
 .DESCRIPTION
     Iterates through every slide in a PPTX presentation and reasserts the
