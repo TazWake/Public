@@ -60,6 +60,57 @@ File timestamp collection and reporting tool.
 
 ### Forensic Analysis Tools
 
+#### `Get-PptxHeaders.ps1`
+PowerPoint slide header extraction tool with multiple output formats.
+
+**Purpose**: Extracts slide titles/headers from PPTX files for forensic analysis, documentation, or content review. Identifies hidden slides and provides summary statistics. Useful for quickly cataloging presentation content without opening PowerPoint.
+
+**Requirements**:
+- PowerShell 5.0 or higher
+- Microsoft PowerPoint installed (uses COM automation)
+
+**Usage**:
+```powershell
+# Display help
+.\Get-PptxHeaders.ps1 -Help
+.\Get-PptxHeaders.ps1 -H
+
+# Basic analysis with color-coded console output
+.\Get-PptxHeaders.ps1 -PptxPath .\presentation.pptx
+
+# Exclude hidden slides from output
+.\Get-PptxHeaders.ps1 -PptxPath .\presentation.pptx -HideHidden
+
+# Save text output to file
+.\Get-PptxHeaders.ps1 -PptxPath .\presentation.pptx -OutputFile headers.txt
+
+# Export to CSV format
+.\Get-PptxHeaders.ps1 -PptxPath .\presentation.pptx -OutputFormat CSV
+
+# Export to JSON format
+.\Get-PptxHeaders.ps1 -PptxPath .\presentation.pptx -OutputFormat JSON
+```
+
+**Output Formats**:
+- **Text** (default): Color-coded console output or plain text file
+  - Slide numbers in green
+  - Hidden slide indicator in orange
+  - Professional header with file path and timestamp
+  - Summary statistics (total, visible, hidden counts)
+- **CSV**: Exports to `slide_headers.csv` with columns: SlideNumber, Header, Hidden
+- **JSON**: Structured JSON output for programmatic processing
+
+**Features**:
+- Uses PowerPoint COM object for reliable content extraction
+- Attempts title placeholder first, falls back to first text shape
+- Preserves original slide numbering even when filtering hidden slides
+- Summary always shows actual file statistics regardless of `-HideHidden` flag
+- Optional file output for text format (plain text, no ANSI codes)
+
+**Technical Details**: Opens PPTX via PowerPoint COM automation, iterates through slides extracting title text from shape objects, and identifies hidden slides via `SlideShowTransition.Hidden` property.
+
+---
+
 #### `Get-PPTXSlideInfo.ps1`
 PowerPoint presentation analysis tool for detecting hidden slides.
 
