@@ -134,6 +134,61 @@ PowerPoint presentation analysis tool for detecting hidden slides.
 
 ---
 
+#### `Reset-NotesPages.ps1`
+**⚠️ EXPERIMENTAL - NOT FULLY FUNCTIONAL ⚠️**
+
+PowerPoint notes page layout analysis and reset tool.
+
+**Current Status**: This script correctly **identifies and reports** which slides have notes pages that don't match the Notes Master layout, but the reset functionality is **broken**. When attempting to apply changes, it corrupts the notes pages (shrinks speaker notes to a few pixels wide without fixing the slide image box).
+
+**Purpose**: Intended to standardize notes page layouts across all slides by reapplying Notes Master settings. Currently useful only for **auditing/reporting** which slides have non-standard layouts.
+
+**Requirements**:
+- PowerShell 5.0 or higher
+- Microsoft PowerPoint installed (uses COM automation)
+
+**Safe Usage** (Reporting Only):
+```powershell
+# Identify slides with non-standard notes pages (SAFE - no changes made)
+.\Reset-NotesPages.ps1 -PptxPath .\presentation.pptx -DryRun
+
+# Generate report file of layout discrepancies
+.\Reset-NotesPages.ps1 -PptxPath .\presentation.pptx -DryRun -ReportPath .\notes_audit.txt
+```
+
+**Unsafe Usage** (Do Not Use):
+```powershell
+# WARNING: These commands will corrupt your notes pages
+# .\Reset-NotesPages.ps1 -PptxPath .\presentation.pptx              # BROKEN
+# .\Reset-NotesPages.ps1 -PptxPath .\presentation.pptx -Overwrite   # BROKEN
+```
+
+**What Works**:
+- Reads Notes Master layout settings (positions and sizes)
+- Iterates through all slides and their notes pages
+- Compares each notes page layout to the master
+- Generates color-coded console reports:
+  - Green: Slides matching master layout
+  - Yellow: Slides that differ from master
+  - Red: Errors accessing notes pages
+- Summary statistics (total, reset needed, OK, errors)
+- Dry-run mode for safe analysis
+- Report file generation
+
+**What's Broken**:
+- Applying layout changes corrupts notes pages
+- Shrinks speaker notes text box to unusable size
+- Does not properly reset slide image box
+- Results in broken presentations if changes are saved
+
+**Use Case**: Use this script in `-DryRun` mode to audit presentation files and identify which slides have manually-adjusted notes page layouts that deviate from the standard Notes Master. This can help identify presentations that may have formatting inconsistencies or have been manually edited.
+
+**Technical Details**: Uses PowerPoint COM automation to access `NotesMaster` and `NotesPage` objects. Compares shape positions and dimensions (Left, Top, Width, Height) between master and individual notes pages. The reporting logic is sound, but the shape property assignment causes layout corruption.
+
+**Development Status**: Requires further investigation into PowerPoint COM object model for proper notes page layout reset methodology. Consider alternative approaches such as XML manipulation or different COM properties.
+
+---
+
 #### `FolderCheck.ps1`
 Folder metadata extraction utility.
 
