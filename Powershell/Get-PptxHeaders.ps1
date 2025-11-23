@@ -23,26 +23,24 @@
     Alias for Help.
 
 .EXAMPLE
-    .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -OutputFormat Text
+    .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx
+    Display slide headers with color-coded output (default Text format).
 
 .EXAMPLE
-    .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat CSV -HideHidden
+    .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -HideHidden
+    Display only visible slides, excluding hidden ones.
 
 .EXAMPLE
-   # Plain text output with summary
-   .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -OutputFormat Text
+    .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat CSV
+    Export slide headers to CSV file (slide_headers.csv).
 
 .EXAMPLE
-   # Exclude hidden slides
-   .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -OutputFormat Text -HideHidden
+    .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat JSON
+    Output slide headers as JSON format.
 
 .EXAMPLE
-   # CSV output
-   .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat CSV
-
-.EXAMPLE
-   # JSON output
-   .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat JSON
+    .\Get-PptxHeaders.ps1 -Help
+    Display detailed help information.
 
 .NOTES
     Requires Microsoft PowerPoint installed.
@@ -118,6 +116,11 @@ foreach ($slide in $presentation.Slides) {
 # --- Sort numerically by slide index ---
 $results = $results | Sort-Object SlideNumber
 
+# --- Calculate summary stats before filtering ---
+$totalSlides = $results.Count
+$hiddenSlides = ($results | Where-Object { $_.Hidden }).Count
+$visibleSlides = $totalSlides - $hiddenSlides
+
 # --- Optionally exclude hidden slides ---
 if ($HideHidden) {
     $results = $results | Where-Object { -not $_.Hidden }
@@ -127,8 +130,7 @@ if ($HideHidden) {
 switch ($OutputFormat) {
     "Text" {
         foreach ($r in $results) {
-            Write-Host "Slide " -NoNewline
-            Write-Host "$($r.SlideNumber)" -ForegroundColor Green -NoNewline
+            Write-Host "Slide $($r.SlideNumber)" -ForegroundColor Green -NoNewline
             Write-Host ": $($r.Header)" -NoNewline
             if ($r.Hidden) {
                 Write-Host " (Hidden)" -ForegroundColor DarkYellow
@@ -137,17 +139,14 @@ switch ($OutputFormat) {
             }
         }
         # Summary
-        $total = $results.Count
-        $hiddenCount = ($results | Where-Object { $_.Hidden }).Count
-        $visibleCount = $total - $hiddenCount
         Write-Host ""
         Write-Host "Summary:"
         Write-Host "Total slides: " -NoNewline
-        Write-Host "$total" -ForegroundColor Green
+        Write-Host "$totalSlides" -ForegroundColor Green
         Write-Host "Visible slides: " -NoNewline
-        Write-Host "$visibleCount" -ForegroundColor Green
+        Write-Host "$visibleSlides" -ForegroundColor Green
         Write-Host "Hidden slides: " -NoNewline
-        Write-Host "$hiddenCount" -ForegroundColor DarkYellow
+        Write-Host "$hiddenSlides" -ForegroundColor DarkYellow
     }
     "CSV" {
         $results | Export-Csv -Path "slide_headers.csv" -NoTypeInformation
