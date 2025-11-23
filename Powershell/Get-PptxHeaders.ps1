@@ -13,6 +13,10 @@
 .PARAMETER OutputFormat
     Output format: Text, CSV, or JSON. Default is Text.
 
+.PARAMETER OutputFile
+    Optional file path to save Text output. Only applicable with -OutputFormat Text.
+    When specified, output is written to the file instead of the console.
+
 .PARAMETER HideHidden
     Switch. If set, hidden slides are excluded from the output.
 
@@ -29,6 +33,10 @@
 .EXAMPLE
     .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -HideHidden
     Display only visible slides, excluding hidden ones.
+
+.EXAMPLE
+    .\Get-PptxHeaders.ps1 -PptxPath .\deck.pptx -OutputFile headers.txt
+    Save text output to headers.txt file.
 
 .EXAMPLE
     .\Get-PptxHeaders.ps1 -PptxPath "C:\Slides\deck.pptx" -OutputFormat CSV
@@ -52,6 +60,9 @@ param(
 
     [ValidateSet("Text","CSV","JSON")]
     [string]$OutputFormat = "Text",
+
+    [Parameter(Mandatory=$false)]
+    [string]$OutputFile,
 
     [switch]$HideHidden,
 
@@ -129,24 +140,63 @@ if ($HideHidden) {
 # --- Output formatting ---
 switch ($OutputFormat) {
     "Text" {
-        foreach ($r in $results) {
-            Write-Host "Slide $($r.SlideNumber)" -ForegroundColor Green -NoNewline
-            Write-Host ": $($r.Header)" -NoNewline
-            if ($r.Hidden) {
-                Write-Host " (Hidden)" -ForegroundColor DarkYellow
-            } else {
-                Write-Host ""
+        if ($OutputFile) {
+            # Write to file (plain text, no color codes)
+            $output = @()
+            $output += "=" * 80
+            $output += "PowerPoint Slide Headers"
+            $output += "File: $PptxPath"
+            $output += "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            $output += "=" * 80
+            $output += ""
+
+            foreach ($r in $results) {
+                if ($r.Hidden) {
+                    $output += "Slide $($r.SlideNumber): $($r.Header) (Hidden)"
+                } else {
+                    $output += "Slide $($r.SlideNumber): $($r.Header)"
+                }
             }
+
+            $output += ""
+            $output += "Summary:"
+            $output += "Total slides: $totalSlides"
+            $output += "Visible slides: $visibleSlides"
+            $output += "Hidden slides: $hiddenSlides"
+
+            $output | Out-File -FilePath $OutputFile -Encoding UTF8
+            Write-Host "Output written to: $OutputFile" -ForegroundColor Cyan
+        } else {
+            # Console output with colors
+            Write-Host ("=" * 80) -ForegroundColor Cyan
+            Write-Host "PowerPoint Slide Headers" -ForegroundColor Cyan
+            Write-Host "File: " -ForegroundColor Cyan -NoNewline
+            Write-Host "$PptxPath"
+            Write-Host "Generated: " -ForegroundColor Cyan -NoNewline
+            Write-Host "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            Write-Host ("=" * 80) -ForegroundColor Cyan
+            Write-Host ""
+
+            foreach ($r in $results) {
+                Write-Host "Slide $($r.SlideNumber)" -ForegroundColor Green -NoNewline
+                Write-Host ": $($r.Header)" -NoNewline
+                if ($r.Hidden) {
+                    Write-Host " (Hidden)" -ForegroundColor DarkYellow
+                } else {
+                    Write-Host ""
+                }
+            }
+
+            # Summary
+            Write-Host ""
+            Write-Host "Summary:"
+            Write-Host "Total slides: " -NoNewline
+            Write-Host "$totalSlides" -ForegroundColor Green
+            Write-Host "Visible slides: " -NoNewline
+            Write-Host "$visibleSlides" -ForegroundColor Green
+            Write-Host "Hidden slides: " -NoNewline
+            Write-Host "$hiddenSlides" -ForegroundColor DarkYellow
         }
-        # Summary
-        Write-Host ""
-        Write-Host "Summary:"
-        Write-Host "Total slides: " -NoNewline
-        Write-Host "$totalSlides" -ForegroundColor Green
-        Write-Host "Visible slides: " -NoNewline
-        Write-Host "$visibleSlides" -ForegroundColor Green
-        Write-Host "Hidden slides: " -NoNewline
-        Write-Host "$hiddenSlides" -ForegroundColor DarkYellow
     }
     "CSV" {
         $results | Export-Csv -Path "slide_headers.csv" -NoTypeInformation
