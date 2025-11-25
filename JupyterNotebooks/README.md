@@ -132,89 +132,30 @@ sudo apt-get install nfdump
 ---
 
 ### 4. velociraptor/ - Velociraptor API Integration
-**Purpose**: Interactive automation for DFIR tasks using the Velociraptor API
+**Purpose**: Programmatic endpoint interrogation and automated DFIR workflows
 
-The `velociraptor/` directory contains documentation and notebooks for programmatic interaction with Velociraptor, a powerful endpoint visibility and digital forensics tool. This integration enables automated artifact collection, flow monitoring, and result analysis directly from Jupyter notebooks.
+The `velociraptor/` directory enables API-driven interaction with Velociraptor for scalable artifact collection, threat hunting, and incident response automation.
 
-**Overview**:
-- **jupyter_guide.md**: Comprehensive guide for Velociraptor API integration
-- Future notebooks will provide practical implementations for:
-  - Automated artifact collection across multiple endpoints
-  - Hunt orchestration and monitoring
-  - Result aggregation and analysis
-  - Threat hunting playbooks
-  - Integration with agentic AI systems
+**Directory Contents**:
+- `jupyter_guide.md` - Complete setup guide for Velociraptor API integration
+- `updates.md` - Suggested enhancements and future improvements
+- (Planned) Interactive notebooks for hunt orchestration, triage automation, and AI integration
 
-**Key Capabilities**:
-- **Programmatic Collections**: Schedule and manage artifact collections via API
-- **Flow Monitoring**: Track collection completion and retrieve results
-- **Interactive Analysis**: Process Velociraptor outputs using pandas/matplotlib
-- **Automation**: Build repeatable DFIR playbooks as executable notebooks
-- **AI Integration**: Enable agentic orchestration for dynamic incident response
+**Key Features**:
+- Automated artifact collection across thousands of endpoints
+- Flow monitoring and result retrieval via Python
+- VQL query execution from Jupyter environment
+- Integration-ready for agentic AI systems
 
-**Requirements**:
-- pyvelociraptor Python package
-- Velociraptor server with API enabled
-- API client configuration (YAML with client certificate)
-- pandas, matplotlib (for result analysis)
-
-**Setup**:
+**Quick Start**:
 ```bash
-# Install pyvelociraptor
 pip install pyvelociraptor
-
-# Configure API client
-# Obtain api_client.yaml from your Velociraptor server
-# Place in velociraptor/ directory or specify path in notebooks
+# See velociraptor/jupyter_guide.md for server configuration
 ```
 
-**Example Workflow** (from jupyter_guide.md):
-```python
-from pyvelociraptor.api import APIClient
+**Use Cases**: Rapid IR, threat hunting, compliance monitoring, autonomous investigation
 
-# Initialize client
-API_CONFIG = "api_client.yaml"
-client = APIClient(config=API_CONFIG)
-
-# Launch artifact collection
-client_id = "C.abcdef0123456789"
-artifacts = ["Generic.Client.Info"]
-flow = client.collect_client(client_id=client_id, artifacts=artifacts)
-
-# Monitor flow completion
-flow_id = flow.flow_id
-results = client.query(f"LET _ <= SELECT * FROM watch_monitoring(artifact='System.Flow.Completion')"
-                      f" WHERE FlowId = '{flow_id}' LIMIT 1")
-
-# Retrieve and analyze results
-results = client.query(f"SELECT * FROM source(client_id='{client_id}',"
-                      f" flow_id='{flow_id}',"
-                      f" artifact='Generic.Client.Info/BasicInformation')")
-```
-
-**Use Cases**:
-- **Rapid Incident Response**: Automate evidence collection across compromised endpoints
-- **Threat Hunting**: Execute hunting queries and analyze results interactively
-- **Behavioral Analysis**: Collect and correlate user/process activity data
-- **Compliance Monitoring**: Schedule recurring artifact collections for auditing
-- **AI-Driven DFIR**: Enable autonomous investigation workflows
-
-**Documentation**:
-- See `velociraptor/jupyter_guide.md` for complete setup and examples
-- [Velociraptor API Documentation](https://docs.velociraptor.app/docs/server_automation/server_api/)
-
-**Planned Notebooks**:
-- `velociraptor_hunt_orchestration.ipynb` - Multi-endpoint hunting workflows
-- `velociraptor_triage_automation.ipynb` - Automated triage artifact collection
-- `velociraptor_timeline_analysis.ipynb` - Timeline generation from VQL queries
-- `velociraptor_ai_agent_integration.ipynb` - Agentic AI orchestration examples
-
-**Integration Benefits**:
-- **Scalability**: Collect from thousands of endpoints programmatically
-- **Repeatability**: Store investigation workflows as version-controlled notebooks
-- **Documentation**: Combine code, narrative, and results in single artifact
-- **Collaboration**: Share playbooks across SOC/IR teams
-- **Advanced Analytics**: Leverage Python data science stack for analysis
+**Documentation**: See `velociraptor/jupyter_guide.md` for comprehensive setup instructions and [Velociraptor API docs](https://docs.velociraptor.app/docs/server_automation/server_api/)
 
 ---
 
@@ -308,28 +249,7 @@ D:\Development\Public\Bash\docker_triage.sh
 ```
 
 ### Velociraptor Integration
-The `velociraptor/` notebooks enable programmatic endpoint interrogation and evidence collection:
-
-```python
-# Example: Collect artifacts from multiple endpoints
-from pyvelociraptor.api import APIClient
-
-client = APIClient(config="api_client.yaml")
-endpoints = ["C.abc123", "C.def456", "C.ghi789"]
-
-for endpoint in endpoints:
-    flow = client.collect_client(
-        client_id=endpoint,
-        artifacts=["Windows.System.Pslist", "Windows.Network.NetstatEnriched"]
-    )
-    print(f"Launched collection on {endpoint}: {flow.flow_id}")
-```
-
-**Benefits**:
-- Scale evidence collection across thousands of endpoints
-- Real-time artifact collection without manual intervention
-- Automated threat hunting and IoC sweeping
-- Integration with AI agents for autonomous response
+Programmatic endpoint interrogation via API for automated evidence collection at scale. See `velociraptor/jupyter_guide.md` for complete documentation.
 
 ### ELK Stack Integration
 For large-scale log analysis, use the ELK Docker environment:
