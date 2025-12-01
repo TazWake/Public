@@ -248,7 +248,7 @@ python3 parse_loginData.py --type USER_PROCESS --type BOOT_TIME --format csv /va
 
 *Table Format (Default)*:
 
-```
+```text
 2025-01-15 09:23:41  LOGIN    USER_PROCESS   user=admin            line=pts/0        host=192.168.1.100                   pid=1234
 2025-01-15 10:15:22  BOOT     BOOT_TIME      user=-               line=~            host=5.10.0-28-amd64                 pid=0
 2025-01-15 14:30:05  LOGOUT   DEAD_PROCESS   user=-               line=pts/0        host=-                               pid=1234
