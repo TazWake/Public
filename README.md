@@ -116,17 +116,20 @@ Containerized analysis and testing environments
 
 #### Log Analysis Platforms
 
-**Analysis_ELK/**
+##### Analysis_ELK/
+
 - Complete ELK stack (Elasticsearch, Kibana, Filebeat) for log analysis
 - Pre-configured for Apache, auditd, syslog, messages, auth.log, and secure logs
 - Expects logs in `/cases/logstore` directory
 - Access Kibana at <http://localhost:8889>
 
-**Analysis_OpenSearch/**
+##### Analysis_OpenSearch/
+
 - OpenSearch alternative to ELK stack
 - Access dashboards at <http://localhost:8899>
 
-**LogFileAnalysisWithElastic/**
+##### LogFileAnalysisWithElastic/
+
 - Enhanced log analysis environment with automated setup
 - Includes setup scripts for ingest pipelines and timestamp parsing
 - Run `./setup.sh` for automated configuration
@@ -134,34 +137,40 @@ Containerized analysis and testing environments
 
 #### Malware Analysis Environments
 
-**MalwareAnalyzer/**
+##### MalwareAnalyzer/
+
 - Containerized malware analysis environment
 - Isolated environment for safe malware examination
 - Mounts current directory to `/analysis` for file analysis
 - Results written to `./results` directory
 
-**maldoc/**
+##### maldoc/
+
 - Specialized environment for analyzing malicious documents
 - Tools for document metadata extraction and embedded object analysis
 
 #### Security Testing Environments
 
-**testingweb/**
+##### testingweb/
+
 - Vulnerable PHP/MySQL web application for security testing
 - Includes phpMyAdmin interface
 - MySQL credentials: root/NINJAROOTPASSWORD
 - Access web interface at <http://localhost:9999>
 
-**nmap_real/**
+##### nmap_real/
+
 - Production-ready nmap scanning environment with monitoring
 - Includes Grafana dashboards and Prometheus metrics
 - Optimized for large-scale scanning operations
 
-**nmaper/**
+##### nmaper/
+
 - Lightweight containerized nmap scanning environment
 - Quick deployment for network reconnaissance tasks
 
-**re_docker/**
+##### re_docker/
+
 - Reverse engineering Docker environment
 - Tools for binary analysis and reverse engineering tasks
 
@@ -285,7 +294,7 @@ make clean  # Clean build artifacts
 - **Python 3.x** - For Python utilities and Volatility plugins
 - **Bash/Shell** - For shell script execution (WSL2 on Windows)
 
-### Memory Analysis
+### Memory Analysis Requirements
 
 - **Volatility Framework** - vol.py must be in PATH
 - **Appropriate memory profiles** - Match your memory image OS version
@@ -297,7 +306,7 @@ make clean  # Clean build artifacts
 - **The Sleuth Kit (TSK)** - For VMDK carving and filesystem analysis
 - **ewfacquire** - For disk imaging (or dd as fallback)
 
-### Log Analysis Platforms
+### Log Analysis Platform Requirements
 
 - **ELK Stack** - Expects logs in `/cases/logstore` directory
 - Create `/cases/logstore` if missing before starting ELK containers
@@ -320,6 +329,7 @@ make clean  # Clean build artifacts
 ### Security Context
 
 All tools in this repository are designed for **defensive security and legitimate forensic analysis only**. The repository contains:
+
 - Educational materials (kernel modules, rootkits)
 - Legitimate forensic utilities
 - Security testing environments
@@ -327,6 +337,7 @@ All tools in this repository are designed for **defensive security and legitimat
 ### Evidence Handling
 
 Scripts follow RFC3227 guidelines for digital evidence:
+
 - Automatic integrity verification (MD5/SHA1 hashing)
 - Comprehensive logging of all operations
 - Chain of custody documentation included
@@ -346,6 +357,7 @@ See [LICENSE](LICENSE) for details.
 ## 🤝 Contributing
 
 This repository contains production DFIR tools. Contributions should:
+
 - Follow existing code style and structure
 - Include appropriate documentation
 - Use descriptive variable/function names
