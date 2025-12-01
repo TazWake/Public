@@ -247,6 +247,7 @@ python3 parse_loginData.py --type USER_PROCESS --type BOOT_TIME --format csv /va
 **Output Formats**:
 
 *Table Format (Default)*:
+
 ```
 2025-01-15 09:23:41  LOGIN    USER_PROCESS   user=admin            line=pts/0        host=192.168.1.100                   pid=1234
 2025-01-15 10:15:22  BOOT     BOOT_TIME      user=-               line=~            host=5.10.0-28-amd64                 pid=0
@@ -254,12 +255,14 @@ python3 parse_loginData.py --type USER_PROCESS --type BOOT_TIME --format csv /va
 ```
 
 *CSV Format*:
+
 ```csv
 timestamp_iso,event,type,type_name,user,line,host,ip,pid,session,exit_termination,exit_status,tv_sec,tv_usec
 2025-01-15 09:23:41,login,7,USER_PROCESS,admin,pts/0,192.168.1.100,,1234,0,0,0,1705315421,0
 ```
 
 *JSONL Format*:
+
 ```json
 {"timestamp_iso": "2025-01-15 09:23:41", "event": "login", "type": 7, "type_name": "USER_PROCESS", "user": "admin", "line": "pts/0", "host": "192.168.1.100", "ip": null, "pid": 1234, "session": 0, "exit_termination": 0, "exit_status": 0, "tv_sec": 1705315421, "tv_usec": 0}
 ```
@@ -286,6 +289,7 @@ timestamp_iso,event,type,type_name,user,line,host,ip,pid,session,exit_terminatio
 **Event Labels**:
 
 For enhanced readability, records include semantic event labels:
+
 - `login` (USER_PROCESS) - User session started
 - `logout` (DEAD_PROCESS) - User session ended
 - `boot` (BOOT_TIME) - System boot event
@@ -385,6 +389,129 @@ Process Validation Summary
 
 ---
 
+### Malware Analysis
+
+#### malware_initial_analysis.py
+
+Performs comprehensive static analysis of executable files to identify potential malicious characteristics and indicators of compromise.
+
+**Purpose**: Initial triage of unknown executables to quickly identify suspicious patterns, packing, obfuscation, and other malware indicators without requiring dynamic analysis.
+
+**Key Features**:
+
+- **Multi-format support**: Analyzes PE (Windows), ELF (Linux), and Mach-O (macOS) executables
+- **Entropy analysis**: Detects packing and encryption through Shannon entropy calculation
+- **String extraction**: Identifies suspicious strings (APIs, URLs, registry operations, etc.)
+- **Section analysis**: Examines executable sections for anomalies
+- **Symbol/export analysis**: Reviews exported functions and symbols
+- **YARA integration**: Optional pattern matching with YARA rules
+- **Extensible architecture**: Easy to add new analysis modules
+
+**Usage**:
+
+```bash
+# Basic analysis
+python3 malware_initial_analysis.py suspicious.exe
+
+# With YARA rules
+python3 malware_initial_analysis.py malware.bin --yara-rules /path/to/rules.yar
+
+# Verbose output
+python3 malware_initial_analysis.py unknown_file -v
+```
+
+**Dependencies**:
+
+- **pefile** (for PE analysis): `pip install pefile`
+- **pyelftools** (for ELF analysis): `pip install pyelftools`
+- **lief** (alternative, supports multiple formats): `pip install lief` (optional)
+- **yara-python** (for YARA rule matching): `pip install yara-python` (optional)
+
+**Installation**:
+
+```bash
+# Install all recommended dependencies
+pip3 install pefile pyelftools yara-python
+
+# Or install individually as needed
+pip3 install pefile      # For Windows PE files
+pip3 install pyelftools  # For Linux ELF files
+pip3 install yara-python # For YARA pattern matching
+```
+
+**Analysis Capabilities**:
+
+- **File structure validation**: Confirms executable format and architecture
+- **Header analysis**: Extracts and validates PE/ELF headers
+- **Packing detection**: High entropy (>7.0) indicates possible packing/encryption
+- **Obfuscation indicators**: Suspicious section names, unusual characteristics
+- **API analysis**: Identifies potentially malicious function imports
+- **String analysis**: Detects suspicious patterns (command execution, network I/O, etc.)
+- **Size anomalies**: Flags unusually small or large executables
+- **YARA matching**: Pattern-based detection with custom rules
+
+**Example Output**:
+
+```bash
+================================================================================
+MALWARE INITIAL ANALYSIS REPORT
+================================================================================
+
+File: /cases/evidence/suspicious.exe
+Type: PE
+Architecture: x64 (64-bit)
+Size: 245,760 bytes
+
+--- METADATA ---
+  machine: 0x8664
+  number_of_sections: 5
+  timestamp: 1234567890
+  entry_point: 0x00001000
+  image_base: 0x00400000
+
+--- ENTROPY ANALYSIS ---
+  Overall entropy: 7.85
+  [!] HIGH ENTROPY - Possible packing or encryption
+
+--- SECTIONS ---
+  .text: entropy=6.23, size=81920
+  .data: entropy=4.12, size=4096
+  .packed: entropy=7.92, size=163840
+  [!] High entropy in section .packed (7.92) - possible packing
+
+--- SUSPICIOUS STRINGS ---
+  [Command execution] cmd.exe /c
+  [Network communication] http://malicious-domain.com/payload
+  [Registry manipulation] reg add HKCU\Software\...
+
+================================================================================
+SUSPICIOUS INDICATORS SUMMARY
+================================================================================
+  [1] High overall entropy (7.85) - possible packing/encryption
+  [2] Suspicious section name: .packed
+  [3] High entropy in section .packed (7.92) - possible packing
+  [4] Found 15 suspicious strings
+```
+
+**Extensibility**:
+
+The script is designed for easy extension. To add new analysis capabilities:
+
+1. Create a new analysis function (e.g., `check_anti_debugging()`)
+2. Integrate it into the `perform_analysis()` pipeline
+3. Add results to the results dictionary
+4. Update `print_results()` to display new findings
+
+**Security Notes**:
+
+- This tool performs **static analysis only** - it does not execute code
+- Always analyze suspicious files in isolated environments
+- Use read-only access when possible
+- Combine with dynamic analysis tools for comprehensive assessment
+- YARA rules should be obtained from trusted sources
+
+---
+
 ## Installation and Dependencies
 
 ### System Requirements
@@ -397,12 +524,15 @@ Process Validation Summary
 
 ```bash
 # Install all dependencies at once
-pip3 install python-docx scapy pytsk3
+pip3 install python-docx scapy pytsk3 pefile pyelftools yara-python
 
 # Or install individually as needed
 pip3 install python-docx      # For exifcheck.py
 pip3 install scapy            # For fastfluxfinder.py
 pip3 install pytsk3           # For inode_reader.py
+pip3 install pefile           # For malware_initial_analysis.py (PE files)
+pip3 install pyelftools       # For malware_initial_analysis.py (ELF files)
+pip3 install yara-python      # For malware_initial_analysis.py (YARA rules, optional)
 ```
 
 ### Making Scripts Executable
