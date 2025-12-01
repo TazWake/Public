@@ -1,0 +1,41 @@
+# Normalize text files and enforce LF endings where appropriate
+*.sh        text eol=lf
+*.py        text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.ipynb     text eol=lf
+Dockerfile* text eol=lf
+
+# Treat typical DFIR artefact containers and images as binary
+*.dd        binary
+*.E01       binary
+*.e01       binary
+*.img       binary
+*.iso       binary
+*.vmdk      binary
+*.vhd       binary
+*.vhdx      binary
+
+# Common compressed/binary artefacts
+*.gz        binary
+*.tgz       binary
+*.zip       binary
+*.7z        binary
+*.bz2       binary
+*.xz        binary
+*.pcap      binary
+*.pcapng    binary
+
+# Avoid diff noise for compiled objects and libraries
+*.o         binary
+*.so        binary
+*.dll       binary
+*.exe       binary
+*.ko        binary
+
+# Keep Makefiles, Docker, and shell scripts diffable
+Makefile    text eol=lf
+
+
