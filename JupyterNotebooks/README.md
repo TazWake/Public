@@ -9,9 +9,11 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 ## Available Notebooks
 
 ### 1. WebServer_review.ipynb
+
 **Purpose**: Comprehensive web server log analysis for Apache/Nginx access logs
 
 **Features**:
+
 - Parses Common and Combined Log Format
 - Top 10 most frequent IP addresses with visualizations
 - HTTP method statistical analysis (valid vs invalid)
@@ -21,6 +23,7 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 - Export findings to CSV for further investigation
 
 **Use Cases**:
+
 - Web application attack investigation
 - Identifying reconnaissance/scanning activity
 - Bot detection and classification
@@ -28,13 +31,15 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 - Security event correlation
 
 **Requirements**:
+
 - pandas
 - matplotlib
 - seaborn
 - re (standard library)
 
 **Input**: Apache/Nginx access logs
-```
+
+```text
 # Common Log Format
 127.0.0.1 - frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326
 
@@ -43,6 +48,7 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 ```
 
 **Outputs**:
+
 - `invalid_http_methods.csv` - Invalid methods with source IPs
 - `suspicious_user_agents.csv` - Potentially malicious User Agents
 - `top_user_agents.csv` - Most common User Agent strings
@@ -50,9 +56,11 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 ---
 
 ### 2. Test2.ipynb (NetFlow Analysis)
+
 **Purpose**: Network flow analysis for identifying top network talkers
 
 **Features**:
+
 - Processes NetFlow data files (nfcapd format)
 - Identifies top 10 endpoints by traffic volume
 - Aggregates multiple NetFlow files
@@ -60,6 +68,7 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 - Traffic summarization by source IP
 
 **Use Cases**:
+
 - Network traffic baseline analysis
 - Data exfiltration detection
 - Anomalous traffic volume identification
@@ -67,6 +76,7 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 - Network reconnaissance
 
 **Requirements**:
+
 - pandas
 - WSL2 with Linux distribution
 - nfdump installed in WSL environment
@@ -75,11 +85,13 @@ The notebooks are designed to be run in JupyterLab or Jupyter Notebook environme
 **Input**: NetFlow capture files (nfcapd format)
 
 **Configuration**:
+
 ```python
 netflow_directory = './Downloads/netflow/'  # Update to your NetFlow directory
 ```
 
 **Setup**:
+
 ```bash
 # Install nfdump in WSL2
 wsl
@@ -90,9 +102,11 @@ sudo apt-get install nfdump
 ---
 
 ### 3. evidence_processing/user_analytics.ipynb
+
 **Purpose**: Linux user behavior and session analysis from forensic logs
 
 **Features**:
+
 - User login timeline analysis from wtmp logs
 - Source IP frequency tracking
 - SUDO/SU privilege escalation detection
@@ -102,6 +116,7 @@ sudo apt-get install nfdump
 - Failed login attempt tracking (btmp)
 
 **Use Cases**:
+
 - Insider threat investigation
 - Unauthorized access detection
 - Privilege escalation analysis
@@ -109,6 +124,7 @@ sudo apt-get install nfdump
 - Account compromise investigation
 
 **Requirements**:
+
 - pandas
 - matplotlib
 - seaborn
@@ -116,6 +132,7 @@ sudo apt-get install nfdump
 - subprocess (for parsing wtmp/btmp)
 
 **Input Files**:
+
 - `/var/log/audit/audit.log` - Audit daemon logs
 - `~/.bash_history` - Bash command history
 - `~/.zsh_history` - Zsh command history
@@ -124,6 +141,7 @@ sudo apt-get install nfdump
 - `/var/log/auth.log` or `/var/log/secure` - Authentication logs
 
 **Key Visualizations**:
+
 - User login timeline histogram
 - Top source IPs for login attempts
 - Command frequency bar chart
@@ -132,22 +150,26 @@ sudo apt-get install nfdump
 ---
 
 ### 4. velociraptor/ - Velociraptor API Integration
+
 **Purpose**: Programmatic endpoint interrogation and automated DFIR workflows
 
 The `velociraptor/` directory enables API-driven interaction with Velociraptor for scalable artifact collection, threat hunting, and incident response automation.
 
 **Directory Contents**:
+
 - `jupyter_guide.md` - Complete setup guide for Velociraptor API integration
 - `updates.md` - Suggested enhancements and future improvements
 - (Planned) Interactive notebooks for hunt orchestration, triage automation, and AI integration
 
 **Key Features**:
+
 - Automated artifact collection across thousands of endpoints
 - Flow monitoring and result retrieval via Python
 - VQL query execution from Jupyter environment
 - Integration-ready for agentic AI systems
 
 **Quick Start**:
+
 ```bash
 pip install pyvelociraptor
 # See velociraptor/jupyter_guide.md for server configuration
@@ -164,11 +186,13 @@ pip install pyvelociraptor
 ### Prerequisites
 
 1. **Python 3.8+** with Jupyter installed:
+
 ```bash
 pip install jupyter jupyterlab
 ```
 
 2. **Required Python packages**:
+
 ```bash
 pip install pandas matplotlib seaborn
 
@@ -177,6 +201,7 @@ pip install pyvelociraptor
 ```
 
 3. **WSL2 Setup** (for NetFlow analysis):
+
 ```bash
 # Enable WSL2 on Windows
 wsl --install
@@ -189,6 +214,7 @@ sudo apt-get install nfdump
 ### Quick Start
 
 1. **Launch Jupyter**:
+
 ```bash
 # From the JupyterNotebooks directory
 cd D:\Development\Public\JupyterNotebooks
@@ -235,6 +261,7 @@ jupyter lab
 ## Integration with DFIR Toolkit
 
 ### Evidence Collection Scripts
+
 The notebooks complement collection scripts in the repository:
 
 ```bash
@@ -249,9 +276,11 @@ D:\Development\Public\Bash\docker_triage.sh
 ```
 
 ### Velociraptor Integration
+
 Programmatic endpoint interrogation via API for automated evidence collection at scale. See `velociraptor/jupyter_guide.md` for complete documentation.
 
 ### ELK Stack Integration
+
 For large-scale log analysis, use the ELK Docker environment:
 
 ```bash
@@ -265,6 +294,7 @@ docker-compose up -d
 Use notebooks for targeted analysis of specific log files, then upload aggregated data to ELK for broader correlation.
 
 ### Timeline Analysis
+
 Combine notebook outputs with plaso/log2timeline:
 
 ```bash
@@ -325,6 +355,7 @@ df.to_csv('findings.csv', index=False)
 ### Common Issues
 
 #### WSL Path Conversion Errors
+
 ```python
 # Use wslpath for path conversion
 import subprocess
@@ -333,12 +364,14 @@ def convert_path_to_wsl(windows_path):
 ```
 
 #### Missing Dependencies
+
 ```bash
 # Install all common packages
 pip install pandas matplotlib seaborn jupyter ipython
 ```
 
 #### Large File Performance
+
 ```python
 # Read files in chunks for large logs
 chunk_size = 100000
@@ -348,6 +381,7 @@ for chunk in pd.read_csv('large_file.log', chunksize=chunk_size):
 ```
 
 #### Memory Errors
+
 ```python
 # Reduce memory usage by specifying dtypes
 df = pd.read_csv('file.csv', dtype={'column': 'category'})
@@ -358,6 +392,7 @@ df = dd.read_csv('large_file.csv')
 ```
 
 #### Encoding Issues
+
 ```python
 # Handle various encodings
 with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
@@ -430,6 +465,7 @@ When adding new notebooks to this directory:
 ## Additional Resources
 
 ### DFIR Analysis Tools
+
 - **Velociraptor Notebooks**: `JupyterNotebooks/velociraptor/` for API-driven endpoint interrogation
 - **Volatility Plugins**: `/Vol2.6` and `/Vol3` for memory analysis
 - **Bash Scripts**: `/Bash` for evidence collection automation
@@ -437,12 +473,14 @@ When adding new notebooks to this directory:
 - **PowerShell Scripts**: `/Powershell` for Windows-specific tasks
 
 ### Related Documentation
+
 - Main Repository: `D:\Development\Public\CLAUDE.md`
 - Application Tools: `D:\Development\Public\Applications\README.md`
 - Velociraptor API Guide: `JupyterNotebooks/velociraptor/jupyter_guide.md`
 - ELK Stack Setup: `D:\Development\Public\docker\Analysis_ELK\README.md`
 
 ### External Resources
+
 - [Pandas Documentation](https://pandas.pydata.org/docs/)
 - [Jupyter Documentation](https://jupyter.org/documentation)
 - [Velociraptor API Documentation](https://docs.velociraptor.app/docs/server_automation/server_api/)
