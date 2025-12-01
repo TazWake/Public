@@ -4,7 +4,6 @@ import os
 import argparse
 import pefile
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Inspect PE headers and exported functions from a PE file (.exe, .dll)."
@@ -14,7 +13,6 @@ def parse_args():
         help="Path to the PE file (e.g., /cases/evidence/example-library.dll)"
     )
     return parser.parse_args()
-
 
 def main():
     args = parse_args()
@@ -51,7 +49,6 @@ def main():
         print("No export directory found in this PE file.")
 
     pe.close()
-
 
 if __name__ == "__main__":
     main()
