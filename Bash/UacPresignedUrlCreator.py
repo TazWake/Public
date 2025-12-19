@@ -6,8 +6,8 @@ import boto3
 from botocore.config import Config
 
 # --- CONFIGURATION ---
-BUCKET_NAME = "skunkworks-evidence-store-831e9698"
-EXPIRATION = 7200
+BUCKET_NAME = "{Enter bucket name here}"
+EXPIRATION = 7200 # <---- this will last for a few hours, make sure this fits your needs
 REGION = "us-east-1"
 
 
@@ -49,7 +49,7 @@ Examples:
         "-p",
         type=str,
         default="rangeadmin",
-        help="AWS profile name to use (default: rangeadmin)"
+        help="AWS profile name to use (default: rangeadmin)" # <--- this assumes you have multiple AWS profiles in your config
     )
     parser.add_argument(
         "--region",
@@ -65,7 +65,7 @@ Examples:
     hostname = args.hostname if args.hostname else socket.gethostname()
     
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-    # OBJECT_KEY = f"{hostname}_{timestamp}_{uuid.uuid4().hex}_UAC.tar.gz"
+    # OBJECT_KEY = f"{hostname}_{timestamp}_{uuid.uuid4().hex}_UAC.tar.gz" # <--- uncomment this line if you want to use a random string to keep filenames unique.
     OBJECT_KEY = f"{hostname}_{timestamp}_UAC.tar.gz"
 
     session = boto3.Session(profile_name=args.profile, region_name=args.region)
