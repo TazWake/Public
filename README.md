@@ -1,8 +1,8 @@
 # DFIR Tools Repository
 
-A comprehensive collection of Digital Forensics and Incident Response (DFIR) tools, scripts, and containerized environments for cybersecurity professionals and researchers.
+A comprehensive collection of Digital Forensics and Incident Response (DFIR) tools, scripts, and containerised environments for cybersecurity professionals and researchers.
 
-## 📁 Repository Structure
+## Repository Structure
 
 ### 🔧 Applications/
 
@@ -11,7 +11,7 @@ C and Go implementations of analysis tools
 - `malreview.c` - C implementation of malware analysis utility for file examination
 - `malreview.go` - Go implementation of malware analysis utility for file examination
 
-### 🐚 Bash/
+### Bash/
 
 Production-ready shell scripts for Linux/macOS forensic operations
 
@@ -46,7 +46,7 @@ Production-ready shell scripts for Linux/macOS forensic operations
 #### Network & Security
 
 - `iplookups.sh` - Bulk IP address WHOIS analysis for threat intelligence
-- `authCheck.sh` - Authentication and authorization audit script
+- `authCheck.sh` - Authentication and authorisation audit script
 - `setAuditD.sh` - Configure auditd for comprehensive system monitoring
 - `setAuditD_RHEL.sh` - RHEL-specific auditd configuration
 
@@ -56,7 +56,7 @@ Production-ready shell scripts for Linux/macOS forensic operations
 - `journalTriage.sh` - Triage systemd journal entries for incidents
 - `timestampCheck.sh` - Timestamp analysis and validation
 
-#### Specialized Tools
+#### Specialised Tools
 
 - `GenELF_file_better.sh` - Generate sample ELF files for testing
 - `multi_Files.sh` - Batch file processing utility
@@ -73,7 +73,7 @@ Production-ready shell scripts for Linux/macOS forensic operations
 - `Makefile` - Build configuration for kernel module compilation
 - `sample_LKM.c` - Sample Linux Kernel Module for educational purposes
 
-### 🐍 Python/
+### Python/
 
 Python utilities for forensic analysis
 
@@ -81,7 +81,7 @@ Python utilities for forensic analysis
 - `fastfluxfinder.py` - Network analysis tool for detecting fast flux DNS patterns
 - `inode_reader.py` - Low-level filesystem inode analysis tool
 
-### 💻 Powershell/
+### Powershell/
 
 Windows-specific forensic and security scripts
 
@@ -94,25 +94,25 @@ Windows-specific forensic and security scripts
 - `botnetcheck.ps1` - Botnet infection detection script
 - `collect_timestamps.ps1` - Windows timestamp collection and analysis
 
-### 🧠 Vol2.6/ (Deprecated)
+### Vol2.6/ (Deprecated)
 
 Volatility 2.6 memory analysis plugins
 
 - `ramscan.py` - Process listing with VAD analysis for suspicious RWX memory regions
 - `triagecheck.py` - Quick memory triage for obvious malicious activity indicators
-- `cmdcheck.py` - Analyzes cmd.exe handles for backdoor detection
+- `cmdcheck.py` - Analyses cmd.exe handles for backdoor detection
 - `Fastvadscan.py` - Fast VAD scanning without file extraction
 - `pathcheck.py` - Identifies executables loaded from suspicious locations
 
-### 🧠 Vol3/
+### Vol3/
 
 Volatility 3 memory analysis plugins
 
-- `fasttriage.py` - Modernized triage plugin for Volatility 3 framework
+- `fasttriage.py` - Modernised triage plugin for Volatility 3 framework
 
 ### 🐳 docker/
 
-Containerized analysis and testing environments
+Containerised analysis and testing environments
 
 #### Log Analysis Platforms
 
@@ -139,14 +139,14 @@ Containerized analysis and testing environments
 
 ##### MalwareAnalyzer/
 
-- Containerized malware analysis environment
+- Containerised malware analysis environment
 - Isolated environment for safe malware examination
 - Mounts current directory to `/analysis` for file analysis
 - Results written to `./results` directory
 
 ##### maldoc/
 
-- Specialized environment for analyzing malicious documents
+- Specialised environment for analysing malicious documents
 - Tools for document metadata extraction and embedded object analysis
 
 #### Security Testing Environments
@@ -162,11 +162,11 @@ Containerized analysis and testing environments
 
 - Production-ready nmap scanning environment with monitoring
 - Includes Grafana dashboards and Prometheus metrics
-- Optimized for large-scale scanning operations
+- Optimised for large-scale scanning operations
 
 ##### nmaper/
 
-- Lightweight containerized nmap scanning environment
+- Lightweight containerised nmap scanning environment
 - Quick deployment for network reconnaissance tasks
 
 ##### re_docker/
@@ -174,7 +174,7 @@ Containerized analysis and testing environments
 - Reverse engineering Docker environment
 - Tools for binary analysis and reverse engineering tasks
 
-### 🎯 Range/
+### Range/
 
 Multi-container network testing environment
 
@@ -183,7 +183,7 @@ Multi-container network testing environment
 - Ubuntu target container (10.10.10.12) - Victim system
 - Isolated 10.10.10.0/24 network for safe testing
 
-### 📊 EvidenceGenerator/
+### EvidenceGenerator/
 
 Synthetic evidence generation for training and testing
 
@@ -191,21 +191,21 @@ Synthetic evidence generation for training and testing
 - `webgen.py` - Web log generation utility
 - Filter generated logs to remove private IP addresses using provided grep patterns
 
-### 📚 Examples/
+### Examples/
 
 Sample data and documentation
 
 - `GenericPotato.md` - Privilege escalation technique documentation
 - `GenericPotato.zip` - Sample files for potato attack vectors
 
-### 📓 JupyterNotebooks/
+### JupyterNotebooks/
 
 Jupyter notebooks for data analysis and forensic workflows
 
 - `Test2.ipynb` - Example notebook demonstrating data analysis techniques
-- Interactive environment for forensic data exploration and visualization
+- Interactive environment for forensic data exploration and visualisation
 
-### 🔍 plaso/
+### plaso/
 
 Log2timeline/plaso configuration files
 
@@ -213,13 +213,13 @@ Log2timeline/plaso configuration files
 - `filter_linux.yaml` - YAML format Linux timeline filters
 - Pre-configured filters for efficient timeline analysis on Linux systems
 
-### 📋 Documentation
+### Documentation
 
 - `dfir_collection.md` - DFIR collection methodology documentation
 - `README.md` - This file, comprehensive repository documentation
 - `CLAUDE.md` - Guidelines for Claude Code when working with this repository
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Docker Environments
 
@@ -286,7 +286,7 @@ make all    # Build kernel module
 make clean  # Clean build artifacts
 ```
 
-## 📦 Prerequisites & Dependencies
+## Prerequisites & Dependencies
 
 ### Core Requirements
 
@@ -324,7 +324,7 @@ make clean  # Clean build artifacts
 - **MRC (Magnet Response Collection)** - Windows forensics
 - **Jupyter** - For interactive data analysis notebooks
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### Security Context
 
@@ -350,11 +350,11 @@ Scripts follow RFC3227 guidelines for digital evidence:
 - Use isolated environments for malware analysis
 - Review script headers for specific dependencies
 
-## 📄 License
+## License
 
 See [LICENSE](LICENSE) for details.
 
-## 🤝 Contributing
+## Contributing
 
 This repository contains production DFIR tools. Contributions should:
 
