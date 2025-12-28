@@ -362,11 +362,5 @@ This repository contains production DFIR tools. Contributions should:
 - Include appropriate documentation
 - Use descriptive variable/function names
 - Add error handling and logging
-- Follow security best practices outlined in `.cursor/rules/`
 
-## 📚 Additional Resources
-
-- **CLAUDE.md** - Guidelines for AI assistants working with this repository
-- **dfir_collection.md** - DFIR collection methodology
-- **Bash/README.md** - Detailed bash script documentation
 - Individual script headers contain usage instructions
