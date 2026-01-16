@@ -15,7 +15,21 @@ set -euo pipefail
 #                                WARNING
 #
 # This script assumes you have correctly configured access via the config
-# (~/.ssh/config) file for the users.
+#                 (~/.ssh/config) file for the users.
+#
+# Assumptions:
+# - You have SSH aliases "siem" and "edr" (or overrides) defined in ~/.ssh/config
+#   with ProxyJump / User / IdentityFile etc.
+#
+# Script Functionality:
+# Primary:
+#   --siem       : tunnel Kibana (default local 5601 -> siem:localhost:5601)
+#   --edr        : tunnel Velociraptor (default local 8889 -> edr:localhost:8889)
+#
+# Convenience:
+#   --background : run tunnel(s) in background (ssh -f -N)
+#   --status     : show if local ports are listening
+#   --stop       : stop tunnel(s) (PID-file first, fallback to port-based kill)
 #
 # Examples:
 #   ./tunnel.sh --siem
@@ -25,10 +39,6 @@ set -euo pipefail
 #   ./tunnel.sh --edr --edr-host edr --velo-port 8889
 #   ./tunnel.sh --status
 #   ./tunnel.sh --stop --siem
-#
-# Notes:
-# - Expects SSH host aliases like "siem" and "edr" to exist in ~/.ssh/config (recommended).
-# - Default bind is 127.0.0.1 to avoid exposing services to your network.
 
 SCRIPT_NAME="$(basename "$0")"
 
@@ -69,52 +79,65 @@ EXTRA_SSH_OPTS=()
 BACKGROUND=0
 VERBOSE=0
 
+# PID files make --stop deterministic
+PID_DIR="${XDG_RUNTIME_DIR:-/tmp}/${USER}-ssh-tunnels"
+mkdir -p "$PID_DIR"
+
+pidfile_for() {
+  # $1 is "siem" or "edr"
+  echo "${PID_DIR}/${1}.pid"
+}
+
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 SSH tunnel helper for SIEM (Kibana) and EDR (Velociraptor)
 
 Usage:
-  tunnel.sh [OPTIONS]
+  ${SCRIPT_NAME} [OPTIONS]
 
 Primary actions:
-  --siem                 Create tunnel for Kibana (default: local 5601 -> siem:localhost:5601)
-  --edr                  Create tunnel for Velociraptor (default: local 8889 -> edr:localhost:8889)
-  --status               Show whether local tunnel ports are listening
-  --stop                 Best-effort stop: kill local ssh processes bound to the selected port(s)
+  --siem                    Create tunnel for Kibana (default local 5601 -> ${DEFAULT_SIEM_HOST}:localhost:5601)
+  --edr                     Create tunnel for Velociraptor (default local 8889 -> ${DEFAULT_EDR_HOST}:localhost:8889)
+  --status                  Show whether local tunnel ports are listening
+  --stop                    Stop tunnel(s) (PID-file first, fallback to port scan)
 
 Options:
-  -h, --help             Show this help
+  -h, --help                Show this help
 
-  --siem-host HOST       SSH host/alias for SIEM (default: siem)
-  --edr-host HOST        SSH host/alias for EDR  (default: edr)
+  --siem-host HOST          SSH host/alias for SIEM (default: ${DEFAULT_SIEM_HOST})
+  --edr-host HOST           SSH host/alias for EDR  (default: ${DEFAULT_EDR_HOST})
 
-  --bind ADDR            Local bind address (default: 127.0.0.1)
-                          Use 0.0.0.0 only if you intentionally want LAN exposure.
+  --bind ADDR               Local bind address (default: ${DEFAULT_BIND_ADDR})
+                             Use 0.0.0.0 only if you intentionally want LAN exposure.
 
-  --kibana-port PORT     Local port for Kibana tunnel (default: 5601)
-  --kibana-remote HOST:PORT  Remote target for Kibana (default: localhost:5601)
+  --kibana-port PORT        Local port for Kibana tunnel (default: ${DEFAULT_KIBANA_LOCAL_PORT})
+  --kibana-remote HOST:PORT Remote target for Kibana (default: ${DEFAULT_KIBANA_REMOTE_HOST}:${DEFAULT_KIBANA_REMOTE_PORT})
 
-  --velo-port PORT       Local port for Velociraptor tunnel (default: 8889)
-  --velo-remote HOST:PORT    Remote target for Velociraptor (default: localhost:8889)
+  --velo-port PORT          Local port for Velociraptor tunnel (default: ${DEFAULT_VELO_LOCAL_PORT})
+  --velo-remote HOST:PORT   Remote target for Velociraptor (default: ${DEFAULT_VELO_REMOTE_HOST}:${DEFAULT_VELO_REMOTE_PORT})
 
-  --identity FILE        SSH identity key (-i FILE)
-  --ssh-config FILE      SSH config file (-F FILE)
-  --ssh-opt OPT          Additional ssh option (repeatable), e.g. --ssh-opt "-o ServerAliveInterval=30"
+  --identity FILE           SSH identity key (-i FILE)
+  --ssh-config FILE         SSH config file (-F FILE)
+  --ssh-opt OPT             Additional ssh option (repeatable), e.g. --ssh-opt "-o ServerAliveInterval=30"
 
-  --background           Run ssh with -N in the background (-f). Useful for long-lived tunnels.
-  -v, --verbose          Verbose output (also enables ssh -v)
+  --background              Run tunnel(s) in background (ssh -f -N)
+  -v, --verbose             Verbose output (also enables ssh -v)
 
 Examples:
-  tunnel.sh --siem
-  tunnel.sh --edr --background
-  tunnel.sh --siem --bind 127.0.0.1 --kibana-port 15601
-  tunnel.sh --edr --velo-remote 127.0.0.1:8889
-  tunnel.sh --status
-  tunnel.sh --stop --siem
+  ${SCRIPT_NAME} --siem
+  ${SCRIPT_NAME} --edr --background
+  ${SCRIPT_NAME} --siem --edr --background
+  ${SCRIPT_NAME} --siem --bind 127.0.0.1 --kibana-port 15601
+  ${SCRIPT_NAME} --status
+  ${SCRIPT_NAME} --stop --siem
 EOF
 }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
+}
 
 parse_hostport() {
   # Input: "host:port" => prints "host port"
@@ -127,23 +150,136 @@ parse_hostport() {
   echo "$host" "$port"
 }
 
-need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
-}
-
 is_listening() {
   # Returns 0 if listening on tcp port, else 1
   local port="$1"
   ss -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]${port}$"
 }
 
+# Build SSH base cmd into a global array (no NUL bytes, no command substitution)
+SSH_BASE_CMD=()
+build_ssh_base_cmd() {
+  SSH_BASE_CMD=(ssh -N -T)
+
+  if [[ "$BACKGROUND" -eq 1 ]]; then
+    SSH_BASE_CMD+=(-f)
+  fi
+
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    SSH_BASE_CMD+=(-v)
+  fi
+
+  # Keepalive + safety
+  SSH_BASE_CMD+=(-o ExitOnForwardFailure=yes)
+  SSH_BASE_CMD+=(-o ServerAliveInterval=30)
+  SSH_BASE_CMD+=(-o ServerAliveCountMax=3)
+
+  if [[ -n "$IDENTITY_FILE" ]]; then
+    SSH_BASE_CMD+=(-i "$IDENTITY_FILE")
+  fi
+
+  if [[ -n "$SSH_CONFIG_FILE" ]]; then
+    SSH_BASE_CMD+=(-F "$SSH_CONFIG_FILE")
+  fi
+
+  if [[ "${#EXTRA_SSH_OPTS[@]}" -gt 0 ]]; then
+    SSH_BASE_CMD+=("${EXTRA_SSH_OPTS[@]}")
+  fi
+}
+
+# Record PID of the most recent ssh process that matches a tunnel spec.
+# This is "good enough" in practice for your use-case (one tunnel launch at a time).
+record_pid_for_tunnel() {
+  local name="$1"     # siem|edr
+  local bind="$2"
+  local lport="$3"
+
+  local pf; pf="$(pidfile_for "$name")"
+
+  # Match either "-L 127.0.0.1:5601:" or "-L127.0.0.1:5601:"
+  local pat1="-L[[:space:]]*${bind}:${lport}:"
+  local pat2="-L${bind}:${lport}:"
+
+  local pid
+  pid="$(pgrep -n -u "$USER" -af "ssh" | awk -v p1="$pat1" -v p2="$pat2" '$0 ~ p1 || $0 ~ p2 {print $1; exit}')"
+
+  if [[ -n "${pid:-}" ]]; then
+    echo "$pid" >"$pf"
+    [[ "$VERBOSE" -eq 1 ]] && echo "Recorded PID ${pid} to ${pf}"
+  else
+    # If we can't find it, don't fail the tunnel; just warn.
+    echo "WARNING: Could not determine PID for ${name} tunnel; --stop will fallback to port-based kill." >&2
+    rm -f "$pf" || true
+  fi
+}
+
+run_siem() {
+  local lspec="${BIND_ADDR}:${KIBANA_LOCAL_PORT}:${KIBANA_REMOTE_HOST}:${KIBANA_REMOTE_PORT}"
+  echo "Opening SIEM (Kibana) tunnel: ${lspec} via SSH host '${SIEM_HOST}'"
+  echo "Local URL: http://${BIND_ADDR}:${KIBANA_LOCAL_PORT} (or https:// if Kibana is configured that way)"
+
+  build_ssh_base_cmd
+  local -a cmd=("${SSH_BASE_CMD[@]}" -L "$lspec" "$SIEM_HOST")
+
+  if [[ "$BACKGROUND" -eq 1 ]]; then
+    "${cmd[@]}"
+    record_pid_for_tunnel "siem" "$BIND_ADDR" "$KIBANA_LOCAL_PORT"
+    echo "Tunnel started (background)."
+  else
+    rm -f "$(pidfile_for siem)" 2>/dev/null || true
+    "${cmd[@]}"
+    echo "Tunnel active (foreground). Press Ctrl+C to close."
+  fi
+}
+
+run_edr() {
+  local lspec="${BIND_ADDR}:${VELO_LOCAL_PORT}:${VELO_REMOTE_HOST}:${VELO_REMOTE_PORT}"
+  echo "Opening EDR (Velociraptor) tunnel: ${lspec} via SSH host '${EDR_HOST}'"
+  echo "Local URL: http://${BIND_ADDR}:${VELO_LOCAL_PORT} (or https:// depending on your deployment)"
+
+  build_ssh_base_cmd
+  local -a cmd=("${SSH_BASE_CMD[@]}" -L "$lspec" "$EDR_HOST")
+
+  if [[ "$BACKGROUND" -eq 1 ]]; then
+    "${cmd[@]}"
+    record_pid_for_tunnel "edr" "$BIND_ADDR" "$VELO_LOCAL_PORT"
+    echo "Tunnel started (background)."
+  else
+    rm -f "$(pidfile_for edr)" 2>/dev/null || true
+    "${cmd[@]}"
+    echo "Tunnel active (foreground). Press Ctrl+C to close."
+  fi
+}
+
+stop_one_by_pidfile() {
+  local name="$1"
+  local pf; pf="$(pidfile_for "$name")"
+
+  if [[ ! -f "$pf" ]]; then
+    return 1
+  fi
+
+  local pid
+  pid="$(cat "$pf" 2>/dev/null || true)"
+  [[ -n "$pid" ]] || { rm -f "$pf" || true; return 1; }
+
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "Killing ${name} tunnel PID ${pid}"
+    kill "$pid" || true
+    rm -f "$pf" || true
+    return 0
+  fi
+
+  # stale pidfile
+  rm -f "$pf" || true
+  return 1
+}
+
 kill_tunnel_by_port() {
-  # Best-effort: find local ssh processes that include "-L <bind>:<port>:"
-  # and kill them.
+  # Fallback: find local ssh processes that include "-L <bind>:<port>:"
   local bind="$1"
   local lport="$2"
 
-  # pattern tries to match: -L 127.0.0.1:5601: or -L127.0.0.1:5601:
   local pat1="-L[[:space:]]*${bind}:${lport}:"
   local pat2="-L${bind}:${lport}:"
 
@@ -159,74 +295,27 @@ kill_tunnel_by_port() {
   kill ${pids} || true
 }
 
-build_ssh_base_cmd() {
-  local -a cmd=(ssh)
+stop_tunnels() {
+  local stopped_any=0
 
-  # Background / no remote command
-  # -N: do not execute remote command (tunnel only)
-  # -T: no pseudo-tty
-  cmd+=(-N -T)
-
-  if [[ "$BACKGROUND" -eq 1 ]]; then
-    cmd+=(-f)
+  # Only stop what was selected, unless neither selected (then stop both).
+  if [[ "$DO_SIEM" -eq 1 || ( "$DO_SIEM" -eq 0 && "$DO_EDR" -eq 0 ) ]]; then
+    if stop_one_by_pidfile "siem"; then
+      stopped_any=1
+    else
+      kill_tunnel_by_port "$BIND_ADDR" "$KIBANA_LOCAL_PORT" && stopped_any=1
+    fi
   fi
 
-  if [[ "$VERBOSE" -eq 1 ]]; then
-    cmd+=(-v)
+  if [[ "$DO_EDR" -eq 1 || ( "$DO_SIEM" -eq 0 && "$DO_EDR" -eq 0 ) ]]; then
+    if stop_one_by_pidfile "edr"; then
+      stopped_any=1
+    else
+      kill_tunnel_by_port "$BIND_ADDR" "$VELO_LOCAL_PORT" && stopped_any=1
+    fi
   fi
 
-  # Keepalive defaults that reduce "mystery disconnects"
-  cmd+=(-o ExitOnForwardFailure=yes)
-  cmd+=(-o ServerAliveInterval=30)
-  cmd+=(-o ServerAliveCountMax=3)
-
-  if [[ -n "$IDENTITY_FILE" ]]; then
-    cmd+=(-i "$IDENTITY_FILE")
-  fi
-
-  if [[ -n "$SSH_CONFIG_FILE" ]]; then
-    cmd+=(-F "$SSH_CONFIG_FILE")
-  fi
-
-  if [[ "${#EXTRA_SSH_OPTS[@]}" -gt 0 ]]; then
-    cmd+=("${EXTRA_SSH_OPTS[@]}")
-  fi
-
-  printf '%s\0' "${cmd[@]}"
-}
-
-run_siem() {
-  local lspec="${BIND_ADDR}:${KIBANA_LOCAL_PORT}:${KIBANA_REMOTE_HOST}:${KIBANA_REMOTE_PORT}"
-  echo "Opening SIEM (Kibana) tunnel: ${lspec} via SSH host '${SIEM_HOST}'"
-  local base
-  base="$(build_ssh_base_cmd)"
-  # shellcheck disable=SC2206
-  local -a cmd=()
-  while IFS= read -r -d '' x; do cmd+=("$x"); done <<<"$base"
-  cmd+=(-L "$lspec" "$SIEM_HOST")
-  "${cmd[@]}"
-  if [[ "$BACKGROUND" -eq 0 ]]; then
-    echo "Tunnel active (foreground). Press Ctrl+C to close."
-  else
-    echo "Tunnel started (background)."
-  fi
-}
-
-run_edr() {
-  local lspec="${BIND_ADDR}:${VELO_LOCAL_PORT}:${VELO_REMOTE_HOST}:${VELO_REMOTE_PORT}"
-  echo "Opening EDR (Velociraptor) tunnel: ${lspec} via SSH host '${EDR_HOST}'"
-  local base
-  base="$(build_ssh_base_cmd)"
-  # shellcheck disable=SC2206
-  local -a cmd=()
-  while IFS= read -r -d '' x; do cmd+=("$x"); done <<<"$base"
-  cmd+=(-L "$lspec" "$EDR_HOST")
-  "${cmd[@]}"
-  if [[ "$BACKGROUND" -eq 0 ]]; then
-    echo "Tunnel active (foreground). Press Ctrl+C to close."
-  else
-    echo "Tunnel started (background)."
-  fi
+  [[ "$stopped_any" -eq 1 ]] || echo "Nothing to stop."
 }
 
 show_status() {
@@ -237,23 +326,6 @@ show_status() {
 
   printf "  Velo    %s:%s  ->  %s:%s via %s : " "$BIND_ADDR" "$VELO_LOCAL_PORT" "$VELO_REMOTE_HOST" "$VELO_REMOTE_PORT" "$EDR_HOST"
   if is_listening "$VELO_LOCAL_PORT"; then echo "LISTENING"; else echo "not listening"; fi
-}
-
-stop_tunnels() {
-  # Only stop what was selected, unless neither selected (then stop both).
-  local stop_any=0
-
-  if [[ "$DO_SIEM" -eq 1 || ( "$DO_SIEM" -eq 0 && "$DO_EDR" -eq 0 ) ]]; then
-    stop_any=1
-    kill_tunnel_by_port "$BIND_ADDR" "$KIBANA_LOCAL_PORT"
-  fi
-
-  if [[ "$DO_EDR" -eq 1 || ( "$DO_SIEM" -eq 0 && "$DO_EDR" -eq 0 ) ]]; then
-    stop_any=1
-    kill_tunnel_by_port "$BIND_ADDR" "$VELO_LOCAL_PORT"
-  fi
-
-  [[ "$stop_any" -eq 1 ]] || die "Nothing selected to stop."
 }
 
 main() {
@@ -299,16 +371,12 @@ main() {
       --background) BACKGROUND=1; shift ;;
       -v|--verbose) VERBOSE=1; shift ;;
 
-      *)
-        die "Unknown argument: $1 (use -h for help)"
-        ;;
+      *) die "Unknown argument: $1 (use -h for help)" ;;
     esac
   done
 
-  # Safety: require ssh
   need_cmd ssh
 
-  # Execute operations
   if [[ "$DO_STATUS" -eq 1 ]]; then
     show_status
   fi
@@ -327,7 +395,7 @@ main() {
     die "No action selected. Use --siem and/or --edr, or --status/--stop."
   fi
 
-  # If both requested in foreground, second will never run. Force background for multi.
+  # If both requested in foreground, second will never run.
   if [[ "$DO_SIEM" -eq 1 && "$DO_EDR" -eq 1 && "$BACKGROUND" -eq 0 ]]; then
     die "You requested both --siem and --edr in foreground. Use --background, or run them separately."
   fi
