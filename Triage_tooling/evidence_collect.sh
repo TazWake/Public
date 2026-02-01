@@ -4,9 +4,9 @@ set -euo pipefail
 # evidence_collect.sh: Mount evidence image and run initial collection commands.
 
 SCRIPT_NAME="$(/usr/bin/basename "$0")"
-LOG_DIR="/var/log/triage_tooling"
 RUN_TS="$(/usr/bin/date +%Y%m%d_%H%M%S)"
-LOG_FILE="${LOG_DIR}/evidence_collect_${RUN_TS}.log"
+LOG_DIR=""
+LOG_FILE=""
 
 IMAGE_PATH=""
 IMAGE_TYPE="auto"  # auto|e01|raw
@@ -16,10 +16,17 @@ OFFSET_BYTES=""
 PARTITION_NUM=""
 AUTO_DETECT=true
 INCLUDE_LIVE=false
+INCLUDE_LIVE_REQUESTED=false
 OUTPUT_DIR="/var/tmp/triage_${RUN_TS}"
 MOUNT_OPTS="ro,loop,noatime,noexec,noload,norecovery"
+REPORT_JSON=false
+LIVE_SYSTEM=false
+MOUNT_ALL_PARTITIONS=false
+LVM_DEVICES_FILE=""
 
 LOOP_DEV=""
+MOUNT_POINTS=()
+MOUNT_TARGETS=()
 
 usage() {
   /usr/bin/cat <<EOF
@@ -33,7 +40,10 @@ Options:
   --offset <bytes|sectors> Byte offset (or sectors with 's' suffix) for partition mount
   --partition <num>        Partition number to mount (uses losetup -P)
   --out-dir <dir>          Output directory for triage artifacts
-  --include-live           Also collect local live system state
+  --live-system            Run on live system (no image); enables live collection
+  --include-live           Deprecated: only honored with --live-system
+  --report-json            Also output report.json
+  --mount-all-partitions   Mount all partitions from a full disk image
   --no-auto                Disable auto-detection prompts
   -h, --help               Show help
 EOF
@@ -61,6 +71,10 @@ ensure_dir() {
   /usr/bin/mkdir -p "$1"
 }
 
+add_mountpoint() {
+  MOUNT_POINTS+=("$1")
+}
+
 run_cmd() {
   local desc="$1"
   shift
@@ -73,9 +87,16 @@ run_cmd() {
 }
 
 cleanup() {
+  if ((${#MOUNT_POINTS[@]} > 0)); then
+    for ((i=${#MOUNT_POINTS[@]}-1; i>=0; i--)); do
+      /bin/umount "${MOUNT_POINTS[$i]}" >/dev/null 2>&1 || true
+    done
+  fi
   if [[ -n "${LOOP_DEV}" ]]; then
-    /bin/umount "${MOUNT_DIR}" >/dev/null 2>&1 || true
     /sbin/losetup -d "${LOOP_DEV}" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${LVM_DEVICES_FILE}" && -f "${LVM_DEVICES_FILE}" ]]; then
+    /bin/rm -f "${LVM_DEVICES_FILE}" >/dev/null 2>&1 || true
   fi
 }
 
@@ -120,8 +141,21 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_DIR="$2"
       shift 2
       ;;
+    --live-system)
+      LIVE_SYSTEM=true
+      shift 1
+      ;;
     --include-live)
       INCLUDE_LIVE=true
+      INCLUDE_LIVE_REQUESTED=true
+      shift 1
+      ;;
+    --report-json)
+      REPORT_JSON=true
+      shift 1
+      ;;
+    --mount-all-partitions)
+      MOUNT_ALL_PARTITIONS=true
       shift 1
       ;;
     --no-auto)
@@ -138,31 +172,50 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$IMAGE_PATH" ]] || fatal "--image is required."
-[[ -f "$IMAGE_PATH" ]] || fatal "Image not found: $IMAGE_PATH"
+if $LIVE_SYSTEM; then
+  if [[ -n "$IMAGE_PATH" ]]; then
+    fatal "--live-system cannot be used with --image."
+  fi
+  INCLUDE_LIVE=true
+else
+  [[ -n "$IMAGE_PATH" ]] || fatal "--image is required unless --live-system is specified."
+  [[ -f "$IMAGE_PATH" ]] || fatal "Image not found: $IMAGE_PATH"
+  INCLUDE_LIVE=false
+fi
 
+LOG_DIR="$OUTPUT_DIR"
+LOG_FILE="${LOG_DIR}/evidence_collect_${RUN_TS}.log"
 ensure_dir "$LOG_DIR"
 /usr/bin/touch "$LOG_FILE"
 
 log "Starting ${SCRIPT_NAME}"
-log "Image: ${IMAGE_PATH}"
+log "Image: ${IMAGE_PATH:-<live>}"
 log "Type: ${IMAGE_TYPE}"
-log "Mount dir: ${MOUNT_DIR}"
 log "EWF mount dir: ${EWF_MOUNT_DIR}"
 log "Output dir: ${OUTPUT_DIR}"
-
-if [[ "$IMAGE_TYPE" == "auto" ]]; then
-  case "${IMAGE_PATH}" in
-    *.E01|*.e01)
-      IMAGE_TYPE="e01"
-      ;;
-    *)
-      IMAGE_TYPE="raw"
-      ;;
-  esac
+log "Live system: ${LIVE_SYSTEM}"
+if ! $LIVE_SYSTEM && $INCLUDE_LIVE_REQUESTED; then
+  warn "--include-live ignored for image-based collection (mounted-only mode)."
 fi
 
-ensure_dir "$MOUNT_DIR"
+if $LIVE_SYSTEM; then
+  MOUNT_DIR="/"
+else
+  if [[ "$IMAGE_TYPE" == "auto" ]]; then
+    case "${IMAGE_PATH}" in
+      *.E01|*.e01)
+        IMAGE_TYPE="e01"
+        ;;
+      *)
+        IMAGE_TYPE="raw"
+        ;;
+    esac
+  fi
+  ensure_dir "$MOUNT_DIR"
+fi
+
+log "Mount dir: ${MOUNT_DIR}"
+
 ensure_dir "$OUTPUT_DIR"
 
 OUT_META="${OUTPUT_DIR}/metadata"
@@ -175,6 +228,7 @@ OUT_PROC="${OUTPUT_DIR}/proc_maps"
 OUT_CSV="${OUTPUT_DIR}/csv"
 OUT_REPORT="${OUTPUT_DIR}/report.txt"
 OUT_HASHES="${OUTPUT_DIR}/hashes.sha256"
+OUT_TARGETS="${OUTPUT_DIR}/targets"
 
 ensure_dir "$OUT_META"
 ensure_dir "$OUT_VOL"
@@ -184,6 +238,82 @@ ensure_dir "$OUT_LOGS"
 ensure_dir "$OUT_FS"
 ensure_dir "$OUT_PROC"
 ensure_dir "$OUT_CSV"
+ensure_dir "$OUT_TARGETS"
+
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  /usr/bin/printf '%s' "$s"
+}
+
+mount_device_ro() {
+  local dev="$1"
+  local mnt="$2"
+  if ! /bin/mount -o "ro,noatime,noexec,noload,norecovery" "$dev" "$mnt"; then
+    warn "Mount with safe options failed; retrying with ro only"
+    /bin/mount -o ro "$dev" "$mnt"
+  fi
+  add_mountpoint "$mnt"
+  MOUNT_TARGETS+=("$mnt")
+}
+
+is_lvm_member() {
+  local dev="$1"
+  if have_cmd blkid; then
+    local fstype=""
+    fstype="$(/sbin/blkid -o value -s TYPE "$dev" 2>/dev/null || true)"
+    [[ "$fstype" == "LVM2_member" ]]
+    return
+  fi
+  return 1
+}
+
+activate_lvm_from_device() {
+  local dev="$1"
+  if ! have_cmd lvm; then
+    warn "lvm command not found; cannot activate LVM volumes"
+    return 1
+  fi
+  local cfg="devices{ filter=[\"a|${dev}|\",\"r|.*|\"] }"
+  local lvm_args=("--config" "$cfg")
+  if have_cmd lvmdevices; then
+    if [[ -z "$LVM_DEVICES_FILE" ]]; then
+      LVM_DEVICES_FILE="${OUTPUT_DIR}/lvm_devices_${RUN_TS}.devices"
+    fi
+    /sbin/lvmdevices --devicesfile "$LVM_DEVICES_FILE" --adddev "$dev" >>"$LOG_FILE" 2>&1 || true
+    lvm_args=("--devicesfile" "$LVM_DEVICES_FILE")
+  fi
+
+  /sbin/lvm pvscan --cache "${lvm_args[@]}" >>"$LOG_FILE" 2>&1 || true
+  /sbin/lvm vgscan --mknodes "${lvm_args[@]}" >>"$LOG_FILE" 2>&1 || true
+  /sbin/lvm vgchange -ay "${lvm_args[@]}" >>"$LOG_FILE" 2>&1 || true
+
+  local lv_paths=()
+  while IFS= read -r lv; do
+    [[ -n "$lv" ]] || continue
+    lv_paths+=("$lv")
+  done < <(/sbin/lvm lvs --noheadings -o lv_path "${lvm_args[@]}" 2>>"$LOG_FILE" | /usr/bin/tr -d ' ')
+
+  if ((${#lv_paths[@]} == 0)); then
+    warn "No logical volumes found for ${dev}"
+    return 1
+  fi
+
+  ensure_dir "${MOUNT_DIR}/vols"
+  for lv in "${lv_paths[@]}"; do
+    local base=""
+    base="$(/usr/bin/basename "$lv")"
+    local lv_mnt="${MOUNT_DIR}/vols/${base}"
+    ensure_dir "$lv_mnt"
+    log "Mounting LVM logical volume ${lv} to ${lv_mnt}"
+    mount_device_ro "$lv" "$lv_mnt"
+  done
+  return 0
+}
 
 mount_raw_image() {
   local raw_path="$1"
@@ -198,11 +328,14 @@ mount_raw_image() {
   fi
 
   if [[ -n "$offset_val" ]]; then
-    log "Mounting raw image with offset ${offset_val} bytes"
-    if ! /bin/mount -o "${opts},offset=${offset_val}" "$raw_path" "$MOUNT_DIR"; then
-      warn "Mount with safe options failed; retrying with ro,loop only"
-      /bin/mount -o "ro,loop,offset=${offset_val}" "$raw_path" "$MOUNT_DIR"
+    log "Setting up loop device with offset ${offset_val} bytes"
+    LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_val}" "$raw_path")"
+    log "Loop device: ${LOOP_DEV}"
+    if is_lvm_member "$LOOP_DEV"; then
+      log "Detected LVM2 member at ${LOOP_DEV}"
+      activate_lvm_from_device "$LOOP_DEV" && return 0
     fi
+    mount_device_ro "$LOOP_DEV" "$MOUNT_DIR"
     return
   fi
 
@@ -210,14 +343,42 @@ mount_raw_image() {
     log "Setting up loop device with partitions"
     LOOP_DEV="$(/sbin/losetup -f --show -P "$raw_path")"
     log "Loop device: ${LOOP_DEV}"
-    if ! /bin/mount -o "ro,noatime,noexec,noload,norecovery" "${LOOP_DEV}p${PARTITION_NUM}" "$MOUNT_DIR"; then
-      warn "Mount with safe options failed; retrying with ro only"
-      /bin/mount -o ro "${LOOP_DEV}p${PARTITION_NUM}" "$MOUNT_DIR"
+    local part_dev="${LOOP_DEV}p${PARTITION_NUM}"
+    if is_lvm_member "$part_dev"; then
+      log "Detected LVM2 member at ${part_dev}"
+      activate_lvm_from_device "$part_dev" && return 0
     fi
+    mount_device_ro "$part_dev" "$MOUNT_DIR"
     return
   fi
 
   if $AUTO_DETECT; then
+    if $MOUNT_ALL_PARTITIONS; then
+      log "Mounting all partitions from full disk image"
+      LOOP_DEV="$(/sbin/losetup -f --show -P "$raw_path")"
+      log "Loop device: ${LOOP_DEV}"
+      if have_cmd lsblk; then
+        while IFS= read -r part_dev; do
+          [[ -n "$part_dev" ]] || continue
+          local part_name=""
+          part_name="$(/usr/bin/basename "$part_dev")"
+          local part_mnt="${MOUNT_DIR}/parts/${part_name}"
+          ensure_dir "$part_mnt"
+          if is_lvm_member "$part_dev"; then
+            log "Detected LVM2 member at ${part_dev}"
+            activate_lvm_from_device "$part_dev" || true
+            continue
+          fi
+          log "Mounting partition ${part_dev} to ${part_mnt}"
+          mount_device_ro "$part_dev" "$part_mnt"
+        done < <(/bin/lsblk -ln -o PATH,TYPE "$LOOP_DEV" 2>>"$LOG_FILE" | /usr/bin/awk '$2 == "part" {print $1}')
+      else
+        warn "lsblk not available; cannot auto-mount all partitions"
+      fi
+      if ((${#MOUNT_TARGETS[@]} > 0)); then
+        return
+      fi
+    fi
     log "Attempting partition discovery (fdisk/lsblk)"
     /sbin/fdisk -l "$raw_path" | /usr/bin/tee -a "$LOG_FILE" >/dev/null || true
     if have_cmd mmls; then
@@ -234,10 +395,12 @@ mount_raw_image() {
     if [[ -n "$PARTITION_NUM" ]]; then
       LOOP_DEV="$(/sbin/losetup -f --show -P "$raw_path")"
       log "Loop device: ${LOOP_DEV}"
-      if ! /bin/mount -o "ro,noatime,noexec,noload,norecovery" "${LOOP_DEV}p${PARTITION_NUM}" "$MOUNT_DIR"; then
-        warn "Mount with safe options failed; retrying with ro only"
-        /bin/mount -o ro "${LOOP_DEV}p${PARTITION_NUM}" "$MOUNT_DIR"
+      local part_dev="${LOOP_DEV}p${PARTITION_NUM}"
+      if is_lvm_member "$part_dev"; then
+        log "Detected LVM2 member at ${part_dev}"
+        activate_lvm_from_device "$part_dev" && return 0
       fi
+      mount_device_ro "$part_dev" "$MOUNT_DIR"
       return
     fi
     /usr/bin/read -r -p "Offset in bytes (or sectors with 's' suffix, e.g., 2048s): " OFFSET_BYTES
@@ -249,10 +412,13 @@ mount_raw_image() {
       fi
     fi
     if [[ -n "$OFFSET_BYTES" ]]; then
-      if ! /bin/mount -o "${opts},offset=${offset_val}" "$raw_path" "$MOUNT_DIR"; then
-        warn "Mount with safe options failed; retrying with ro,loop only"
-        /bin/mount -o "ro,loop,offset=${offset_val}" "$raw_path" "$MOUNT_DIR"
+      LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_val}" "$raw_path")"
+      log "Loop device: ${LOOP_DEV}"
+      if is_lvm_member "$LOOP_DEV"; then
+        log "Detected LVM2 member at ${LOOP_DEV}"
+        activate_lvm_from_device "$LOOP_DEV" && return 0
       fi
+      mount_device_ro "$LOOP_DEV" "$MOUNT_DIR"
       return
     fi
   fi
@@ -260,19 +426,25 @@ mount_raw_image() {
   fatal "Full disk image requires --partition or --offset."
 }
 
-if [[ "$IMAGE_TYPE" == "e01" ]]; then
-  have_cmd ewfmount || fatal "ewfmount is required for E01 images."
-  ensure_dir "$EWF_MOUNT_DIR"
-  log "Mounting E01 with ewfmount"
-  /usr/bin/ewfmount "$IMAGE_PATH" "$EWF_MOUNT_DIR"
-  RAW_FROM_EWF="${EWF_MOUNT_DIR}/ewf1"
-  [[ -f "$RAW_FROM_EWF" ]] || fatal "EWF raw image not found at ${RAW_FROM_EWF}"
-  mount_raw_image "$RAW_FROM_EWF"
-else
-  mount_raw_image "$IMAGE_PATH"
-fi
+if ! $LIVE_SYSTEM; then
+  if [[ "$IMAGE_TYPE" == "e01" ]]; then
+    have_cmd ewfmount || fatal "ewfmount is required for E01 images."
+    ensure_dir "$EWF_MOUNT_DIR"
+    log "Mounting E01 with ewfmount"
+    /usr/bin/ewfmount "$IMAGE_PATH" "$EWF_MOUNT_DIR"
+    RAW_FROM_EWF="${EWF_MOUNT_DIR}/ewf1"
+    [[ -f "$RAW_FROM_EWF" ]] || fatal "EWF raw image not found at ${RAW_FROM_EWF}"
+    mount_raw_image "$RAW_FROM_EWF"
+  else
+    mount_raw_image "$IMAGE_PATH"
+  fi
 
-log "Mounted evidence to ${MOUNT_DIR}"
+  if ((${#MOUNT_TARGETS[@]} > 0)); then
+    log "Mount targets: ${MOUNT_TARGETS[*]}"
+  else
+    log "Mounted evidence to ${MOUNT_DIR}"
+  fi
+fi
 
 hash_file() {
   local src="$1"
@@ -373,120 +545,135 @@ collect_live_system() {
 }
 
 collect_mounted_filesystem() {
-  log "Collecting artifacts from mounted evidence"
+  local root="$1"
+  local tag="$2"
+  local tgt_base="${OUT_TARGETS}/${tag}"
+  local tgt_sys="${tgt_base}/system"
+  local tgt_persist="${tgt_base}/persistence"
+  local tgt_logs="${tgt_base}/logs"
+  local tgt_fs="${tgt_base}/filesystem"
+  local tgt_csv="${tgt_base}/csv"
+
+  ensure_dir "$tgt_sys"
+  ensure_dir "$tgt_persist"
+  ensure_dir "$tgt_logs"
+  ensure_dir "$tgt_fs"
+  ensure_dir "$tgt_csv"
+
+  log "Collecting artifacts from ${root} into ${tgt_base}"
 
   # Users and groups
-  if [[ -f "$MOUNT_DIR/etc/passwd" ]]; then
-    /bin/cp -a "$MOUNT_DIR/etc/passwd" "${OUT_SYS}/passwd" 2>>"$LOG_FILE" || true
+  if [[ -f "$root/etc/passwd" ]]; then
+    /bin/cp -a "$root/etc/passwd" "${tgt_sys}/passwd" 2>>"$LOG_FILE" || true
   fi
-  if [[ -f "$MOUNT_DIR/etc/shadow" ]]; then
-    /bin/cp -a "$MOUNT_DIR/etc/shadow" "${OUT_SYS}/shadow" 2>>"$LOG_FILE" || true
+  if [[ -f "$root/etc/shadow" ]]; then
+    /bin/cp -a "$root/etc/shadow" "${tgt_sys}/shadow" 2>>"$LOG_FILE" || true
   fi
-  if [[ -f "$MOUNT_DIR/etc/group" ]]; then
-    /bin/cp -a "$MOUNT_DIR/etc/group" "${OUT_SYS}/group" 2>>"$LOG_FILE" || true
+  if [[ -f "$root/etc/group" ]]; then
+    /bin/cp -a "$root/etc/group" "${tgt_sys}/group" 2>>"$LOG_FILE" || true
   fi
-  if [[ -f "$MOUNT_DIR/etc/os-release" ]]; then
-    /bin/cp -a "$MOUNT_DIR/etc/os-release" "${OUT_SYS}/os-release" 2>>"$LOG_FILE" || true
+  if [[ -f "$root/etc/os-release" ]]; then
+    /bin/cp -a "$root/etc/os-release" "${tgt_sys}/os-release" 2>>"$LOG_FILE" || true
   fi
 
   # Services and timers
-  if [[ -d "$MOUNT_DIR/etc/systemd" ]]; then
-    copy_dir_preserve "$MOUNT_DIR/etc/systemd" "${OUT_SYS}/"
+  if [[ -d "$root/etc/systemd" ]]; then
+    copy_dir_preserve "$root/etc/systemd" "${tgt_sys}/"
   fi
-  if [[ -d "$MOUNT_DIR/etc/init.d" ]]; then
-    copy_dir_preserve "$MOUNT_DIR/etc/init.d" "${OUT_SYS}/"
+  if [[ -d "$root/etc/init.d" ]]; then
+    copy_dir_preserve "$root/etc/init.d" "${tgt_sys}/"
   fi
 
   # Cron
-  if [[ -d "$MOUNT_DIR/etc/cron.d" ]]; then
-    copy_dir_preserve "$MOUNT_DIR/etc/cron.d" "${OUT_SYS}/"
+  if [[ -d "$root/etc/cron.d" ]]; then
+    copy_dir_preserve "$root/etc/cron.d" "${tgt_sys}/"
   fi
-  if [[ -d "$MOUNT_DIR/var/spool/cron" ]]; then
-    copy_dir_preserve "$MOUNT_DIR/var/spool/cron" "${OUT_SYS}/"
+  if [[ -d "$root/var/spool/cron" ]]; then
+    copy_dir_preserve "$root/var/spool/cron" "${tgt_sys}/"
   fi
 
   # Logs
-  if [[ -d "$MOUNT_DIR/var/log" ]]; then
-    copy_dir_preserve "$MOUNT_DIR/var/log" "${OUT_LOGS}/"
+  if [[ -d "$root/var/log" ]]; then
+    copy_dir_preserve "$root/var/log" "${tgt_logs}/"
   fi
 
   # Key configs
-  if [[ -d "$MOUNT_DIR/etc" ]]; then
-    ensure_dir "${OUT_PERSIST}/etc"
+  if [[ -d "$root/etc" ]]; then
+    ensure_dir "${tgt_persist}/etc"
     for f in ssh/sshd_config ssh/ssh_config sudoers sudoers.d passwd shadow group hosts resolv.conf crontab; do
-      if [[ -e "$MOUNT_DIR/etc/$f" ]]; then
-        /bin/cp -a "$MOUNT_DIR/etc/$f" "${OUT_PERSIST}/etc/" 2>>"$LOG_FILE" || true
+      if [[ -e "$root/etc/$f" ]]; then
+        /bin/cp -a "$root/etc/$f" "${tgt_persist}/etc/" 2>>"$LOG_FILE" || true
       fi
     done
   fi
 
   # Shell history from users
-  if [[ -d "$MOUNT_DIR/home" ]]; then
-    /usr/bin/find "$MOUNT_DIR/home" -maxdepth 2 -type f \( -name ".bash_history" -o -name ".zsh_history" -o -name ".history" -o -name ".bashrc" -o -name ".profile" \) -print >"${OUT_FS}/user_history_files.txt" 2>>"$LOG_FILE" || true
-    if [[ -s "${OUT_FS}/user_history_files.txt" ]]; then
-      ensure_dir "${OUT_FS}/user_history"
+  if [[ -d "$root/home" ]]; then
+    /usr/bin/find "$root/home" -maxdepth 2 -type f \( -name ".bash_history" -o -name ".zsh_history" -o -name ".history" -o -name ".bashrc" -o -name ".profile" \) -print >"${tgt_fs}/user_history_files.txt" 2>>"$LOG_FILE" || true
+    if [[ -s "${tgt_fs}/user_history_files.txt" ]]; then
+      ensure_dir "${tgt_fs}/user_history"
       while IFS= read -r f; do
         [[ -n "$f" ]] || continue
-        /bin/cp -a "$f" "${OUT_FS}/user_history/" 2>>"$LOG_FILE" || true
-      done < "${OUT_FS}/user_history_files.txt"
+        /bin/cp -a "$f" "${tgt_fs}/user_history/" 2>>"$LOG_FILE" || true
+      done < "${tgt_fs}/user_history_files.txt"
     fi
   fi
 
   # Login records
   for lf in wtmp btmp lastlog; do
-    if [[ -f "$MOUNT_DIR/var/log/$lf" ]]; then
-      /bin/cp -a "$MOUNT_DIR/var/log/$lf" "${OUT_LOGS}/" 2>>"$LOG_FILE" || true
+    if [[ -f "$root/var/log/$lf" ]]; then
+      /bin/cp -a "$root/var/log/$lf" "${tgt_logs}/" 2>>"$LOG_FILE" || true
     fi
   done
 
   # Bodyfile generation (best effort)
   if have_cmd statx; then
-    /usr/bin/find "$MOUNT_DIR" -xdev -type f -print0 | /usr/bin/xargs -0 /usr/bin/statx --format '%n|%s|%b|%X|%Y|%Z' >"${OUT_FS}/bodyfile_statx.txt" 2>>"$LOG_FILE" || true
+    /usr/bin/find "$root" -xdev -type f -print0 | /usr/bin/xargs -0 /usr/bin/statx --format '%n|%s|%b|%X|%Y|%Z' >"${tgt_fs}/bodyfile_statx.txt" 2>>"$LOG_FILE" || true
   elif have_cmd fls; then
-    /usr/bin/fls -r -m / "$MOUNT_DIR" >"${OUT_FS}/bodyfile.txt" 2>>"$LOG_FILE" || true
+    /usr/bin/fls -r -m / "$root" >"${tgt_fs}/bodyfile.txt" 2>>"$LOG_FILE" || true
   else
-    /usr/bin/find "$MOUNT_DIR" -xdev -type f -printf '%p|%s|%A@|%T@|%C@\n' >"${OUT_FS}/bodyfile_fallback.txt" 2>>"$LOG_FILE" || true
+    /usr/bin/find "$root" -xdev -type f -printf '%p|%s|%A@|%T@|%C@\n' >"${tgt_fs}/bodyfile_fallback.txt" 2>>"$LOG_FILE" || true
   fi
 
   # Users and last password change times
-  if [[ -f "$MOUNT_DIR/etc/shadow" ]]; then
-    /usr/bin/printf 'user,last_change_days,last_change_date_utc\n' >"${OUT_CSV}/users_last_change.csv"
+  if [[ -f "$root/etc/shadow" ]]; then
+    /usr/bin/printf 'user,last_change_days,last_change_date_utc\n' >"${tgt_csv}/users_last_change.csv"
     while IFS=: read -r user _ last_change _; do
       [[ -n "$user" ]] || continue
       if [[ -n "$last_change" && "$last_change" != "0" ]]; then
-        /usr/bin/printf '%s,%s,%s\n' "$user" "$last_change" "$(/usr/bin/date -u -d \"@$(($last_change*86400))\" +%Y-%m-%d 2>/dev/null || /usr/bin/printf 'unknown')" >>"${OUT_CSV}/users_last_change.csv"
+        /usr/bin/printf '%s,%s,%s\n' "$user" "$last_change" "$(/usr/bin/date -u -d \"@$(($last_change*86400))\" +%Y-%m-%d 2>/dev/null || /usr/bin/printf 'unknown')" >>"${tgt_csv}/users_last_change.csv"
       else
-        /usr/bin/printf '%s,%s,%s\n' "$user" "$last_change" "unknown" >>"${OUT_CSV}/users_last_change.csv"
+        /usr/bin/printf '%s,%s,%s\n' "$user" "$last_change" "unknown" >>"${tgt_csv}/users_last_change.csv"
       fi
-    done < "$MOUNT_DIR/etc/shadow"
+    done < "$root/etc/shadow"
   fi
 
   # Service files and modification times
-  /usr/bin/printf 'path,mtime_utc\n' >"${OUT_CSV}/service_files.csv"
-  for svc_root in "$MOUNT_DIR/etc/systemd/system" "$MOUNT_DIR/lib/systemd/system" "$MOUNT_DIR/usr/lib/systemd/system"; do
+  /usr/bin/printf 'path,mtime_utc\n' >"${tgt_csv}/service_files.csv"
+  for svc_root in "$root/etc/systemd/system" "$root/lib/systemd/system" "$root/usr/lib/systemd/system"; do
     if [[ -d "$svc_root" ]]; then
       /usr/bin/find "$svc_root" -type f -name '*.service' -printf '%p\n' 2>>"$LOG_FILE" | while IFS= read -r f; do
-        /usr/bin/printf '%s,%s\n' "$f" "$(/usr/bin/stat -c %y "$f" 2>/dev/null || /usr/bin/printf 'unknown')" >>"${OUT_CSV}/service_files.csv"
+        /usr/bin/printf '%s,%s\n' "$f" "$(/usr/bin/stat -c %y "$f" 2>/dev/null || /usr/bin/printf 'unknown')" >>"${tgt_csv}/service_files.csv"
       done
     fi
   done
 
   # Login events CSV (best effort)
-  if have_cmd last && [[ -f "$MOUNT_DIR/var/log/wtmp" ]]; then
-    /usr/bin/printf 'raw\n' >"${OUT_CSV}/login_events.csv"
-    /usr/bin/last -f "$MOUNT_DIR/var/log/wtmp" -w --time-format iso 2>>"$LOG_FILE" | /usr/bin/sed 's/\"/\"\"/g' | /usr/bin/awk '{print \"\\\"\"$0\"\\\"\"}' >>"${OUT_CSV}/login_events.csv" || true
+  if have_cmd last && [[ -f "$root/var/log/wtmp" ]]; then
+    /usr/bin/printf 'raw\n' >"${tgt_csv}/login_events.csv"
+    /usr/bin/last -f "$root/var/log/wtmp" -w --time-format iso 2>>"$LOG_FILE" | /usr/bin/sed 's/\"/\"\"/g' | /usr/bin/awk '{print \"\\\"\"$0\"\\\"\"}' >>"${tgt_csv}/login_events.csv" || true
   fi
 
   # Cron jobs CSV (best effort)
-  /usr/bin/printf 'source,raw\n' >"${OUT_CSV}/cron_jobs.csv"
-  for cron_file in "$MOUNT_DIR/etc/crontab" "$MOUNT_DIR/etc/cron.d"/* "$MOUNT_DIR/var/spool/cron"/*; do
+  /usr/bin/printf 'source,raw\n' >"${tgt_csv}/cron_jobs.csv"
+  for cron_file in "$root/etc/crontab" "$root/etc/cron.d"/* "$root/var/spool/cron"/*; do
     [[ -f "$cron_file" ]] || continue
-    /usr/bin/awk -v src="$cron_file" 'NF && $1 !~ /^#/ { gsub(/\"/, \"\"\"\", $0); printf(\"\\\"%s\\\",\\\"%s\\\"\\n\", src, $0); }' "$cron_file" >>"${OUT_CSV}/cron_jobs.csv" || true
+    /usr/bin/awk -v src="$cron_file" 'NF && $1 !~ /^#/ { gsub(/\"/, \"\"\"\", $0); printf(\"\\\"%s\\\",\\\"%s\\\"\\n\", src, $0); }' "$cron_file" >>"${tgt_csv}/cron_jobs.csv" || true
   done
 
   # Shell history CSV (best effort)
-  /usr/bin/printf 'file,timestamp_utc,command\n' >"${OUT_CSV}/shell_history.csv"
-  if [[ -s "${OUT_FS}/user_history_files.txt" ]]; then
+  /usr/bin/printf 'file,timestamp_utc,command\n' >"${tgt_csv}/shell_history.csv"
+  if [[ -s "${tgt_fs}/user_history_files.txt" ]]; then
     while IFS= read -r hist_file; do
       [[ -n "$hist_file" ]] || continue
       /usr/bin/awk -v src="$hist_file" '
@@ -502,36 +689,89 @@ collect_mounted_filesystem() {
           printf(\"\\\"%s\\\",\\\"%s\\\",\\\"%s\\\"\\n\", src, cmd_ts, $0);
           ts=\"\";
         }
-      ' "$hist_file" >>"${OUT_CSV}/shell_history.csv" || true
-    done < "${OUT_FS}/user_history_files.txt"
+      ' "$hist_file" >>"${tgt_csv}/shell_history.csv" || true
+    done < "${tgt_fs}/user_history_files.txt"
   fi
+}
+
+collect_all_targets() {
+  local targets=()
+  if $LIVE_SYSTEM; then
+    targets=("/")
+  elif ((${#MOUNT_TARGETS[@]} > 0)); then
+    targets=("${MOUNT_TARGETS[@]}")
+  else
+    targets=("$MOUNT_DIR")
+  fi
+
+  local idx=0
+  for t in "${targets[@]}"; do
+    local tag=""
+    if [[ "$t" == "/" ]]; then
+      tag="root"
+    else
+      tag="$(/usr/bin/basename "$t")"
+    fi
+    if [[ -z "$tag" ]]; then
+      tag="target${idx}"
+    fi
+    collect_mounted_filesystem "$t" "$tag"
+    idx=$((idx+1))
+  done
 }
 
 build_report() {
   log "Building report"
+  local targets=()
+  while IFS= read -r d; do
+    targets+=("$(/usr/bin/basename "$d")")
+  done < <(/usr/bin/find "$OUT_TARGETS" -mindepth 1 -maxdepth 1 -type d 2>/dev/null || true)
+
   {
     /usr/bin/printf 'Triage Report\n'
     /usr/bin/printf 'Run timestamp (UTC): %s\n' "$(/usr/bin/date -u +%Y-%m-%dT%H:%M:%SZ)"
-    /usr/bin/printf 'Image: %s\n' "$IMAGE_PATH"
+    /usr/bin/printf 'Live system: %s\n' "$LIVE_SYSTEM"
+    /usr/bin/printf 'Image: %s\n' "${IMAGE_PATH:-<live>}"
     /usr/bin/printf 'Mount: %s\n' "$MOUNT_DIR"
     /usr/bin/printf 'Output: %s\n\n' "$OUTPUT_DIR"
 
-    if [[ -f "${OUT_SYS}/passwd" ]]; then
-      /usr/bin/printf 'Users: %s\n' "$(/usr/bin/wc -l < "${OUT_SYS}/passwd" | /usr/bin/tr -d ' ')"
-    fi
-    if [[ -f "${OUT_LOGS}/wtmp" ]]; then
-      /usr/bin/printf 'wtmp present: yes\n'
-    fi
-    if [[ -f "${OUT_LOGS}/btmp" ]]; then
-      /usr/bin/printf 'btmp present: yes\n'
-    fi
-    if [[ -f "${OUT_LOGS}/lastlog" ]]; then
-      /usr/bin/printf 'lastlog present: yes\n'
-    fi
-    if [[ -d "${OUT_LOGS}/var" || -d "${OUT_LOGS}/log" ]]; then
-      /usr/bin/printf 'logs copied: yes\n'
+    if ((${#targets[@]} > 0)); then
+      /usr/bin/printf 'Targets:\n'
+      for t in "${targets[@]}"; do
+        /usr/bin/printf '  - %s\n' "$t"
+      done
     fi
   } >"$OUT_REPORT"
+
+  if $REPORT_JSON; then
+    local json_out="${OUTPUT_DIR}/report.json"
+    {
+      /usr/bin/printf '{\n'
+      /usr/bin/printf '  "run_timestamp_utc": "%s",\n' "$(/usr/bin/date -u +%Y-%m-%dT%H:%M:%SZ)"
+      /usr/bin/printf '  "live_system": %s,\n' "$([[ "$LIVE_SYSTEM" == "true" ]] && /usr/bin/printf 'true' || /usr/bin/printf 'false')"
+      /usr/bin/printf '  "image": "%s",\n' "$(json_escape "${IMAGE_PATH:-<live>}")"
+      /usr/bin/printf '  "mount": "%s",\n' "$(json_escape "$MOUNT_DIR")"
+      /usr/bin/printf '  "output": "%s",\n' "$(json_escape "$OUTPUT_DIR")"
+      /usr/bin/printf '  "targets": ['
+      if ((${#targets[@]} > 0)); then
+        /usr/bin/printf '\n'
+        local i=0
+        for t in "${targets[@]}"; do
+          /usr/bin/printf '    "%s"' "$(json_escape "$t")"
+          i=$((i+1))
+          if ((i < ${#targets[@]})); then
+            /usr/bin/printf ',\n'
+          else
+            /usr/bin/printf '\n'
+          fi
+        done
+        /usr/bin/printf '  ]\n'
+      else
+        /usr/bin/printf ']\n'
+      fi
+      /usr/bin/printf '}\n'
+    } >"$json_out"
+  fi
 }
 
 hash_collected() {
@@ -544,12 +784,12 @@ hash_collected() {
   fi
 }
 
-collect_mounted_filesystem
-
 if $INCLUDE_LIVE; then
   collect_live_volatile
   collect_live_system
 fi
+
+collect_all_targets
 
 build_report
 hash_collected
