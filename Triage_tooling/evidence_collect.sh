@@ -37,7 +37,7 @@ Options:
   --type <auto|e01|raw>    Image type (default: auto)
   --mount-dir <dir>        Mount point for evidence (default: /mnt/case1)
   --ewf-mount <dir>        E01 mount point (default: /mnt/ewf)
-  --offset <bytes|sectors> Byte offset (or sectors with 's' suffix) for partition mount
+  --offset <n[s|b]>        Offset for partition mount (default: sectors; use 'b' for bytes)
   --partition <num>        Partition number to mount (uses losetup -P)
   --out-dir <dir>          Output directory for triage artifacts
   --live-system            Run on live system (no image); enables live collection
@@ -319,17 +319,23 @@ mount_raw_image() {
   local raw_path="$1"
   local opts="${MOUNT_OPTS}"
   local offset_val="${OFFSET_BYTES}"
+  local offset_bytes=""
 
-  if [[ -n "$offset_val" && "$offset_val" =~ s$ ]]; then
-    offset_val="${offset_val%s}"
-    if [[ "$offset_val" =~ ^[0-9]+$ ]]; then
-      offset_val="$((offset_val * 512))"
+  if [[ -n "$offset_val" ]]; then
+    if [[ "$offset_val" =~ b$ ]]; then
+      offset_val="${offset_val%b}"
+      offset_bytes="$offset_val"
+    else
+      if [[ "$offset_val" =~ s$ ]]; then
+        offset_val="${offset_val%s}"
+      fi
+      offset_bytes="$((offset_val * 512))"
     fi
   fi
 
-  if [[ -n "$offset_val" ]]; then
-    log "Setting up loop device with offset ${offset_val} bytes"
-    LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_val}" "$raw_path")"
+  if [[ -n "$offset_bytes" ]]; then
+    log "Setting up loop device with offset ${offset_bytes} bytes"
+    LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_bytes}" "$raw_path")"
     log "Loop device: ${LOOP_DEV}"
     if is_lvm_member "$LOOP_DEV"; then
       log "Detected LVM2 member at ${LOOP_DEV}"
@@ -403,16 +409,22 @@ mount_raw_image() {
       mount_device_ro "$part_dev" "$MOUNT_DIR"
       return
     fi
-    /usr/bin/read -r -p "Offset in bytes (or sectors with 's' suffix, e.g., 2048s): " OFFSET_BYTES
+    /usr/bin/read -r -p "Offset (sectors by default; use 'b' for bytes, e.g., 2048s or 1048576b): " OFFSET_BYTES
     offset_val="${OFFSET_BYTES}"
-    if [[ -n "$offset_val" && "$offset_val" =~ s$ ]]; then
-      offset_val="${offset_val%s}"
-      if [[ "$offset_val" =~ ^[0-9]+$ ]]; then
-        offset_val="$((offset_val * 512))"
+    offset_bytes=""
+    if [[ -n "$offset_val" ]]; then
+      if [[ "$offset_val" =~ b$ ]]; then
+        offset_val="${offset_val%b}"
+        offset_bytes="$offset_val"
+      else
+        if [[ "$offset_val" =~ s$ ]]; then
+          offset_val="${offset_val%s}"
+        fi
+        offset_bytes="$((offset_val * 512))"
       fi
     fi
     if [[ -n "$OFFSET_BYTES" ]]; then
-      LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_val}" "$raw_path")"
+      LOOP_DEV="$(/sbin/losetup -f --show --offset "${offset_bytes}" "$raw_path")"
       log "Loop device: ${LOOP_DEV}"
       if is_lvm_member "$LOOP_DEV"; then
         log "Detected LVM2 member at ${LOOP_DEV}"
