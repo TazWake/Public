@@ -71,6 +71,39 @@ declare -a MINER_PROCESSES=(
     "phoenixminer"
 )
 
+# Known legitimate exe/cmdline mismatches (associative array: exe_basename -> cmdline_pattern)
+# These are NOT argv spoofing - they are normal system behavior
+declare -A KNOWN_ARGV_EXCEPTIONS=(
+    # Shell symlink aliasing - /bin/sh often symlinks to dash, ash, or bash
+    ["dash"]="sh"
+    ["ash"]="sh"
+    ["bash"]="sh"
+    # Init system - PID 1 often shows as 'init' for compatibility
+    ["systemd"]="init (sd-pam)"
+    # GNOME JavaScript - binary is gjs-console but runs as gjs
+    ["gjs-console"]="gjs"
+    # D-Bus convention - @ prefix is normal
+    ["dbus-daemon"]="@dbus-daemon dbus-daemon:"
+)
+
+# Process names that legitimately append ':' or status info to cmdline
+declare -a DAEMON_STATUS_PATTERNS=(
+    "avahi-daemon"
+    "sshd"
+    "winbindd"
+    "smbd"
+    "nmbd"
+    "cupsd"
+    "rsyslogd"
+    "cron"
+    "atd"
+    "postfix"
+    "dovecot"
+    "master"
+    "pickup"
+    "qmgr"
+)
+
 declare -a MINING_POOL_DOMAINS=(
     "zergpool.com"
     "2miners.com"
@@ -153,7 +186,7 @@ hashfile() {
     local file="$1"
     if [[ -f "$file" ]]; then
         local hash
-        hash=$(/usr/bin/sha1sum "$file" 2>/dev/null | /usr/bin/awk '{print $1}')
+        hash=$(sha1sum "$file" 2>/dev/null | awk '{print $1}')
         echo "[#] SHA1: $hash  $file" >> "$LOGFILE"
     fi
 }
@@ -208,18 +241,18 @@ setup_output_directory() {
     FINDINGS_DIR="${OUTPUT_DIR}/findings"
 
     # Create directories
-    if ! /bin/mkdir -p "$OUTPUT_DIR" "$FINDINGS_DIR" 2>/dev/null; then
+    if ! mkdir -p "$OUTPUT_DIR" "$FINDINGS_DIR" 2>/dev/null; then
         echo -e "${RED}[!]${NC} Unable to create output directory: $OUTPUT_DIR"
         exit 2
     fi
 
     # Test write access
     local tempfile="${OUTPUT_DIR}/.write_test_$$"
-    if ! /usr/bin/touch "$tempfile" 2>/dev/null; then
+    if ! touch "$tempfile" 2>/dev/null; then
         echo -e "${RED}[!]${NC} Unable to write to output directory: $OUTPUT_DIR"
         exit 2
     fi
-    /bin/rm -f "$tempfile"
+    rm -f "$tempfile"
 
     # Initialize log file
     cat > "$LOGFILE" << EOF
@@ -258,13 +291,13 @@ check_memfd_execution() {
         pid=$(basename "$pid_dir")
 
         local target
-        target=$(/usr/bin/readlink "$exe" 2>/dev/null) || continue
+        target=$(readlink "$exe" 2>/dev/null) || continue
 
         if [[ "$target" == *"(deleted)"* ]] || [[ "$target" == *"memfd:"* ]]; then
             local cmdline
-            cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
             local comm
-            comm=$(/bin/cat "${pid_dir}/comm" 2>/dev/null) || comm="<unavailable>"
+            comm=$(cat "${pid_dir}/comm" 2>/dev/null) || comm="<unavailable>"
 
             log_finding "PID $pid: exe='$target' cmdline='$cmdline'"
             echo "PID: $pid" >> "$findings_file"
@@ -302,12 +335,12 @@ check_fd_execution() {
         pid=$(basename "$pid_dir")
 
         local target
-        target=$(/usr/bin/readlink "$exe" 2>/dev/null) || continue
+        target=$(readlink "$exe" 2>/dev/null) || continue
 
         # Check if executable path points to /proc/*/fd/*
         if [[ "$target" =~ /proc/[0-9]+/fd/[0-9]+ ]]; then
             local cmdline
-            cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
 
             log_finding "PID $pid executing from fd: $target"
             echo "PID: $pid" >> "$findings_file"
@@ -335,6 +368,7 @@ check_argv_spoofing() {
 
     echo "# Processes with potential argv spoofing" > "$findings_file"
     echo "# Generated: $(date)" >> "$findings_file"
+    echo "# Note: Common system patterns (dash/sh, daemons with ':' status) are filtered" >> "$findings_file"
     echo "" >> "$findings_file"
 
     for exe in /proc/[0-9]*/exe; do
@@ -344,51 +378,131 @@ check_argv_spoofing() {
         pid=$(basename "$pid_dir")
 
         local exe_target
-        exe_target=$(/usr/bin/readlink "$exe" 2>/dev/null) || continue
+        exe_target=$(readlink "$exe" 2>/dev/null) || continue
 
         # Skip if exe is deleted/memfd (handled elsewhere)
         [[ "$exe_target" == *"(deleted)"* ]] && continue
         [[ "$exe_target" == *"memfd:"* ]] && continue
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || continue
         [[ -z "$cmdline" ]] && continue
 
         local exe_basename
-        exe_basename=$(/usr/bin/basename "$exe_target" 2>/dev/null)
+        exe_basename=$(basename "$exe_target" 2>/dev/null)
 
         # Get the first argument from cmdline
         local cmdline_arg0
-        cmdline_arg0=$(echo "$cmdline" | /usr/bin/awk '{print $1}')
+        cmdline_arg0=$(echo "$cmdline" | awk '{print $1}')
         local cmdline_basename
-        cmdline_basename=$(/usr/bin/basename "$cmdline_arg0" 2>/dev/null)
+        cmdline_basename=$(basename "$cmdline_arg0" 2>/dev/null)
 
         # Skip common legitimate patterns
-        # Interpreters often show script name
+        # Interpreters often show script name instead of interpreter
         [[ "$exe_basename" == "python"* ]] && continue
         [[ "$exe_basename" == "perl"* ]] && continue
         [[ "$exe_basename" == "ruby"* ]] && continue
         [[ "$exe_basename" == "node"* ]] && continue
         [[ "$exe_basename" == "java"* ]] && continue
-        # Busybox symlinks
+        [[ "$exe_basename" == "php"* ]] && continue
+        [[ "$exe_basename" == "lua"* ]] && continue
+        [[ "$exe_basename" == "wish"* ]] && continue
+        [[ "$exe_basename" == "tclsh"* ]] && continue
+        # Busybox symlinks - busybox can masquerade as many utilities
         [[ "$exe_basename" == "busybox"* ]] && continue
 
-        # Check for mismatch
-        if [[ "$exe_basename" != "$cmdline_basename" ]]; then
-            # Additional filter: common shell patterns
-            if [[ "$exe_basename" == "bash" ]] && [[ "$cmdline_arg0" == "-bash" ]]; then
-                continue  # Login shell
-            fi
-            if [[ "$exe_basename" == "zsh" ]] && [[ "$cmdline_arg0" == "-zsh" ]]; then
-                continue  # Login shell
+        # Normalize names for comparison
+        # Strip trailing colon and anything after (daemon status indicators)
+        local exe_normalized="${exe_basename%%:*}"
+        local cmdline_normalized="${cmdline_basename%%:*}"
+
+        # Strip leading @ (D-Bus convention)
+        cmdline_normalized="${cmdline_normalized#@}"
+
+        # Strip leading - (login shell convention)
+        cmdline_normalized="${cmdline_normalized#-}"
+        exe_normalized="${exe_normalized#-}"
+
+        # Strip parentheses (systemd internal processes like (sd-pam))
+        cmdline_normalized="${cmdline_normalized#(}"
+        cmdline_normalized="${cmdline_normalized%)}"
+
+        # Check for mismatch after normalization
+        if [[ "$exe_normalized" != "$cmdline_normalized" ]]; then
+            local is_legitimate=0
+
+            # Check known exception patterns
+            # 1. Login shell patterns (-bash, -zsh, -sh, etc.)
+            if [[ "$cmdline_arg0" == "-"* ]]; then
+                local shell_name="${cmdline_arg0#-}"
+                if [[ "$exe_basename" == "$shell_name" ]] || \
+                   [[ "$exe_basename" == "bash" && "$shell_name" == "bash" ]] || \
+                   [[ "$exe_basename" == "zsh" && "$shell_name" == "zsh" ]] || \
+                   [[ "$exe_basename" == "dash" && "$shell_name" == "sh" ]] || \
+                   [[ "$exe_basename" == "ash" && "$shell_name" == "sh" ]] || \
+                   [[ "$exe_basename" == "bash" && "$shell_name" == "sh" ]]; then
+                    is_legitimate=1
+                fi
             fi
 
-            log_finding "PID $pid: exe='$exe_basename' vs cmdline='$cmdline_basename'"
-            echo "PID: $pid" >> "$findings_file"
-            echo "  Actual Executable: $exe_target" >> "$findings_file"
-            echo "  Claimed Command: $cmdline" >> "$findings_file"
-            echo "" >> "$findings_file"
-            found=1
+            # 2. Shell aliasing: /bin/sh -> dash, ash, or bash
+            if [[ "$exe_basename" == "dash" || "$exe_basename" == "ash" || "$exe_basename" == "bash" ]] && \
+               [[ "$cmdline_normalized" == "sh" ]]; then
+                is_legitimate=1
+            fi
+
+            # 3. Init system naming (PID 1 often shows as 'init')
+            if [[ "$exe_basename" == "systemd" ]] && \
+               [[ "$cmdline_normalized" == "init" || "$cmdline_normalized" == "sd-pam" ]]; then
+                is_legitimate=1
+            fi
+
+            # 4. GNOME JavaScript: gjs-console shows as gjs
+            if [[ "$exe_basename" == "gjs-console" && "$cmdline_normalized" == "gjs" ]]; then
+                is_legitimate=1
+            fi
+
+            # 5. D-Bus naming convention (@ prefix)
+            if [[ "$exe_basename" == "dbus-daemon" && "$cmdline_basename" == "@dbus-daemon" ]]; then
+                is_legitimate=1
+            fi
+
+            # 6. Daemon status patterns - daemons that modify argv to show status
+            for daemon in "${DAEMON_STATUS_PATTERNS[@]}"; do
+                if [[ "$exe_basename" == "$daemon" ]] && \
+                   [[ "$cmdline_basename" == "$daemon:"* || "$cmdline_basename" == "$daemon" ]]; then
+                    is_legitimate=1
+                    break
+                fi
+            done
+
+            # 7. One name contains the other (e.g., gjs-console contains gjs)
+            # This catches legitimate tool naming conventions
+            if [[ "$exe_normalized" == *"$cmdline_normalized"* ]] || \
+               [[ "$cmdline_normalized" == *"$exe_normalized"* ]]; then
+                # Only allow if one is a prefix/suffix of the other with separator
+                if [[ "$exe_normalized" == "$cmdline_normalized-"* ]] || \
+                   [[ "$exe_normalized" == *"-$cmdline_normalized" ]] || \
+                   [[ "$cmdline_normalized" == "$exe_normalized-"* ]] || \
+                   [[ "$cmdline_normalized" == *"-$exe_normalized" ]]; then
+                    is_legitimate=1
+                fi
+            fi
+
+            # 8. Screen/tmux sessions may show different names
+            if [[ "$exe_basename" == "screen" || "$exe_basename" == "tmux" ]]; then
+                is_legitimate=1
+            fi
+
+            # If still not legitimate, it's a potential finding
+            if [[ $is_legitimate -eq 0 ]]; then
+                log_finding "PID $pid: exe='$exe_basename' vs cmdline='$cmdline_basename'"
+                echo "PID: $pid" >> "$findings_file"
+                echo "  Actual Executable: $exe_target" >> "$findings_file"
+                echo "  Claimed Command: $cmdline" >> "$findings_file"
+                echo "" >> "$findings_file"
+                found=1
+            fi
         fi
     done
 
@@ -418,11 +532,11 @@ check_path_manipulation() {
         pid=$(basename "$pid_dir")
 
         # Check if PATH starts with .: (current directory first)
-        if /usr/bin/tr '\0' '\n' < "$environ" 2>/dev/null | /bin/grep -q '^PATH=\.:'; then
+        if tr '\0' '\n' < "$environ" 2>/dev/null | grep -q '^PATH=\.:'; then
             local path_value
-            path_value=$(/usr/bin/tr '\0' '\n' < "$environ" 2>/dev/null | /bin/grep '^PATH=')
+            path_value=$(tr '\0' '\n' < "$environ" 2>/dev/null | grep '^PATH=')
             local cmdline
-            cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
 
             log_finding "PID $pid has PATH starting with .: (hijack risk)"
             echo "PID: $pid" >> "$findings_file"
@@ -459,7 +573,7 @@ check_shells_without_exe() {
         pid=$(basename "$pid_dir")
 
         local target
-        target=$(/usr/bin/readlink "$exe" 2>/dev/null) || continue
+        target=$(readlink "$exe" 2>/dev/null) || continue
 
         # Check if it's a shell
         local is_shell=0
@@ -472,7 +586,7 @@ check_shells_without_exe() {
         if [[ $is_shell -eq 1 ]]; then
             if [[ "$target" == *"(deleted)"* ]] || [[ "$target" == *"memfd:"* ]]; then
                 local cmdline
-                cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+                cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
 
                 log_finding "PID $pid: shell without valid executable: $target"
                 echo "PID: $pid" >> "$findings_file"
@@ -510,7 +624,7 @@ check_gdb_memory_dumping() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
 
         # Check for gdb with batch mode attaching to processes
         if [[ "$cmdline" == *"gdb"*"--batch"*"--pid"* ]] || \
@@ -550,9 +664,9 @@ check_gsocket_tunnels() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
         local comm
-        comm=$(/bin/cat "${pid_dir}/comm" 2>/dev/null) || comm=""
+        comm=$(cat "${pid_dir}/comm" 2>/dev/null) || comm=""
 
         # Check for GSocket tools
         for pattern in "gs-dbus" "gs-netcat" "gs-sftp" "gs-mount" "gsocket"; do
@@ -594,7 +708,7 @@ check_suspicious_rsync() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
 
         # Check for rsync with GSocket as transport
         if [[ "$cmdline" == *"rsync"*"-e"*"gs-"* ]] || \
@@ -630,9 +744,9 @@ check_known_iocs() {
     # Get network connections
     local netstat_output=""
     if command -v ss &>/dev/null; then
-        netstat_output=$(/usr/sbin/ss -tunap 2>/dev/null) || netstat_output=""
+        netstat_output=$(ss -tunap 2>/dev/null) || netstat_output=""
     elif command -v netstat &>/dev/null; then
-        netstat_output=$(/usr/bin/netstat -tunap 2>/dev/null) || netstat_output=""
+        netstat_output=$(netstat -tunap 2>/dev/null) || netstat_output=""
     fi
 
     if [[ -z "$netstat_output" ]]; then
@@ -644,9 +758,9 @@ check_known_iocs() {
 
     # Check for known C2 IPs
     for ip in "${KNOWN_C2_IPS[@]}"; do
-        if echo "$netstat_output" | /bin/grep -q "$ip"; then
+        if echo "$netstat_output" | grep -q "$ip"; then
             local connections
-            connections=$(echo "$netstat_output" | /bin/grep "$ip")
+            connections=$(echo "$netstat_output" | grep "$ip")
             log_finding "Connection to known C2 IP: $ip"
             echo "C2 IP: $ip" >> "$findings_file"
             echo "$connections" >> "$findings_file"
@@ -657,9 +771,9 @@ check_known_iocs() {
 
     # Check for mining pool connections
     for domain in "${MINING_POOL_DOMAINS[@]}"; do
-        if echo "$netstat_output" | /bin/grep -qi "$domain"; then
+        if echo "$netstat_output" | grep -qi "$domain"; then
             local connections
-            connections=$(echo "$netstat_output" | /bin/grep -i "$domain")
+            connections=$(echo "$netstat_output" | grep -i "$domain")
             log_finding "Connection to mining pool: $domain"
             echo "Mining Pool: $domain" >> "$findings_file"
             echo "$connections" >> "$findings_file"
@@ -692,7 +806,7 @@ check_kernel_taint() {
     echo "" >> "$findings_file"
 
     local taint_value
-    taint_value=$(/bin/cat /proc/sys/kernel/tainted 2>/dev/null) || taint_value="<unavailable>"
+    taint_value=$(cat /proc/sys/kernel/tainted 2>/dev/null) || taint_value="<unavailable>"
 
     echo "Taint value: $taint_value" >> "$findings_file"
     echo "" >> "$findings_file"
@@ -746,7 +860,7 @@ check_suspicious_lkms() {
 
     # Capture full module list
     echo "=== Loaded Kernel Modules ===" >> "$findings_file"
-    /bin/cat /proc/modules >> "$findings_file" 2>/dev/null
+    cat /proc/modules >> "$findings_file" 2>/dev/null
     echo "" >> "$findings_file"
 
     # Check for out-of-tree and unsigned modules
@@ -754,14 +868,14 @@ check_suspicious_lkms() {
 
     while read -r line; do
         local module_name
-        module_name=$(echo "$line" | /usr/bin/awk '{print $1}')
+        module_name=$(echo "$line" | awk '{print $1}')
 
         # Get module info
         local modinfo_output
         modinfo_output=$(/usr/sbin/modinfo "$module_name" 2>/dev/null) || continue
 
         # Check for missing signature
-        if ! echo "$modinfo_output" | /bin/grep -q "^sig_id:"; then
+        if ! echo "$modinfo_output" | grep -q "^sig_id:"; then
             log_finding "Unsigned kernel module: $module_name"
             echo "UNSIGNED MODULE: $module_name" >> "$findings_file"
             echo "$modinfo_output" >> "$findings_file"
@@ -771,7 +885,7 @@ check_suspicious_lkms() {
 
         # Check for intree status
         local intree
-        intree=$(echo "$modinfo_output" | /bin/grep "^intree:" | /usr/bin/awk '{print $2}')
+        intree=$(echo "$modinfo_output" | grep "^intree:" | awk '{print $2}')
         if [[ "$intree" == "N" ]]; then
             log_finding "Out-of-tree kernel module: $module_name"
             echo "OUT-OF-TREE MODULE: $module_name" >> "$findings_file"
@@ -808,14 +922,14 @@ check_cryptominer_artifacts() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
         local cmdline_lower
-        cmdline_lower=$(echo "$cmdline" | /usr/bin/tr '[:upper:]' '[:lower:]')
+        cmdline_lower=$(echo "$cmdline" | tr '[:upper:]' '[:lower:]')
 
         local comm
-        comm=$(/bin/cat "${pid_dir}/comm" 2>/dev/null) || comm=""
+        comm=$(cat "${pid_dir}/comm" 2>/dev/null) || comm=""
         local comm_lower
-        comm_lower=$(echo "$comm" | /usr/bin/tr '[:upper:]' '[:lower:]')
+        comm_lower=$(echo "$comm" | tr '[:upper:]' '[:lower:]')
 
         # Check for known miner processes
         for miner in "${MINER_PROCESSES[@]}"; do
@@ -882,9 +996,9 @@ check_lateral_movement() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
         local comm
-        comm=$(/bin/cat "${pid_dir}/comm" 2>/dev/null) || comm=""
+        comm=$(cat "${pid_dir}/comm" 2>/dev/null) || comm=""
 
         # Check for lateral movement tools
         for tool in "spirit" "rustscan" "-bash"; do
@@ -892,7 +1006,7 @@ check_lateral_movement() {
                 # Skip legitimate -bash (login shells)
                 if [[ "$tool" == "-bash" ]]; then
                     local exe
-                    exe=$(/usr/bin/readlink "${pid_dir}/exe" 2>/dev/null) || continue
+                    exe=$(readlink "${pid_dir}/exe" 2>/dev/null) || continue
                     # If it's actually bash, skip
                     [[ "$exe" == *"/bash"* ]] && [[ "$exe" != *"(deleted)"* ]] && continue
                 fi
@@ -935,7 +1049,7 @@ check_openssl_patterns() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
 
         # Check for suspicious OpenSSL patterns
         if [[ "$cmdline" == *"openssl"*"enc"*"aes"*"-nosalt"* ]] || \
@@ -975,7 +1089,7 @@ check_perl_exec_patterns() {
         pid=$(basename "$pid_dir")
 
         local cmdline
-        cmdline=$(/usr/bin/tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
+        cmdline=$(tr '\0' ' ' < "$cmdline_file" 2>/dev/null) || continue
 
         # Check for suspicious Perl patterns
         if [[ "$cmdline" == *"perl"*"-e"*"exec"* ]] || \
@@ -1095,13 +1209,13 @@ check_rwx_memory_regions() {
 
         # Look for anonymous RWX regions
         local rwx_regions
-        rwx_regions=$(/bin/grep -E 'rwxp.*00000000 00:00 0' "$maps_file" 2>/dev/null) || continue
+        rwx_regions=$(grep -E 'rwxp.*00000000 00:00 0' "$maps_file" 2>/dev/null) || continue
 
         if [[ -n "$rwx_regions" ]]; then
             local cmdline
-            cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
             local exe
-            exe=$(/usr/bin/readlink "${pid_dir}/exe" 2>/dev/null) || exe="<unavailable>"
+            exe=$(readlink "${pid_dir}/exe" 2>/dev/null) || exe="<unavailable>"
 
             # Skip known legitimate processes
             [[ "$exe" == *"java"* ]] && continue
@@ -1150,14 +1264,14 @@ check_suspicious_process_names() {
         pid=$(basename "$pid_dir")
 
         local comm
-        comm=$(/bin/cat "$comm_file" 2>/dev/null) || continue
+        comm=$(cat "$comm_file" 2>/dev/null) || continue
 
         for suspicious_name in "${SUSPICIOUS_PROCESS_NAMES[@]}"; do
             if [[ "$comm" == "$suspicious_name" ]]; then
                 local cmdline
-                cmdline=$(/usr/bin/tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+                cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
                 local exe
-                exe=$(/usr/bin/readlink "${pid_dir}/exe" 2>/dev/null) || exe="<unavailable>"
+                exe=$(readlink "${pid_dir}/exe" 2>/dev/null) || exe="<unavailable>"
 
                 log_finding "PID $pid: Suspicious process name: $comm"
                 echo "PID: $pid" >> "$findings_file"
