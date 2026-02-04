@@ -25,6 +25,11 @@
 #   0 - No findings (system appears clean)
 #   1 - Findings detected (potential compromise indicators)
 #   2 - Error during execution
+#
+# ########################################################################### #
+# Warning: This code does have false positives. A detection should be seen as #
+# a lead for further investigation.                                           #
+# ########################################################################### #
 
 # Note: We use -uo pipefail but NOT -e (errexit)
 # For a forensic tool, we want to continue gathering information even if
@@ -1432,6 +1437,7 @@ main() {
     echo -e "${MAGENTA}=================================================================================${NC}"
     echo -e "${MAGENTA}  $SCRIPT_NAME v$VERSION${NC}"
     echo -e "${MAGENTA}  Detecting ShadowHS Fileless Linux Malware${NC}"
+    echo -e "${MAGENTA}  Note: This script does generate false positive detections.${NC}"
     echo -e "${MAGENTA}=================================================================================${NC}"
     echo ""
     log_info "Scan started at $SCAN_START_TIME"
