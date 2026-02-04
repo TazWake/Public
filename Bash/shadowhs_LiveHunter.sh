@@ -26,7 +26,10 @@
 #   1 - Findings detected (potential compromise indicators)
 #   2 - Error during execution
 
-set -euo pipefail
+# Note: We use -uo pipefail but NOT -e (errexit)
+# For a forensic tool, we want to continue gathering information even if
+# individual checks encounter errors. Each function handles its own errors.
+set -uo pipefail
 
 # ============================================================================
 # CONFIGURATION
@@ -186,8 +189,10 @@ hashfile() {
     local file="$1"
     if [[ -f "$file" ]]; then
         local hash
-        hash=$(sha1sum "$file" 2>/dev/null | awk '{print $1}')
-        echo "[#] SHA1: $hash  $file" >> "$LOGFILE"
+        hash=$(sha1sum "$file" 2>/dev/null | awk '{print $1}' || true)
+        if [[ -n "$hash" ]]; then
+            echo "[#] SHA1: $hash  $file" >> "$LOGFILE"
+        fi
     fi
 }
 
@@ -534,9 +539,9 @@ check_path_manipulation() {
         # Check if PATH starts with .: (current directory first)
         if tr '\0' '\n' < "$environ" 2>/dev/null | grep -q '^PATH=\.:'; then
             local path_value
-            path_value=$(tr '\0' '\n' < "$environ" 2>/dev/null | grep '^PATH=')
+            path_value=$(tr '\0' '\n' < "$environ" 2>/dev/null | grep '^PATH=' || true)
             local cmdline
-            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null) || cmdline="<unavailable>"
+            cmdline=$(tr '\0' ' ' < "${pid_dir}/cmdline" 2>/dev/null || echo "<unavailable>")
 
             log_finding "PID $pid has PATH starting with .: (hijack risk)"
             echo "PID: $pid" >> "$findings_file"
@@ -760,7 +765,7 @@ check_known_iocs() {
     for ip in "${KNOWN_C2_IPS[@]}"; do
         if echo "$netstat_output" | grep -q "$ip"; then
             local connections
-            connections=$(echo "$netstat_output" | grep "$ip")
+            connections=$(echo "$netstat_output" | grep "$ip" || true)
             log_finding "Connection to known C2 IP: $ip"
             echo "C2 IP: $ip" >> "$findings_file"
             echo "$connections" >> "$findings_file"
@@ -773,7 +778,7 @@ check_known_iocs() {
     for domain in "${MINING_POOL_DOMAINS[@]}"; do
         if echo "$netstat_output" | grep -qi "$domain"; then
             local connections
-            connections=$(echo "$netstat_output" | grep -i "$domain")
+            connections=$(echo "$netstat_output" | grep -i "$domain" || true)
             log_finding "Connection to mining pool: $domain"
             echo "Mining Pool: $domain" >> "$findings_file"
             echo "$connections" >> "$findings_file"
@@ -824,24 +829,26 @@ check_kernel_taint() {
         echo "Taint flag breakdown:" >> "$findings_file"
         local val=$taint_value
 
-        ((val & 1)) && echo "  G - Proprietary module loaded" >> "$findings_file"
-        ((val & 2)) && echo "  F - Module force loaded" >> "$findings_file"
-        ((val & 4)) && echo "  S - SMP kernel on non-SMP hardware" >> "$findings_file"
-        ((val & 8)) && echo "  R - Module force unloaded" >> "$findings_file"
-        ((val & 16)) && echo "  M - Machine check exception occurred" >> "$findings_file"
-        ((val & 32)) && echo "  B - Bad page referenced" >> "$findings_file"
-        ((val & 64)) && echo "  U - User requested taint" >> "$findings_file"
-        ((val & 128)) && echo "  D - Kernel died recently (OOPS or BUG)" >> "$findings_file"
-        ((val & 256)) && echo "  A - ACPI table overridden" >> "$findings_file"
-        ((val & 512)) && echo "  W - Warning issued" >> "$findings_file"
-        ((val & 1024)) && echo "  C - Staging driver loaded" >> "$findings_file"
-        ((val & 2048)) && echo "  I - Working around firmware bug" >> "$findings_file"
-        ((val & 4096)) && echo "  O - Out-of-tree module loaded" >> "$findings_file"
-        ((val & 8192)) && echo "  E - Unsigned module loaded" >> "$findings_file"
-        ((val & 16384)) && echo "  L - Soft lockup occurred" >> "$findings_file"
-        ((val & 32768)) && echo "  K - Live-patched kernel" >> "$findings_file"
-        ((val & 65536)) && echo "  X - Auxiliary taint (distro-specific)" >> "$findings_file"
-        ((val & 131072)) && echo "  T - Kernel built with struct randomization" >> "$findings_file"
+        # Note: Using [[ ]] instead of (( )) to avoid exit code issues with set -e
+        # when arithmetic evaluation returns 0 (false)
+        [[ $((val & 1)) -ne 0 ]] && echo "  G - Proprietary module loaded" >> "$findings_file"
+        [[ $((val & 2)) -ne 0 ]] && echo "  F - Module force loaded" >> "$findings_file"
+        [[ $((val & 4)) -ne 0 ]] && echo "  S - SMP kernel on non-SMP hardware" >> "$findings_file"
+        [[ $((val & 8)) -ne 0 ]] && echo "  R - Module force unloaded" >> "$findings_file"
+        [[ $((val & 16)) -ne 0 ]] && echo "  M - Machine check exception occurred" >> "$findings_file"
+        [[ $((val & 32)) -ne 0 ]] && echo "  B - Bad page referenced" >> "$findings_file"
+        [[ $((val & 64)) -ne 0 ]] && echo "  U - User requested taint" >> "$findings_file"
+        [[ $((val & 128)) -ne 0 ]] && echo "  D - Kernel died recently (OOPS or BUG)" >> "$findings_file"
+        [[ $((val & 256)) -ne 0 ]] && echo "  A - ACPI table overridden" >> "$findings_file"
+        [[ $((val & 512)) -ne 0 ]] && echo "  W - Warning issued" >> "$findings_file"
+        [[ $((val & 1024)) -ne 0 ]] && echo "  C - Staging driver loaded" >> "$findings_file"
+        [[ $((val & 2048)) -ne 0 ]] && echo "  I - Working around firmware bug" >> "$findings_file"
+        [[ $((val & 4096)) -ne 0 ]] && echo "  O - Out-of-tree module loaded" >> "$findings_file"
+        [[ $((val & 8192)) -ne 0 ]] && echo "  E - Unsigned module loaded" >> "$findings_file"
+        [[ $((val & 16384)) -ne 0 ]] && echo "  L - Soft lockup occurred" >> "$findings_file"
+        [[ $((val & 32768)) -ne 0 ]] && echo "  K - Live-patched kernel" >> "$findings_file"
+        [[ $((val & 65536)) -ne 0 ]] && echo "  X - Auxiliary taint (distro-specific)" >> "$findings_file"
+        [[ $((val & 131072)) -ne 0 ]] && echo "  T - Kernel built with struct randomization" >> "$findings_file"
     fi
 
     hashfile "$findings_file"
@@ -872,7 +879,7 @@ check_suspicious_lkms() {
 
         # Get module info
         local modinfo_output
-        modinfo_output=$(/usr/sbin/modinfo "$module_name" 2>/dev/null) || continue
+        modinfo_output=$(modinfo "$module_name" 2>/dev/null) || continue
 
         # Check for missing signature
         if ! echo "$modinfo_output" | grep -q "^sig_id:"; then
@@ -885,7 +892,7 @@ check_suspicious_lkms() {
 
         # Check for intree status
         local intree
-        intree=$(echo "$modinfo_output" | grep "^intree:" | awk '{print $2}')
+        intree=$(echo "$modinfo_output" | grep "^intree:" | awk '{print $2}' || true)
         if [[ "$intree" == "N" ]]; then
             log_finding "Out-of-tree kernel module: $module_name"
             echo "OUT-OF-TREE MODULE: $module_name" >> "$findings_file"
@@ -963,7 +970,7 @@ check_cryptominer_artifacts() {
             if [[ -f "$file" ]]; then
                 log_finding "Miner config file found: $file"
                 echo "MINER CONFIG: $file" >> "$findings_file"
-                /bin/ls -la "$file" >> "$findings_file" 2>/dev/null
+                ls -la "$file" >> "$findings_file" 2>/dev/null
                 echo "" >> "$findings_file"
                 found=1
             fi
@@ -1129,8 +1136,8 @@ check_suspicious_files() {
             if [[ -e "$file" ]]; then
                 log_finding "Suspicious file found: $file"
                 echo "SUSPICIOUS FILE: $file" >> "$findings_file"
-                /bin/ls -la "$file" >> "$findings_file" 2>/dev/null
-                /usr/bin/file "$file" >> "$findings_file" 2>/dev/null
+                ls -la "$file" >> "$findings_file" 2>/dev/null
+                file "$file" >> "$findings_file" 2>/dev/null
                 echo "" >> "$findings_file"
                 found=1
             fi
@@ -1141,15 +1148,15 @@ check_suspicious_files() {
     log_info "Scanning /dev/shm for suspicious content..."
     if [[ -d "/dev/shm" ]]; then
         local shm_files
-        shm_files=$(/usr/bin/find /dev/shm -type f 2>/dev/null) || shm_files=""
+        shm_files=$(find /dev/shm -type f 2>/dev/null) || shm_files=""
 
         if [[ -n "$shm_files" ]]; then
             echo "=== Files in /dev/shm ===" >> "$findings_file"
             while IFS= read -r file; do
                 if [[ -n "$file" ]]; then
                     log_warning "File in /dev/shm: $file"
-                    /bin/ls -la "$file" >> "$findings_file" 2>/dev/null
-                    /usr/bin/file "$file" >> "$findings_file" 2>/dev/null
+                    ls -la "$file" >> "$findings_file" 2>/dev/null
+                    file "$file" >> "$findings_file" 2>/dev/null
                     echo "" >> "$findings_file"
                 fi
             done <<< "$shm_files"
@@ -1160,19 +1167,19 @@ check_suspicious_files() {
     log_info "Scanning /tmp for ELF executables..."
     if [[ -d "/tmp" ]]; then
         local tmp_elfs
-        tmp_elfs=$(/usr/bin/find /tmp -maxdepth 2 -type f -executable 2>/dev/null) || tmp_elfs=""
+        tmp_elfs=$(find /tmp -maxdepth 2 -type f -executable 2>/dev/null) || tmp_elfs=""
 
         if [[ -n "$tmp_elfs" ]]; then
             echo "=== Executable files in /tmp ===" >> "$findings_file"
             while IFS= read -r file; do
                 if [[ -n "$file" ]]; then
                     local file_type
-                    file_type=$(/usr/bin/file "$file" 2>/dev/null)
+                    file_type=$(file "$file" 2>/dev/null)
                     if [[ "$file_type" == *"ELF"* ]]; then
                         log_finding "ELF executable in /tmp: $file"
                         echo "ELF IN TMP: $file" >> "$findings_file"
                         echo "  Type: $file_type" >> "$findings_file"
-                        /bin/ls -la "$file" >> "$findings_file" 2>/dev/null
+                        ls -la "$file" >> "$findings_file" 2>/dev/null
                         echo "" >> "$findings_file"
                         found=1
                     fi
@@ -1225,7 +1232,7 @@ check_rwx_memory_regions() {
             [[ "$exe" == *"firefox"* ]] && continue
 
             local region_count
-            region_count=$(echo "$rwx_regions" | /usr/bin/wc -l)
+            region_count=$(echo "$rwx_regions" | wc -l)
 
             log_warning "PID $pid: $region_count anonymous RWX region(s) - may be suspicious"
             echo "PID: $pid (RWX regions: $region_count)" >> "$findings_file"
@@ -1352,7 +1359,7 @@ EOF
 ================================================================================
 Output Files:
 EOF
-    /bin/ls -la "${FINDINGS_DIR}/" >> "$summary_file" 2>/dev/null
+    ls -la "${FINDINGS_DIR}/" >> "$summary_file" 2>/dev/null
 
     echo "" >> "$summary_file"
     echo "Log file: $LOGFILE" >> "$summary_file"
@@ -1431,28 +1438,36 @@ main() {
     log_info "Output directory: $OUTPUT_DIR"
     echo ""
 
-    # Run all detection functions
+    # Run all detection functions with error handling
+    # Each check is wrapped to continue even if individual checks fail
+    run_check() {
+        local check_name="$1"
+        if ! "$check_name"; then
+            log_warning "Check '$check_name' encountered an error but continuing..."
+        fi
+    }
+
     # Category A: Highly Detectable
-    check_memfd_execution
-    check_fd_execution
-    check_argv_spoofing
-    check_path_manipulation
-    check_shells_without_exe
-    check_gdb_memory_dumping
-    check_suspicious_process_names
-    check_kernel_taint
-    check_suspicious_lkms
-    check_gsocket_tunnels
-    check_known_iocs
-    check_suspicious_rsync
-    check_cryptominer_artifacts
-    check_lateral_movement
-    check_suspicious_files
+    run_check check_memfd_execution
+    run_check check_fd_execution
+    run_check check_argv_spoofing
+    run_check check_path_manipulation
+    run_check check_shells_without_exe
+    run_check check_gdb_memory_dumping
+    run_check check_suspicious_process_names
+    run_check check_kernel_taint
+    run_check check_suspicious_lkms
+    run_check check_gsocket_tunnels
+    run_check check_known_iocs
+    run_check check_suspicious_rsync
+    run_check check_cryptominer_artifacts
+    run_check check_lateral_movement
+    run_check check_suspicious_files
 
     # Category B: Runtime Detection (Best Effort)
-    check_openssl_patterns
-    check_perl_exec_patterns
-    check_rwx_memory_regions
+    run_check check_openssl_patterns
+    run_check check_perl_exec_patterns
+    run_check check_rwx_memory_regions
 
     # Generate summary report
     generate_summary
