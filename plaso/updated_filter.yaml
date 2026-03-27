@@ -1,0 +1,265 @@
+# Plaso filter file.
+#
+# filter_linux.yaml
+# Targeted collection for common Linux intrusion evidence with a bias for
+# “high signal per file parsed”.
+#
+# Notes:
+# - Paths are regular expressions.
+# - Specifying a directory path will include its files and subdirectories.
+# - This filter is designed for /-separated paths (Linux/Unix).
+# - Keep it tight: this is a whitelist-style filter intended to avoid scanning
+#   most of the filesystem (e.g. /usr, /lib, most of /var/lib).
+
+---
+
+description: Core identity and authentication configuration
+type: include
+path_separator: '/'
+paths:
+  - '/etc/passwd'
+  - '/etc/shadow'
+  - '/etc/group'
+
+---
+
+description: PAM and sudo policy
+type: include
+path_separator: '/'
+paths:
+  - '/etc/pam[.]d'
+  - '/etc/sudoers'
+  - '/etc/sudoers[.]d'
+
+---
+
+description: SSH configuration and host keys
+type: include
+path_separator: '/'
+paths:
+  - '/etc/ssh'
+
+---
+
+description: Network configuration
+type: include
+path_separator: '/'
+paths:
+  - '/etc/hosts'
+  - '/etc/resolv[.]conf'
+  - '/etc/network/interfaces'
+  - '/etc/netplan'
+  - '/etc/NetworkManager/system-connections'
+
+---
+
+description: systemd configuration and persistence (system and user units)
+type: include
+path_separator: '/'
+paths:
+  - '/etc/systemd'
+  - '/etc/systemd/system'
+  - '/etc/systemd/user'
+  - '/etc/systemd/journald[.]conf'
+  - '/etc/systemd/journald[.]conf[.]d'
+
+---
+
+description: Cron, anacron, at and spool-based scheduled task persistence
+type: include
+path_separator: '/'
+paths:
+  - '/etc/crontab'
+  - '/etc/cron[.]d'
+  - '/etc/cron[.]hourly'
+  - '/etc/cron[.]daily'
+  - '/etc/cron[.]weekly'
+  - '/etc/cron[.]monthly'
+  - '/etc/anacrontab'
+  - '/var/spool/cron'
+
+---
+
+description: Dynamic linker preload persistence (high-value, low-volume)
+type: include
+path_separator: '/'
+paths:
+  - '/etc/ld[.]so[.]preload'
+
+---
+
+description: Classic syslog-auth logs (Ubuntu/Debian and RHEL-family common paths)
+type: include
+path_separator: '/'
+paths:
+  - '/var/log/auth[.]log([.-].+)?'
+  - '/var/log/secure([.-].+)?'
+  - '/var/log/syslog([.-].+)?'
+  - '/var/log/messages([.-].+)?'
+  - '/var/log/cron([.-].+)?'
+  - '/var/log/maillog([.-].+)?'
+  - '/var/log/boot[.]log([.-].+)?'
+
+---
+
+description: systemd journal (binary logs; high signal but can be large)
+type: include
+path_separator: '/'
+paths:
+  - '/var/log/journal'
+  - '/run/log/journal'
+
+---
+
+description: Login/session accounting (binary databases)
+type: include
+path_separator: '/'
+paths:
+  - '/var/run/utmp'
+  - '/run/utmp'
+  - '/var/log/wtmp'
+  - '/var/log/btmp'
+  - '/var/log/lastlog'
+
+---
+
+description: auditd / SELinux audit logging and audit configuration
+type: include
+path_separator: '/'
+paths:
+  - '/var/log/audit'
+  - '/etc/audit'
+
+---
+
+description: Package manager activity logs (Debian/Ubuntu, RHEL-family, SUSE-family)
+type: include
+path_separator: '/'
+paths:
+  # Debian-family
+  - '/var/log/dpkg[.]log([.-].+)?'
+  - '/var/log/apt'
+  - '/var/log/aptitude'
+
+  # RHEL-family
+  - '/var/log/yum[.]log([.-].+)?'
+  - '/var/log/dnf[.]log([.-].+)?'
+  - '/var/log/dnf[.]rpm[.]log([.-].+)?'
+  - '/var/log/dnf[.]librepo[.]log([.-].+)?'
+  - '/var/log/hawkey[.]log([.-].+)?'
+
+  # SUSE-family (zypp/zypper)
+  - '/var/log/zypp'
+  - '/var/log/zypper[.]log([.-].+)?'
+
+---
+
+description: Yum configuration (repositories and behaviour)
+type: include
+path_separator: '/'
+paths:
+  - '/etc/yum[.]conf'
+  - '/etc/yum[.]repos[.]d'
+
+---
+
+description: Cloud-init logs (very common on cloud-hosted Linux)
+type: include
+path_separator: '/'
+paths:
+  - '/var/log/cloud-init[.]log'
+  - '/var/log/cloud-init-output[.]log'
+
+---
+
+description: Web server logs and common config roots (log-focused to control volume)
+type: include
+path_separator: '/'
+paths:
+  # Apache (Debian/Ubuntu)
+  - '/var/log/apache2'
+  - '/etc/apache2'
+
+  # Apache httpd (RHEL-family)
+  - '/var/log/httpd'
+
+  # NGINX (common distro packaging)
+  - '/var/log/nginx'
+  - '/etc/nginx'
+
+---
+
+description: User activity artefacts (shell/REPL/DB client history + SSH user key material)
+type: include
+path_separator: '/'
+paths:
+  # Shell histories
+  - '/root/[.]bash_history'
+  - '/home/.+/[.]bash_history'
+  - '/root/[.]zsh_history'
+  - '/home/.+/[.]zsh_history'
+  - '/root/[.]local/share/fish/fish_history'
+  - '/home/.+/[.]local/share/fish/fish_history'
+
+  # REPL / client histories
+  - '/root/[.]python_history'
+  - '/home/.+/[.]python_history'
+  - '/root/[.]psql_history'
+  - '/home/.+/[.]psql_history'
+
+  # sqlite3 history (location varies by build/version and XDG use)
+  - '/root/[.]sqlite_history'
+  - '/home/.+/[.]sqlite_history'
+  - '/root/[.]local/state/sqlite_history'
+  - '/home/.+/[.]local/state/sqlite_history'
+
+  # Ruby IRB history
+  - '/root/[.]irb_history'
+  - '/home/.+/[.]irb_history'
+
+  # SSH user artefacts (keys/known_hosts/config)
+  - '/root/[.]ssh/authorized_keys'
+  - '/root/[.]ssh/authorized_keys2'
+  - '/home/.+/[.]ssh/authorized_keys'
+  - '/home/.+/[.]ssh/authorized_keys2'
+  - '/root/[.]ssh/known_hosts'
+  - '/root/[.]ssh/known_hosts2'
+  - '/home/.+/[.]ssh/known_hosts'
+  - '/home/.+/[.]ssh/known_hosts2'
+  - '/root/[.]ssh/config'
+  - '/home/.+/[.]ssh/config'
+
+---
+
+description: Shell startup files (tampering here can be persistence or operator tooling)
+type: include
+path_separator: '/'
+paths:
+  # Bash startup files (system-wide and per-user)
+  - '/etc/profile'
+  - '/etc/profile[.]d'
+  - '/root/[.]bashrc'
+  - '/home/.+/[.]bashrc'
+  - '/root/[.]bash_profile'
+  - '/home/.+/[.]bash_profile'
+  - '/root/[.]profile'
+  - '/home/.+/[.]profile'
+  - '/root/[.]bash_logout'
+  - '/home/.+/[.]bash_logout'
+
+  # Zsh startup files (system-wide and per-user)
+  - '/etc/zshenv'
+  - '/etc/zprofile'
+  - '/etc/zshrc'
+  - '/etc/zlogin'
+  - '/etc/zlogout'
+  - '/root/[.]zshenv'
+  - '/home/.+/[.]zshenv'
+  - '/root/[.]zprofile'
+  - '/home/.+/[.]zprofile'
+  - '/root/[.]zshrc'
+  - '/home/.+/[.]zshrc'
+  - '/root/[.]zlogin'
+  - '/home/.+/[.]zlogin'
+  - '/root/[.]zlogout'
+  - '/home/.+/[.]zlogout'
