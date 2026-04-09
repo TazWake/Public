@@ -129,15 +129,20 @@ if inode is None:
 ok("File located.")
 
 # ─── Extract INODE_ITEM block ─────────────────────────────────────────────────
+# Must match "item N key (INODE INODE_ITEM 0)" at the start of the line to
+# avoid false matches on "location key (INODE INODE_ITEM 0)" references in
+# DIR_ITEM and DIR_INDEX entries.
 inode_block_lines = []
 in_inode = False
 for line in tree_dump.splitlines():
-    if re.search(rf'key \({inode} INODE_ITEM 0\)', line):
+    if re.search(rf'^\titem \d+ key \({inode} INODE_ITEM 0\)', line):
         in_inode = True
+        inode_block_lines = [line]
+        continue
     if in_inode:
-        inode_block_lines.append(line)
-        if len(inode_block_lines) > 12:
+        if re.search(r'^\titem \d+ key', line):
             break
+        inode_block_lines.append(line)
 
 inode_block = '\n'.join(inode_block_lines)
 
@@ -153,8 +158,8 @@ atime    = extract_timestamp('atime')
 ctime    = extract_timestamp('ctime')
 mtime    = extract_timestamp('mtime')
 otime    = extract_timestamp('otime')
-filesize = extract_field(r'size (\d+)')
-filemode = extract_field(r'mode (\d+)')
+filesize = extract_field(r'generation \d+ transid \d+ size (\d+)')
+filemode = extract_field(r'block group \d+ mode (\d+)')
 fileuid  = extract_field(r'uid (\d+)')
 filegid  = extract_field(r'gid (\d+)')
 
