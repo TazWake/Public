@@ -72,21 +72,30 @@ fi
 echo -e "${GRN}[+]${RST} File located."
 
 # ─── Extract timestamps from INODE_ITEM ──────────────────────────────────────
-INODE_BLOCK=$(echo "$TREE_DUMP" | grep -A12 "key (${INODE} INODE_ITEM 0)")
+# ─── Extract INODE_ITEM block — must match "item N key (INODE INODE_ITEM 0)" ─
+# This avoids false matches on "location key (INODE INODE_ITEM 0)" lines in
+# DIR_ITEM and DIR_INDEX entries which reference the same inode number.
+INODE_BLOCK=$(echo "$TREE_DUMP" | awk '
+    /^\titem [0-9]+ key \('"$INODE"' INODE_ITEM 0\)/ { found=1; block=$0; next }
+    found && /^\titem [0-9]+ key/ { found=0 }
+    found { block=block"\n"$0 }
+    END { if (block) print block }
+')
 
-extract_ts() {
-    echo "$INODE_BLOCK" | grep "$1" | awk '{print $2, $3}' | tr -d '()'
-}
+if [[ -z "$INODE_BLOCK" ]]; then
+    echo -e "${RED}[ERROR]${RST} Could not locate INODE_ITEM for inode ${INODE}."
+    exit 1
+fi
 
-ATIME=$(echo "$INODE_BLOCK" | grep 'atime' | sed 's/.*(\(.*\))/\1/')
-CTIME=$(echo "$INODE_BLOCK" | grep 'ctime' | sed 's/.*(\(.*\))/\1/')
-MTIME=$(echo "$INODE_BLOCK" | grep 'mtime' | sed 's/.*(\(.*\))/\1/')
-OTIME=$(echo "$INODE_BLOCK" | grep 'otime' | sed 's/.*(\(.*\))/\1/')
+FILESIZE=$(echo "$INODE_BLOCK" | awk '/generation.*size/    { print $6 }')
+FILEMODE=$(echo "$INODE_BLOCK" | awk '/block group.*mode/  { print $5 }')
+FILEUID=$( echo "$INODE_BLOCK" | awk '/block group.*uid/   { print $7 }')
+FILEGID=$( echo "$INODE_BLOCK" | awk '/block group.*gid/   { print $9 }')
 
-FILESIZE=$(echo "$INODE_BLOCK" | grep 'size' | awk '{print $4}')
-FILEMODE=$(echo "$INODE_BLOCK" | grep 'mode' | awk '{print $5}')
-FILEUID=$(echo "$INODE_BLOCK"  | grep 'uid'  | awk '{print $7}')
-FILEGID=$(echo "$INODE_BLOCK"  | grep 'gid'  | awk '{print $9}')
+ATIME=$(echo "$INODE_BLOCK" | awk '/atime/ { match($0,/\(([^)]+)\)/,a); print a[1] }')
+CTIME=$(echo "$INODE_BLOCK" | awk '/ctime/ { match($0,/\(([^)]+)\)/,a); print a[1] }')
+MTIME=$(echo "$INODE_BLOCK" | awk '/mtime/ { match($0,/\(([^)]+)\)/,a); print a[1] }')
+OTIME=$(echo "$INODE_BLOCK" | awk '/otime/ { match($0,/\(([^)]+)\)/,a); print a[1] }')
 
 # ─── Output results ──────────────────────────────────────────────────────────
 echo ""
