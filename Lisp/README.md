@@ -16,6 +16,7 @@ self-contained native executable.
 | ------------------- | ----------------------------------------------------------------------- | ---------------------------- |
 | `cartographer.lisp` | Parse and triage a Linux `System.map` kernel symbol table for signs of malicious activity (rootkit heuristics, baseline diffing, JSON export). | `cartographer:main`   |
 | `procmap.lisp`      | Parse and triage a process address space (`/proc/<pid>/maps`) for code-injection and tampering indicators (executable anon memory, W+X, deleted-file mappings, baseline diffing, JSON export). | `procmap:main`        |
+| `profiler.lisp`     | Parse a 64-bit little-endian ELF binary's section headers and profile them for tampering — per-section Shannon entropy (packing/encryption), W+X sections, nameless sections, abnormal alignment, JSON export. | `elf-profiler:main`   |
 
 > _Adding a new tool?_ Drop the `.lisp` file in this directory, add a row to the
 > table above, and document its flags in its own section below. The build and
@@ -299,7 +300,53 @@ prioritise inspection, ideally with a `--compare` against a trusted baseline.
 
 ---
 
-## Caveats
+## `profiler.lisp` — usage
+
+Parses a **64-bit little-endian ELF** binary's section headers, reads each
+section's bytes to compute its Shannon entropy, and flags sections whose
+properties suggest packing, encryption, or header tampering. Useful for a quick
+triage verdict on a suspect executable or shared object.
+
+> **Note:** this tool's package is `elf-profiler` (the file is `profiler.lisp`).
+> When building a binary, use `(function elf-profiler:main)` as the `:toplevel`;
+> the example below names the resulting binary `profiler`.
+
+### Flags
+
+| Flag             | Argument | Description                                                              |
+| ---------------- | -------- | ----------------------------------------------------------------------- |
+| `--file <path>`  | path     | Load the ELF binary to analyse (required).                              |
+| `--summary`      | —        | Print a per-section table (addr/size/flags/entropy) plus heuristic counts. |
+| `--json`         | —        | Emit all sections as JSON (to stdout).                                   |
+| `--analyze`      | —        | Print a detailed anomaly report listing which sections tripped each heuristic. |
+
+With `--file` but no output flag, the tool reports how many sections it loaded.
+Output modes are mutually exclusive (priority `--summary` > `--json` > `--analyze`).
+
+### Examples
+
+```bash
+# Per-section table and heuristic counts for a known-good binary
+./profiler --file /usr/bin/ls --summary
+
+# Detailed anomaly report on a suspect sample
+./profiler --file suspicious.bin --analyze
+
+# Export section metadata as JSON
+./profiler --file sample.elf --json > sections.json
+```
+
+### What the heuristics mean
+
+| Heuristic                          | What it flags                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| **High-entropy sections (>7.5)**   | Shannon entropy approaching 8 bits/byte — packed, encrypted, or compressed content (e.g. a UPX-style payload) rather than normal code/data. |
+| **Writable+Executable sections**   | Section flags set both `SHF_WRITE` and `SHF_EXECINSTR` — a W^X violation baked into the file, unusual for a clean binary. |
+| **Nameless sections**              | Sections with an empty/unresolvable name — a sign of stripped or hand-crafted section headers used to hinder analysis. |
+| **Suspicious alignment sections**  | Non-empty sections with `addralign < 4` — abnormal alignment typical of injected or hand-built sections. |
+
+As with the other tools, these are **indicators, not verdicts** — corroborate
+before drawing conclusions.
 
 - `--compare` with no `--baseline` treats every suspect symbol/region as "new",
   so always supply a baseline when diffing.
@@ -313,3 +360,7 @@ prioritise inspection, ideally with a `--compare` against a trusted baseline.
   containers, or Android.
 - `procmap --pid` reads live kernel state; for sound forensics, prefer capturing
   `/proc/<pid>/maps` to a file and analysing that.
+- `profiler.lisp` handles **64-bit little-endian ELF only** (the common x86-64 /
+  aarch64 case); it errors out on 32-bit, big-endian, or non-ELF input. It reads
+  full section contents into memory to compute entropy, so very large binaries
+  cost proportional memory.
