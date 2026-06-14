@@ -15,6 +15,7 @@ self-contained native executable.
 | File                | Purpose                                                                 | Entry point                  |
 | ------------------- | ----------------------------------------------------------------------- | ---------------------------- |
 | `cartographer.lisp` | Parse and triage a Linux `System.map` kernel symbol table for signs of malicious activity (rootkit heuristics, baseline diffing, JSON export). | `cartographer:main`   |
+| `procmap.lisp`      | Parse and triage a process address space (`/proc/<pid>/maps`) for code-injection and tampering indicators (executable anon memory, W+X, deleted-file mappings, baseline diffing, JSON export). | `procmap:main`        |
 
 > _Adding a new tool?_ Drop the `.lisp` file in this directory, add a row to the
 > table above, and document its flags in its own section below. The build and
@@ -240,12 +241,75 @@ some of them; use them to prioritise where to look, ideally alongside a
 
 ---
 
+## `procmap.lisp` — usage
+
+Parses a process's memory map (`/proc/<pid>/maps`) into structured regions —
+permissions, backing files, anonymous mappings, stack/heap, shared libraries —
+and applies heuristics aimed at spotting code injection and tampering. Works on
+a live process or on a captured maps file collected during triage.
+
+### Flags
+
+| Flag                  | Argument        | Description                                                              |
+| --------------------- | --------------- | ----------------------------------------------------------------------- |
+| `--pid <n>`           | pid             | Read `/proc/<n>/maps` from the live host.                               |
+| `--maps <file>`       | path            | Read a captured maps file (takes precedence over `--pid`).              |
+| `--baseline <file>`   | path            | Read a second maps file to diff against (a known-good capture).         |
+| `--summary`           | —               | Print a human-readable summary with heuristic counts.                   |
+| `--json`              | —               | Emit all parsed regions as JSON (to stdout).                            |
+| `--compare`           | —               | Diff baseline vs. suspect; print regions present only in the suspect.   |
+| `--compare-by <how>`  | `path`/`address`| Diff basis for `--compare` (default `path`); ignored without `--compare`. |
+
+If no output flag is given, the tool just reports how many regions it loaded.
+
+To collect a maps file for offline analysis: `cat /proc/<pid>/maps > pid.maps`.
+
+### Examples
+
+```bash
+# Live triage summary of a running process
+./procmap --pid 1337 --summary
+
+# Analyse a maps file captured during incident response
+./procmap --maps suspect-pid.maps --summary
+
+# Export every region as JSON
+./procmap --maps suspect-pid.maps --json > regions.json
+
+# Diff a suspect process against a known-good capture (ASLR-robust, by path+perms)
+./procmap --baseline clean.maps --maps suspect.maps --compare
+
+# Diff two snapshots of the SAME running process over time (exact addresses)
+./procmap --baseline t0.maps --maps t1.maps --compare --compare-by address
+```
+
+### What the summary heuristics mean
+
+| Heuristic                          | What it flags                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| **Executable anonymous regions**   | Executable mappings with no backing file — the canonical injected-code signature. _(JIT engines produce the same pattern; expect benign hits.)_ |
+| **W+X regions**                    | Mappings that are both writable and executable — rare under W^X, a payload-staging tell. |
+| **Deleted-file mappings**          | Regions whose backing file was unlinked while still mapped (`(deleted)`) — running code from a binary no longer on disk. |
+| **Unexpected executable paths**    | Executable file/library mappings from outside standard system dirs (e.g. `/tmp`, `/dev/shm`, `/home`). |
+| **Heap/stack anomalies**           | Executable `[stack]`/`[heap]`, or more than one of either — a process should have exactly one, never executable. |
+| **Region ordering anomalies**      | A region whose start address is below its predecessor, even though `maps` is address-sorted — a sign of an edited/forged capture. |
+
+As with `cartographer`, these are **indicators, not verdicts** — use them to
+prioritise inspection, ideally with a `--compare` against a trusted baseline.
+
+---
+
 ## Caveats
 
-- `--compare` with no `--baseline` treats every suspect symbol as "new", so
-  always supply a baseline when diffing.
-- JSON output assumes symbol names are standard C identifiers (they always are
-  in a real `System.map`); names containing literal `"` or `\` are not fully
-  escaped.
+- `--compare` with no `--baseline` treats every suspect symbol/region as "new",
+  so always supply a baseline when diffing.
+- JSON output assumes backing paths / symbol names are standard identifiers
+  (they always are in a real `System.map` or `/proc/<pid>/maps`); values
+  containing literal `"` or `\` are not fully escaped.
 - Heuristic address bounds in `cartographer.lisp` target x86-64 kernels. Other
   architectures will need the `executable-outliers` range adjusted.
+- `procmap.lisp`'s standard-directory allowlist (`*standard-exec-dirs*`) and
+  pseudo-path names target mainstream Linux layouts; adjust for unusual distros,
+  containers, or Android.
+- `procmap --pid` reads live kernel state; for sound forensics, prefer capturing
+  `/proc/<pid>/maps` to a file and analysing that.
