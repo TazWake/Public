@@ -16,7 +16,7 @@ self-contained native executable.
 | ------------------- | ----------------------------------------------------------------------- | ---------------------------- |
 | `cartographer.lisp` | Parse and triage a Linux `System.map` kernel symbol table for signs of malicious activity (rootkit heuristics, baseline diffing, JSON export). | `cartographer:main`   |
 | `procmap.lisp`      | Parse and triage a process address space (`/proc/<pid>/maps`) for code-injection and tampering indicators (executable anon memory, W+X, deleted-file mappings, baseline diffing, JSON export). | `procmap:main`        |
-| `profiler.lisp`     | Parse a 64-bit little-endian ELF binary's section headers and profile them for tampering — per-section Shannon entropy (packing/encryption), W+X sections, nameless sections, abnormal alignment, JSON export. | `elf-profiler:main`   |
+| `profiler.lisp`     | Parse a 64-bit little-endian ELF binary's section headers and profile them for tampering — per-section Shannon entropy (packing/encryption), W+X sections, nameless sections, abnormal alignment, JSON export. | `profiler:main`       |
 
 > _Adding a new tool?_ Drop the `.lisp` file in this directory, add a row to the
 > table above, and document its flags in its own section below. The build and
@@ -306,10 +306,6 @@ Parses a **64-bit little-endian ELF** binary's section headers, reads each
 section's bytes to compute its Shannon entropy, and flags sections whose
 properties suggest packing, encryption, or header tampering. Useful for a quick
 triage verdict on a suspect executable or shared object.
-
-> **Note:** this tool's package is `elf-profiler` (the file is `profiler.lisp`).
-> When building a binary, use `(function elf-profiler:main)` as the `:toplevel`;
-> the example below names the resulting binary `profiler`.
 
 ### Flags
 
