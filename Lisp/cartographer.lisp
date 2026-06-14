@@ -1,12 +1,12 @@
 ;;;; cartographer.lisp
 ;;;; Kernel Symbol Cartographer — CLI, JSON, Baseline Diff, Heuristics
 
-(defpackage :kernel-cartographer
+(defpackage :cartographer
   (:use :cl)
   (:export
    :main))
 
-(in-package :kernel-cartographer)
+(in-package :cartographer)
 
 ;;;; ------------------------------------------------------------
 ;;;; Utilities
