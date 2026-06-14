@@ -12,6 +12,8 @@
 ;;;; Utilities
 ;;;; ------------------------------------------------------------
 
+;; Hand-rolled splitter so the tool stays dependency-free (no split-sequence /
+;; Quicklisp) and can run on a clean triage host with nothing but SBCL.
 (defun split-spaces (line)
   "Split LINE on spaces without external libraries."
   (let ((parts '())
@@ -34,15 +36,23 @@
 ;;;; Data Model
 ;;;; ------------------------------------------------------------
 
+;; One parsed System.map entry. A System.map line is three columns:
+;;   <hex-address> <type> <name>      e.g.  ffffffff81000000 T _stext
+;; ADDR is an integer, TYPE/NAME are kept as strings.
 (defstruct ksym
   addr
   type
   name)
 
+;; Module-level state populated by MAIN. Globals (rather than threading the
+;; lists through every call) keep the CLI dispatch and the REPL workflow simple.
 (defparameter *symbols* nil)
 (defparameter *baseline-symbols* nil)
 
 (defun parse-system-map-line (line)
+  ;; Require at least 3 fields; anything shorter (blank lines, truncated input)
+  ;; is skipped. HANDLER-CASE returns NIL on a bad hex address so a single
+  ;; malformed line can't abort the whole load.
   (let* ((parts (split-spaces line)))
     (when (>= (length parts) 3)
       (handler-case
@@ -64,6 +74,13 @@
 ;;;; ------------------------------------------------------------
 ;;;; Classification Helpers
 ;;;; ------------------------------------------------------------
+
+;; Type codes follow the nm(1) convention used in System.map. Uppercase = global
+;; symbol, lowercase = local; the letter denotes the section:
+;;   T/t = text (executable code)
+;;   D/d = initialised data, B/b = BSS (both writable globals)
+;;   R/r = read-only data
+;; These predicates group the codes by the security property we care about.
 
 (defun symbol-executable-p (s)
   (member (ksym-type s) '("T" "t") :test #'string=))
@@ -101,6 +118,9 @@
 ;;;; Heuristics for Rootkit Detection
 ;;;; ------------------------------------------------------------
 
+;; A name appearing more than once is suspicious: rootkits commonly add a second
+;; symbol that "shadows" a legitimate one to redirect resolution. Returns an
+;; alist of (name . list-of-ksyms) for every name with >1 entry.
 (defun shadowed-symbols (symbols)
   (let ((table (make-hash-table :test #'equal))
         result)
@@ -113,6 +133,10 @@
      table)
     result))
 
+;; The default MIN/MAX bracket the canonical x86-64 kernel text mapping
+;; (the top 2 GiB of the address space, starting at 0xffffffff80000000).
+;; Executable symbols outside that window suggest injected or relocated code.
+;; NOTE: these bounds are x86-64 specific -- adjust for other architectures.
 (defun executable-outliers (symbols
                             &key
                               (min #xffffffff80000000)
@@ -124,6 +148,9 @@
             (or (< a min) (> a max)))))
    symbols))
 
+;; Syscall entry points should live in read-only text, not writable memory.
+;; A writable symbol whose name looks like a syscall handler is a red flag for
+;; syscall-table tampering. Match the common naming conventions across kernels.
 (defun writable-syscall-patterns (symbols)
   (remove-if-not
    (lambda (s)
@@ -134,6 +161,10 @@
                 (search "do_sys_" n)))))
    symbols))
 
+;; System.map is emitted in ascending address order. An entry whose address is
+;; lower than the one before it means the ordering was broken -- typically by a
+;; hand-edited or forged map. Relies on SYMBOLS being in original file order
+;; (LOAD-SYSTEM-MAP preserves it), so don't pass a re-sorted list here.
 (defun address-monotonicity-anomalies (symbols)
   (let ((prev 0)
         anomalies)
@@ -144,6 +175,9 @@
         (setf prev a)))
     (nreverse anomalies)))
 
+;; Function-pointer tables and handler/ops structures are the classic targets a
+;; rootkit overwrites to hook kernel control flow. Flag writable symbols whose
+;; names match those conventions as candidate hook points to inspect.
 (defun writable-hooklike-symbols (symbols)
   (remove-if-not
    (lambda (s)
@@ -159,6 +193,9 @@
 ;;;; Baseline Comparison
 ;;;; ------------------------------------------------------------
 
+;; Set difference keyed on symbol NAME (not address): a relocated-but-renamed
+;; symbol still matches the baseline, while genuinely new names stand out.
+;; With an empty BASELINE every suspect symbol is reported as new.
 (defun diff-symbols (baseline suspect)
   "Return symbols present in suspect but not in baseline."
   (let ((base-names (make-hash-table :test #'equal))
@@ -174,6 +211,11 @@
 ;;;; JSON Output
 ;;;; ------------------------------------------------------------
 
+;; LIMITATION: SUBSTITUTE is char-for-char, so it cannot expand " into the
+;; two-character sequence \" required by JSON -- it only swaps the quote for a
+;; backslash. This is safe here because System.map symbol names are C
+;; identifiers and never contain " or \. Replace with a real escaper if this
+;; tool is ever pointed at arbitrary input.
 (defun json-escape (s)
   (substitute #\\ #\" (substitute #\\ #\\ s)))
 
@@ -222,11 +264,15 @@
 ;;;; CLI Wrapper
 ;;;; ------------------------------------------------------------
 
+;; CLI entry point (exported; used as the :toplevel when saved as an executable,
+;; or called directly under `sbcl --load`). Output modes are mutually exclusive
+;; and checked in priority order -- compare > json > summary > default -- each
+;; returning early via RETURN-FROM, so passing several flags uses the first match.
 (defun main ()
   (let ((args (copy-list sb-ext:*posix-argv*))
         map-file baseline-file summary json compare)
 
-    ;; Drop program name
+    ;; *posix-argv* starts with the program name (or "sbcl"); discard it.
     (pop args)
 
     ;; Parse flags
