@@ -9,7 +9,9 @@
       "WebFetch(domain:cyble.com)",
       "Bash(bash -n /d/Development/Public/Bash/proc_recovery.sh)",
       "Bash(command -v shellcheck)",
-      "Bash(shellcheck /d/Development/Public/Bash/proc_recovery.sh)"
+      "Bash(shellcheck /d/Development/Public/Bash/proc_recovery.sh)",
+      "Bash(command -v wsl.exe)",
+      "Bash(wsl.exe *)"
     ],
     "deny": []
   }
