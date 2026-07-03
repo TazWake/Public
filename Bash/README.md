@@ -70,6 +70,23 @@ Bash/
 - **`install_vol.sh`** - Volatility framework installation script
   - Automated setup for memory analysis environment
 
+#### Process Artifact Recovery
+
+- **`proc_recovery.sh`** - Forensic process artifact recovery tool (current/preferred)
+  - Usage: `sudo ./proc_recovery.sh -p <pid> -d <dest> [-j] [-J]` or `-n <name>` to match by process name
+  - Recovers the executable via `/proc/<pid>/exe`, detects memfd-backed (fileless) and deleted-on-disk binaries
+  - Falls back to `/proc/<pid>/maps` + `/proc/<pid>/mem` segment extraction for executable memory regions
+  - SHA-256 hashes every recovered artifact and always writes a `<prefix>_report.csv` manifest (process metadata,
+    source path, output file, size, hash, permissions, address range, status/notes) for investigator review
+  - Optional `-j`/`-J` flags add a JSON summary and/or JSONL event log alongside the CSV
+  - Requires root privileges
+
+- **`recover_exe_deleted_process.sh`** - Simpler exe-only recovery script
+  - Usage: `sudo ./recover_exe_deleted_process.sh <PID> <destination_directory>`
+  - Recovers just the `/proc/<pid>/exe` binary (metadata, hashes, filetype) for a single process
+  - Predecessor to `proc_recovery.sh`; kept for lightweight/quick recovery when memory-segment extraction
+    and CSV/JSON reporting aren't needed
+
 ### 💾 File System & Disk Analysis
 
 #### Disk and Image Analysis
@@ -82,6 +99,19 @@ Bash/
 
 - **`xfs_inode_converter.sh`** - XFS filesystem inode analysis tool
   - XFS-specific forensic analysis utilities
+
+- **`btrfs_extract.sh`** / **`btrfs_extract.py`** - Extract a file's inode, timestamps, and content from a btrfs
+  image without mounting it
+  - Usage: `./btrfs_extract.sh <filename> <btrfs_image>` (root directory files only)
+  - Bash and Python implementations provided; functionally equivalent
+
+- **`btrfs_extract_copilot.sh`** / **`btrfs_extract_copilot.py`** - Alternate btrfs single-file extraction utility
+  - Usage: `./btrfs_extract_copilot.sh <btrfs_image> <path_in_fs>`
+  - Copilot-generated example variant, kept alongside `btrfs_extract.sh` for comparison
+
+- **`bulk_E01_check.sh`** - Batch-scan a directory tree for `.E01` images and run `mmls` against each
+  - Usage: `./bulk_E01_check.sh /path/to/search`
+  - Quick partition-layout triage across a large evidence collection
 
 - **`check_lvm2.sh`** - LVM2 detection and validation utility
   - Quick check if LVM2 is in use on live filesystem
@@ -112,6 +142,25 @@ Bash/
 - **`timestampCheck.sh`** - Timestamp analysis and validation
   - Temporal analysis for forensic timelines
 
+#### Timeline & Bulk Processing
+
+- **`bulk_plaso_run.sh`** - Batch log2timeline/plaso processing across multiple evidence images
+  - Usage: `./bulk_plaso_run.sh /path/to/input/folder` (supports `OUT_DIR`/`WORK_DIR`/`SCRATCH_DIR` env overrides)
+  - Runs plaso against a whole folder of images and writes a CSV run manifest
+
+- **`bodyfile_extract.sh`** - Bulk-extract bodyfile entries from a large number of UAC collection archives
+  - Usage: `./bodyfile_extract.sh [source_dir] [dest_dir]`
+  - Prepares bodyfiles for `mactime`-based timeline generation
+
+- **`converBodyFiles.sh`** - Bulk-convert bodyfiles into human-readable timelines via `mactime.pl`
+  - Usage: `./converBodyFiles.sh [input_dir] [output_dir]`
+
+- **`historyStack.sh`** - Stack-rank bash history command usage across multiple disk images
+  - Usage: `./historyStack.sh [--clean] [--strict] IMAGE_DIR`
+  - Runs `target-query` (Dissect) bashhistory plugin across `.E01`/`.Ex01`/`.raw`/`.dd`/`.img` images and
+    produces a frequency-ranked command list
+  - Requires: `target-query`, `jq`
+
 ### 🦠 Malware Analysis
 
 - **`malanalyze.sh`** - Basic malware analysis with LLM-formatted output (DRAFT v0.0.1)
@@ -120,16 +169,24 @@ Bash/
   - Offline version without API requirements
   - Extracts strings, metadata, and file characteristics
 
-- **`malanlyze_chatgpt.sh`** - Advanced malware analysis with ChatGPT API integration (DRAFT v0.0.3)
+- **`malanalyze_chatgpt.sh`** - Advanced malware analysis with ChatGPT API integration (DRAFT v0.0.3)
   - More mature version with ChatGPT API integration
   - Enhanced error checking and command validation
+  - Requires `OPENAI_API_KEY` environment variable set before running
   - Direct API-based analysis and reporting
-  - Note: Filename has typo in "malanlyze" (should be "malanalyze")
 
 - **`mkbomb.sh`** - Zipbomb/decompression bomb generator for testing
   - Creates zipbomb test files for analysis validation
   - Tests decompression handling and resource limits
   - Useful for validating malware analysis sandboxes
+
+- **`shadowhs_LiveHunter.sh`** - Live-system detection for the ShadowHS fileless Linux post-exploitation
+  framework
+  - Usage: `sudo ./shadowhs_LiveHunter.sh [output_directory]`
+  - Checks for memfd_create()-based memory-only execution, argv spoofing, GSocket C2 tunneling, cryptomining
+    payloads, and LKM persistence
+  - Exit codes: `0` clean, `1` findings detected, `2` execution error
+  - Findings are leads for further investigation, not definitive proof of compromise (false positives possible)
 
 ### 🌐 Network & Security Analysis
 
@@ -138,6 +195,11 @@ Bash/
 
 - **`authCheck.sh`** - Authentication and authorization audit script
   - System authentication mechanism analysis
+
+- **`serviceTunnel.sh`** - SSH tunnel helper for reaching SIEM (Kibana) and EDR (Velociraptor) consoles
+  - Usage: `./serviceTunnel.sh --siem`, `--edr`, `--background`, `--status`, `--stop`
+  - Wraps SSH local port-forwarding using `~/.ssh/config` aliases (`siem`/`edr`) so analysts don't have to
+    remember tunnel syntax; supports foreground or backgrounded tunnels with PID-file tracking
 
 ### 📊 Log Analysis & System Monitoring
 
@@ -152,6 +214,12 @@ Bash/
   - Rapid journal log analysis for incident response
   - Automated detection of suspicious system events
   - Filters and highlights potential malicious activity
+
+- **`rapid_logGrabber.sh`** - Rapid collection of key event logs from multiple Linux hosts over SSH
+  - Usage: `./rapid_logGrabber.sh -H host1,host2,... | -f hostfile`
+  - Pulls Debian/Ubuntu (`syslog`/`auth.log`) and RHEL/CentOS/Fedora (`messages`/`secure`) logs, only if present
+  - Requires superuser SSH access to each target (root login must be permitted)
+  - Example/template script - test before use in your environment
 
 #### System Auditing
 
@@ -172,6 +240,19 @@ Bash/
 
 - **`install_container_diff.sh`** - Container diff tool installation
   - Automated installation of container comparison utilities
+
+### ☁️ Cloud Evidence Upload Helpers (Python)
+
+These are Python (not Bash) utilities kept alongside the collection scripts they support - each generates a
+time-limited S3 presigned URL so a remote host can upload evidence without holding AWS credentials.
+
+- **`AvmlPresignedUrlCreator.py`** - Presigned URL for uploading an AVML memory dump (`memory.lime`)
+- **`Dwarf2jsonPresignedUrlCreator.py`** - Presigned URL for uploading Volatility symbol files (dwarf2json
+  output + `System.map`, as a `.tar.gz`)
+- **`UacPresignedUrlCreator.py`** - Presigned URL for uploading UAC (Unix-like Artifacts Collector) output
+  (`UAC.tar.gz`)
+  - All three: require `boto3`, edit `BUCKET_NAME`/`REGION` before use, object key includes hostname + timestamp
+  - Usage: `./AvmlPresignedUrlCreator.py --help` (each supports `-h`/`--help` for full options)
 
 ### 🔧 Development & Testing Tools
 
@@ -239,6 +320,10 @@ Advanced educational rootkit with detection examples:
   - Lesson plans and learning objectives
   - Safety precautions and VM requirements
 
+- **`USAGE_GUIDE.md`** - Student/practitioner usage guide (Version 2.0)
+  - Documents the current file-hiding implementation (`getdents64` hooking) and configuration options
+  - Built and tested against kernel 5.15.0-124-generic and newer
+
 - **`README.md`** - Detailed technical documentation
   - Technical explanation of rootkit components
   - Compilation and usage instructions
@@ -286,6 +371,19 @@ sudo ./macos_evidence.sh
 ./install_vol.sh
 ```
 
+#### Process Artifact Recovery
+
+```bash
+# Full recovery (exe + memory segments) with CSV, JSON and JSONL output
+sudo ./proc_recovery.sh -p 1234 -d /evidence/proc_1234 -j -J
+
+# Same, matching by process name instead of PID
+sudo ./proc_recovery.sh -n "python.*server" -d /evidence
+
+# Quick exe-only recovery of a deleted binary
+sudo ./recover_exe_deleted_process.sh 1234 /evidence
+```
+
 #### Malware Analysis
 
 ```bash
@@ -293,10 +391,13 @@ sudo ./macos_evidence.sh
 ./malanalyze.sh -f suspicious_file.exe
 
 # Analyze suspicious file with ChatGPT API integration
-./malanlyze_chatgpt.sh -f suspicious_file.exe
+OPENAI_API_KEY=your_key_here ./malanalyze_chatgpt.sh -f suspicious_file.exe
 
 # Generate zipbomb test file
 ./mkbomb.sh
+
+# Live-hunt for ShadowHS fileless malware indicators
+sudo ./shadowhs_LiveHunter.sh /evidence/shadowhs_hunt
 ```
 
 #### System Configuration
@@ -307,6 +408,10 @@ sudo ./setAuditD.sh
 
 # Authentication audit
 ./authCheck.sh
+
+# Tunnel to SIEM (Kibana) and EDR (Velociraptor) consoles over SSH
+./serviceTunnel.sh --siem --background
+./serviceTunnel.sh --edr --status
 ```
 
 #### Log Analysis
@@ -317,6 +422,36 @@ sudo ./setAuditD.sh
 
 # Triage journal entries for incidents
 ./OS_Journal_Triage.sh
+
+# Rapid log collection from a fleet of hosts (requires root SSH access)
+./rapid_logGrabber.sh -H host1,host2,host3
+```
+
+#### Timeline & Bulk Processing
+
+```bash
+# Batch plaso run against a folder of evidence images
+./bulk_plaso_run.sh /cases/images
+
+# Scan a directory tree for .E01 images and list partitions
+./bulk_E01_check.sh /mnt/evidence
+
+# Extract bodyfiles from a bulk UAC collection, then convert to timelines
+./bodyfile_extract.sh /mnt/uac_collections /mnt/bodyfiles
+./converBodyFiles.sh /mnt/bodyfiles /mnt/timelines
+
+# Stack-rank bash history commands across multiple disk images
+./historyStack.sh --strict /cases/images
+```
+
+#### btrfs Analysis (No Mount Required)
+
+```bash
+# Extract a single file from a btrfs image by name
+./btrfs_extract.sh passwd /mnt/evidence/disk.btrfs.img
+
+# Alternate implementation, addressed by in-filesystem path
+./btrfs_extract_copilot.sh disk.btrfs.img /etc/passwd
 ```
 
 #### LVM and Advanced Filesystem Analysis
@@ -339,6 +474,19 @@ sudo ./LVM_automount_update.sh --lv-name home disk.dd /mnt/home
 
 # Check if LVM2 is in use on live system
 ./check_lvm2.sh
+```
+
+#### Cloud Evidence Upload (Presigned S3 URLs)
+
+```bash
+# Generate a presigned URL for an AVML memory dump upload
+./AvmlPresignedUrlCreator.py --help
+
+# Generate a presigned URL for Volatility symbol files
+./Dwarf2jsonPresignedUrlCreator.py --help
+
+# Generate a presigned URL for a UAC collection archive
+./UacPresignedUrlCreator.py --help
 ```
 
 #### Educational Tools
