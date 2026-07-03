@@ -11,7 +11,8 @@
       "Bash(command -v shellcheck)",
       "Bash(shellcheck /d/Development/Public/Bash/proc_recovery.sh)",
       "Bash(command -v wsl.exe)",
-      "Bash(wsl.exe *)"
+      "Bash(wsl.exe *)",
+      "Bash(grep -v '^\\\\.git$')"
     ],
     "deny": []
   }

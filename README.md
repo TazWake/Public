@@ -1,354 +1,98 @@
 # DFIR Tools Repository
 
-A comprehensive collection of Digital Forensics and Incident Response (DFIR) tools, scripts, and containerised environments for cybersecurity professionals and researchers.
+A collection of Digital Forensics and Incident Response (DFIR) tools, scripts, notes, and containerised lab environments for cybersecurity professionals and researchers. All tools are for **defensive security and legitimate forensic analysis only**.
+
+Most top-level directories have their own `README.md` with full details — this file is a map, not a manifest.
 
 ## Repository Structure
 
-### 🔧 Applications/
+### Tooling by language
 
-C and Go implementations of analysis tools
+| Directory | Contents |
+|---|---|
+| **[Bash/](Bash/README.md)** | Production shell scripts: evidence collection, memory/process artifact recovery, filesystem carving (ext4/xfs/btrfs/LVM), malware triage, log/timeline processing, plus `lab_ctf_generators/` and educational `rootkits/`. See its README for the full script index. |
+| **[Python/](Python/README.md)** | Forensic utilities — EXIF/metadata extraction, ELF/XFS parsing, process checking, VirusTotal hash lookups, login-data parsing. |
+| **[Powershell/](Powershell/README.md)** | Windows-specific collection and auditing scripts (KAPE/MRC-based collection, logging/audit policy config, botnet checks, PPTX helpers). |
+| **[Applications/](Applications/README.md)** | Compiled tools — `malreview` in both C (`malreview.c`) and Go (`malreview.go`). |
+| **[Lisp/](Lisp/README.md)** | Standalone Common Lisp (SBCL) DFIR utilities: kernel symbol table triage, process-map injection detection, ELF section entropy profiling. |
 
-- `malreview.c` - C implementation of malware analysis utility for file examination
-- `malreview.go` - Go implementation of malware analysis utility for file examination
+### Memory analysis (Volatility)
 
-### Bash/
+- **`Vol2.6/`** — Volatility 2.6 plugins (deprecated but functional): `ramscan`, `triagecheck`, `cmdcheck`, `Fastvadscan`, `pathcheck`.
+- **`Vol3/`** — Volatility 3 plugin: `fasttriage`.
 
-Production-ready shell scripts for Linux/macOS forensic operations
+### Lab & testing environments
 
-#### Evidence Collection & System Analysis
+- **[docker/](docker/README.md)** — Containerised environments: ELK/OpenSearch log analysis, malware/maldoc analysis, a vulnerable web app, and nmap scanning labs. See its README for per-environment ports and compose commands.
+- **`Range/`** — Multi-container attack range (Kali, nmap scanner, Ubuntu target) on an isolated `10.10.10.0/24` network.
+- **[EvidenceGenerator/](EvidenceGenerator/README.md)** — Synthetic evidence/log generation for training and testing.
+- **[JupyterNotebooks/](JupyterNotebooks/README.md)** — Interactive notebooks for web-log review, evidence overview, and user analytics; a `velociraptor/` guide; a `Testing/` scratch area.
 
-- `evidence_collector.sh` - Comprehensive Linux evidence collection following RFC3227 guidelines
-- `triageScan.sh` - Quick system triage and suspicious activity detection
-- `triage_template.sh` - Template for standardized triage procedures
-- `docker_triage.sh` - Container-specific forensic data collection
-- `cron_collector.sh` - Automated collection of scheduled task artifacts
+### Reference & planning
 
-#### Memory Analysis
+- **`plaso/`** — log2timeline/plaso filter files for Linux timelines.
+- **`dfir_collection.md`** — Vendor-neutral guidance on RAM/disk collection tooling and process.
+- **[Examples/](Examples/README.md)** — Sample data (e.g. Potato privilege-escalation technique writeup).
+- **`SOAR_Ideas/`** — Reference architecture notes (e.g. Node-RED as a lightweight SOAR for Linux IR).
+- **`Triage_tooling/`** — Working notes/plans for a cross-language (Bash/Python/compiled) triage tool.
 
-- `memory_precook.sh` - Automated Volatility analysis battery for memory images
-- `proc_dumper.sh` - Process memory dumping utility
-- `install_vol.sh` - Volatility framework installation script
+### Agent & repo guidance
 
-#### File System & Disk Analysis
-
-- `VMDK_Carver.sh` - NTFS data carving from VMDK images using TSK
-- `ext4_inode_extractor.sh` - Extract inode information from ext4 filesystems
-- `xfs_inode_converter.sh` - XFS filesystem inode analysis tool
-- `check_lvm2.sh` - LVM2 logical volume analysis
-- `apfs_setup.sh` - APFS filesystem preparation and analysis
-
-#### Malware Analysis
-
-- `malanalyze.sh` - Basic malware analysis with output formatted for LLM analysis
-- `malanlyze_chatgpt.sh` - Malware analysis specifically formatted for ChatGPT input
-- `mkbomb.sh` - Test file generation for analysis validation
-
-#### Network & Security
-
-- `iplookups.sh` - Bulk IP address WHOIS analysis for threat intelligence
-- `authCheck.sh` - Authentication and authorisation audit script
-- `setAuditD.sh` - Configure auditd for comprehensive system monitoring
-- `setAuditD_RHEL.sh` - RHEL-specific auditd configuration
-
-#### Log Analysis
-
-- `journalConverter.sh` - Convert systemd journal logs for analysis
-- `journalTriage.sh` - Triage systemd journal entries for incidents
-- `timestampCheck.sh` - Timestamp analysis and validation
-
-#### Specialised Tools
-
-- `GenELF_file_better.sh` - Generate sample ELF files for testing
-- `multi_Files.sh` - Batch file processing utility
-- `fileshred.sh` - Secure file deletion utility
-- `exifevidence.sh` - EXIF metadata extraction from images
-- `class_prep.sh` - Classroom/lab environment preparation
-- `sift_mac_apt.sh` - SIFT workstation macOS APT installation
-- `macos_evidence.sh` - macOS-specific evidence collection
-- `dockAnalyse.sh` - Docker container analysis
-- `install_container_diff.sh` - Container diff tool installation
-
-#### Rootkits/ (Educational)
-
-- `Makefile` - Build configuration for kernel module compilation
-- `sample_LKM.c` - Sample Linux Kernel Module for educational purposes
-
-### Python/
-
-Python utilities for forensic analysis
-
-- `exifcheck.py` - DOCX metadata extraction utility
-- `fastfluxfinder.py` - Network analysis tool for detecting fast flux DNS patterns
-- `inode_reader.py` - Low-level filesystem inode analysis tool
-
-### Powershell/
-
-Windows-specific forensic and security scripts
-
-- `collectEvidence.ps1` - Comprehensive Windows evidence collection with KAPE and MRC
-- `Enable_PowerShellDetailedAuditing.ps1` - Enable detailed PowerShell execution logging
-- `set_logging.ps1` - Configure Windows security logging
-- `setAuditing.ps1` - Windows audit policy configuration
-- `setContextMenu.ps1` - Custom context menu entries for forensic tools
-- `FolderCheck.ps1` - Directory integrity and analysis script
-- `botnetcheck.ps1` - Botnet infection detection script
-- `collect_timestamps.ps1` - Windows timestamp collection and analysis
-
-### Vol2.6/ (Deprecated)
-
-Volatility 2.6 memory analysis plugins
-
-- `ramscan.py` - Process listing with VAD analysis for suspicious RWX memory regions
-- `triagecheck.py` - Quick memory triage for obvious malicious activity indicators
-- `cmdcheck.py` - Analyses cmd.exe handles for backdoor detection
-- `Fastvadscan.py` - Fast VAD scanning without file extraction
-- `pathcheck.py` - Identifies executables loaded from suspicious locations
-
-### Vol3/
-
-Volatility 3 memory analysis plugins
-
-- `fasttriage.py` - Modernised triage plugin for Volatility 3 framework
-
-### 🐳 docker/
-
-Containerised analysis and testing environments
-
-#### Log Analysis Platforms
-
-##### Analysis_ELK/
-
-- Complete ELK stack (Elasticsearch, Kibana, Filebeat) for log analysis
-- Pre-configured for Apache, auditd, syslog, messages, auth.log, and secure logs
-- Expects logs in `/cases/logstore` directory
-- Access Kibana at <http://localhost:8889>
-
-##### Analysis_OpenSearch/
-
-- OpenSearch alternative to ELK stack
-- Access dashboards at <http://localhost:8899>
-
-##### LogFileAnalysisWithElastic/
-
-- Enhanced log analysis environment with automated setup
-- Includes setup scripts for ingest pipelines and timestamp parsing
-- Run `./setup.sh` for automated configuration
-- Status checking via `./check-status.sh`
-
-#### Malware Analysis Environments
-
-##### MalwareAnalyzer/
-
-- Containerised malware analysis environment
-- Isolated environment for safe malware examination
-- Mounts current directory to `/analysis` for file analysis
-- Results written to `./results` directory
-
-##### maldoc/
-
-- Specialised environment for analysing malicious documents
-- Tools for document metadata extraction and embedded object analysis
-
-#### Security Testing Environments
-
-##### testingweb/
-
-- Vulnerable PHP/MySQL web application for security testing
-- Includes phpMyAdmin interface
-- MySQL credentials: root/NINJAROOTPASSWORD
-- Access web interface at <http://localhost:9999>
-
-##### nmap_real/
-
-- Production-ready nmap scanning environment with monitoring
-- Includes Grafana dashboards and Prometheus metrics
-- Optimised for large-scale scanning operations
-
-##### nmaper/
-
-- Lightweight containerised nmap scanning environment
-- Quick deployment for network reconnaissance tasks
-
-##### re_docker/
-
-- Reverse engineering Docker environment
-- Tools for binary analysis and reverse engineering tasks
-
-### Range/
-
-Multi-container network testing environment
-
-- Kali Linux container (10.10.10.10) - Attack platform
-- Nmap scanner container (10.10.10.11) - Network reconnaissance
-- Ubuntu target container (10.10.10.12) - Victim system
-- Isolated 10.10.10.0/24 network for safe testing
-
-### EvidenceGenerator/
-
-Synthetic evidence generation for training and testing
-
-- `generate_data.py` - Generate realistic forensic artifacts
-- `webgen.py` - Web log generation utility
-- Filter generated logs to remove private IP addresses using provided grep patterns
-
-### Examples/
-
-Sample data and documentation
-
-- `GenericPotato.md` - Privilege escalation technique documentation
-- `GenericPotato.zip` - Sample files for potato attack vectors
-
-### JupyterNotebooks/
-
-Jupyter notebooks for data analysis and forensic workflows
-
-- `Test2.ipynb` - Example notebook demonstrating data analysis techniques
-- Interactive environment for forensic data exploration and visualisation
-
-### plaso/
-
-Log2timeline/plaso configuration files
-
-- `filter_linux.txt` - Linux-specific timeline filtering rules
-- `filter_linux.yaml` - YAML format Linux timeline filters
-- Pre-configured filters for efficient timeline analysis on Linux systems
-
-### Documentation
-
-- `dfir_collection.md` - DFIR collection methodology documentation
-- `README.md` - This file, comprehensive repository documentation
-- `CLAUDE.md` - Guidelines for Claude Code when working with this repository
+- **`CLAUDE.md`** / **`AGENTS.md`** — Instructions for AI coding agents working in this repo (environment notes, coding conventions, safety rules).
 
 ## Quick Start
 
-### Docker Environments
+### Docker environments
 
 ```bash
-# Start ELK stack for log analysis
-cd docker/Analysis_ELK && docker-compose up -d
-# Access Kibana at http://localhost:8889
-
-# Start enhanced log analysis with automated setup
-cd docker/LogFileAnalysisWithElastic
-./setup.sh
-docker-compose up -d
-
-# Start OpenSearch alternative
-cd docker/Analysis_OpenSearch && docker-compose up -d
-# Access dashboards at http://localhost:8899
-
-# Start malware analysis environment
+cd docker/Analysis_ELK && docker-compose up -d        # Kibana: http://localhost:8889
+cd docker/Analysis_OpenSearch && docker-compose up -d  # Dashboards: http://localhost:8899
 cd docker/MalwareAnalyzer && docker-compose up -d
-
-# Start testing range (isolated network)
+cd docker/testingweb && docker-compose up -d           # http://localhost:9999
 cd Range && docker-compose up -d
-
-# Start vulnerable web app for security testing
-cd docker/testingweb && docker-compose up -d
-# Access at http://localhost:9999
-
-# Start nmap scanning environment with monitoring
-cd docker/nmap_real && docker-compose up -d
 ```
 
-### Memory Analysis with Volatility
+### Memory & process analysis
 
 ```bash
-# Automated Volatility analysis
 ./Bash/memory_precook.sh memory.img Win7SP1x64
-
-# Quick triage with Vol3
 python vol.py -p Vol3 -f memory.img windows.fasttriage
+sudo ./Bash/proc_recovery.sh -p 1234 -d /evidence/proc_1234 -j -J
 ```
 
-### Evidence Collection
+### Evidence collection
 
 ```bash
-# Linux evidence collection
-sudo ./Bash/evidence_collector.sh /mnt/evidence
-
-# Windows evidence collection
-.\Powershell\collectEvidence.ps1
+sudo ./Bash/evidence_collector.sh /mnt/evidence   # Linux
+.\Powershell\collectEvidence.ps1                  # Windows
 ```
 
-### Building Applications
+### Building applications
 
 ```bash
-# C applications (requires C++17 support)
 g++ -std=c++17 -o malreview Applications/malreview.c -lstdc++fs
-
-# Go applications (requires Go 1.16+)
 go build -o malreview Applications/malreview.go
-
-# Kernel modules (requires kernel headers)
-cd Bash/rootkits/
-make all    # Build kernel module
-make clean  # Clean build artifacts
+cd Bash/rootkits/ && make all   # Kernel module (requires kernel headers)
 ```
 
 ## Prerequisites & Dependencies
 
-### Core Requirements
+- **Docker & Docker Compose** for containerised environments
+- **Python 3.x** for Python utilities and Volatility plugins
+- **Bash/WSL2** for shell script execution on Windows
+- **Volatility** (`vol.py` in PATH) with appropriate memory profiles for memory analysis
+- **The Sleuth Kit (TSK)**, **LiME**, **ewfacquire**/`dd` for evidence collection and disk/filesystem work
+- **C++17 compiler**, **Go 1.16+**, and **kernel headers** for building the compiled tools/kernel modules
+- **SBCL** for the Lisp tools
+- ELK containers expect logs in `/cases/logstore` (create it before starting them)
 
-- **Docker & Docker Compose** - For containerized analysis environments
-- **Python 3.x** - For Python utilities and Volatility plugins
-- **Bash/Shell** - For shell script execution (WSL2 on Windows)
-
-### Memory Analysis Requirements
-
-- **Volatility Framework** - vol.py must be in PATH
-- **Appropriate memory profiles** - Match your memory image OS version
-- **dwarfdump utility** - For advanced memory analysis
-
-### Evidence Collection Tools
-
-- **LiME (Linux Memory Extractor)** - For memory capture on Linux
-- **The Sleuth Kit (TSK)** - For VMDK carving and filesystem analysis
-- **ewfacquire** - For disk imaging (or dd as fallback)
-
-### Log Analysis Platform Requirements
-
-- **ELK Stack** - Expects logs in `/cases/logstore` directory
-- Create `/cases/logstore` if missing before starting ELK containers
-
-### Development Tools
-
-- **C++17 compiler** - For C application compilation
-- **Go 1.16+** - For Go application development
-- **Kernel headers** - For Linux kernel module development (`linux-headers-$(uname -r)`)
-- **ShellCheck** - Recommended for bash script validation
-
-### Optional Tools
-
-- **KAPE** - Windows evidence collection (collectEvidence.ps1)
-- **MRC (Magnet Response Collection)** - Windows forensics
-- **Jupyter** - For interactive data analysis notebooks
+Individual scripts and subfolder READMEs note any additional dependencies.
 
 ## Important Notes
 
-### Security Context
-
-All tools in this repository are designed for **defensive security and legitimate forensic analysis only**. The repository contains:
-
-- Educational materials (kernel modules, rootkits)
-- Legitimate forensic utilities
-- Security testing environments
-
-### Evidence Handling
-
-Scripts follow RFC3227 guidelines for digital evidence:
-
-- Automatic integrity verification (MD5/SHA1 hashing)
-- Comprehensive logging of all operations
-- Chain of custody documentation included
-
-### Best Practices
-
-- Always run evidence collection scripts with appropriate privileges
-- Verify checksums of collected evidence
-- Maintain proper chain of custody documentation
-- Use isolated environments for malware analysis
-- Review script headers for specific dependencies
+- All tools are for **defensive security and legitimate forensic analysis**; educational components (`Bash/rootkits/`) are for isolated lab use only and must never be deployed on production systems.
+- Evidence-handling scripts follow RFC3227 guidance: integrity verification (hashing), action logging, and chain-of-custody documentation.
+- Always verify checksums of collected evidence and review a script's header/help output (`-h`/`--help`) before running it against a case.
 
 ## License
 
@@ -356,11 +100,4 @@ See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-This repository contains production DFIR tools. Contributions should:
-
-- Follow existing code style and structure
-- Include appropriate documentation
-- Use descriptive variable/function names
-- Add error handling and logging
-
-- Individual script headers contain usage instructions
+Contributions should follow existing code style, include documentation (usage in script headers/help output), use descriptive names, and add appropriate error handling and logging.
