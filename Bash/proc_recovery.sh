@@ -6,6 +6,7 @@
 # - Falls back to maps-based segment extraction
 # - Logs actions
 # - Supports PID, process name, evidence directory
+# - Always produces a CSV manifest of recovered artifacts with SHA-256 hashes
 # - Optional JSON and JSONL output modes
 
 set -euo pipefail
@@ -29,15 +30,19 @@ Options:
 
 Examples:
   sudo $0 -p 1234 -d /evidence/proc_1234
-  sudo $0 -n nginx -d /evidence/nginx --json
-  sudo $0 -n "python.*server" -d /evidence --jsonl
+  sudo $0 -n nginx -d /evidence/nginx -j
+  sudo $0 -n "python.*server" -d /evidence -J
 
 Notes:
   - Requires root privileges.
   - Attempts exe-based recovery first.
-  - Detects memfd-backed executables.
+  - Detects memfd-backed and deleted-on-disk executables.
   - Falls back to maps-based extraction.
-  - Records metadata, hashes, timestamps.
+  - Records metadata, SHA-256 hashes, timestamps.
+  - A CSV manifest (<prefix>_report.csv) is always produced and lists every
+    recovered artifact (exe + segments) with source path, output file,
+    size, SHA-256 hash and permissions, for direct import into case notes
+    or a hash-verification workflow.
   - JSON/JSONL outputs include process start time (Unix epoch).
 EOF
     exit 1
@@ -46,6 +51,37 @@ EOF
 log() {
     local msg="$1"
     echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] $msg" | tee -a "$logfile"
+}
+
+# Escape a single field for CSV (RFC4180-ish: wrap in quotes, double any quotes).
+csv_escape() {
+    local field="$1"
+    field="${field//\"/\"\"}"
+    printf '"%s"' "$field"
+}
+
+# Append one row to the CSV manifest. Columns are defined by csv_header below.
+csv_row() {
+    local out="" first=1
+    for field in "$@"; do
+        if [[ $first -eq 1 ]]; then
+            out="$(csv_escape "$field")"
+            first=0
+        else
+            out="${out},$(csv_escape "$field")"
+        fi
+    done
+    printf '%s\n' "$out" >> "$csv_file"
+}
+
+# SHA-256 of a file, empty string if it can't be read/hashed.
+sha256_of() {
+    local target="$1"
+    if [[ -r "$target" ]]; then
+        sha256sum "$target" 2>/dev/null | awk '{print $1}'
+    else
+        echo ""
+    fi
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -115,9 +151,20 @@ log "Evidence prefix: ${prefix}"
 cp "/proc/$pid/status" "${prefix}_status.txt"
 tr '\0' ' ' < "/proc/$pid/cmdline" > "${prefix}_cmdline.txt" || true
 
+proc_name=$(cat "/proc/$pid/comm" 2>/dev/null || echo "unknown")
+ppid=$(awk '/^PPid:/{print $2}' "/proc/$pid/status" 2>/dev/null || echo "")
+
 # Process start time (Unix epoch)
 start_time=$(stat -c %X "/proc/$pid")
 log "Process start time (epoch): $start_time"
+log "Process name: $proc_name (PPID: ${ppid:-unknown})"
+
+# CSV manifest -- the primary investigator-facing artifact report.
+csv_file="${prefix}_report.csv"
+csv_row "timestamp_utc" "pid" "process_name" "ppid" "start_time_epoch" \
+        "artifact_type" "status" "original_path" "extracted_file" \
+        "size_bytes" "sha256" "permissions" "addr_start" "addr_end" \
+        "deleted" "memfd" "filetype" "notes"
 
 # JSON accumulator
 json_file="${prefix}_summary.json"
@@ -141,30 +188,59 @@ if [[ -e "/proc/$pid/exe" ]]; then
     memfd_flag=0
     [[ "$exe_target" == memfd:* ]] && memfd_flag=1
 
+    deleted_flag=0
+    [[ "$exe_target" == *" (deleted)" ]] && deleted_flag=1
+
+    exe_perms=$(stat -Lc '%a' "/proc/$pid/exe" 2>/dev/null || echo "")
     stat -Lc 'inode=%i links=%h size=%s mode=%a uid=%u gid=%g mtime=%y ctime=%z' \
         "/proc/$pid/exe" > "${prefix}_exe_stat.txt" || true
 
     log "Attempting recovery via /proc/$pid/exe..."
-    dd if="/proc/$pid/exe" \
-       of="${prefix}_exe_recovered" \
-       bs=4M iflag=fullblock conv=fsync status=none || {
+    recovered_exe="${prefix}_exe_recovered"
+    exe_status="recovered"
+    if ! dd if="/proc/$pid/exe" \
+       of="$recovered_exe" \
+       bs=4M iflag=fullblock conv=fsync status=none; then
         log "ERROR: dd from /proc/$pid/exe failed."
-    }
+        exe_status="dd_failed"
+    fi
 
-    if [[ -s "${prefix}_exe_recovered" ]]; then
+    exe_sha256=""
+    exe_size=0
+    exe_filetype=""
+    exe_notes=""
+
+    if [[ -s "$recovered_exe" ]]; then
         log "Recovered binary via exe symlink."
-        sha256sum "/proc/$pid/exe" "${prefix}_exe_recovered" \
-            > "${prefix}_exe_hashes.txt" || true
-        file "${prefix}_exe_recovered" > "${prefix}_exe_filetype.txt" || true
+        {
+            sha256sum "/proc/$pid/exe" 2>/dev/null || true
+            sha256sum "$recovered_exe" 2>/dev/null || true
+        } > "${prefix}_exe_hashes.txt"
+        exe_sha256=$(sha256_of "$recovered_exe")
+        exe_size=$(stat -c %s "$recovered_exe" 2>/dev/null || echo 0)
+        file "$recovered_exe" > "${prefix}_exe_filetype.txt" 2>/dev/null || true
+        exe_filetype=$(cut -d: -f2- "${prefix}_exe_filetype.txt" 2>/dev/null | sed -e 's/^ *//' -e 's/,.*$//')
+        [[ "$memfd_flag" -eq 1 ]] && exe_notes="memfd-backed executable (fileless / in-memory only)"
+        [[ "$deleted_flag" -eq 1 ]] && exe_notes="${exe_notes:+$exe_notes; }binary deleted from disk, recovered from open file handle"
+        [[ -z "$exe_notes" ]] && exe_notes="recovered via /proc/$pid/exe"
     else
         log "WARNING: Recovered exe file is empty."
+        exe_status="empty"
+        exe_notes="recovered file was empty; exe handle may be inaccessible or already closed"
     fi
+
+    csv_row "$(date +%Y-%m-%dT%H:%M:%S%z)" "$pid" "$proc_name" "$ppid" "$start_time" \
+            "exe" "$exe_status" "$exe_target" "$recovered_exe" \
+            "$exe_size" "$exe_sha256" "$exe_perms" "" "" \
+            "$deleted_flag" "$memfd_flag" "$exe_filetype" "$exe_notes"
 
     # JSON update
     json_obj=$(jq \
       --arg exe_target "$exe_target" \
       --arg memfd "$memfd_flag" \
-      '.exe = { "target": $exe_target, "memfd": ($memfd|tonumber) }' \
+      --arg sha256 "$exe_sha256" \
+      --arg size "$exe_size" \
+      '.exe = { "target": $exe_target, "memfd": ($memfd|tonumber), "sha256": $sha256, "size": ($size|tonumber) }' \
       <<< "$json_obj")
 else
     log "WARNING: /proc/$pid/exe not present."
@@ -200,15 +276,31 @@ else
         echo "segment ${start_hex}-${end_hex} perms=${perms} file=${file_path:-[anon]} size=${size}" \
             | tee -a "$segment_list" >> "$logfile"
 
-        dd if="/proc/$pid/mem" \
+        seg_status="recovered"
+        seg_sha256=""
+        seg_actual_size=0
+        seg_filetype=""
+        seg_notes=""
+
+        if ! dd if="/proc/$pid/mem" \
            of="$seg_file" \
            bs=1 skip="$start" count="$size" \
-           status=none || {
+           status=none; then
             log "ERROR: dd failed for segment ${start_hex}-${end_hex}."
-            continue
-        }
+            seg_status="dd_failed"
+            seg_notes="extraction failed (region may be unmapped or inaccessible at read time)"
+        else
+            sha256sum "$seg_file" >> "${prefix}_segments_hashes.txt" || true
+            seg_sha256=$(sha256_of "$seg_file")
+            seg_actual_size=$(stat -c %s "$seg_file" 2>/dev/null || echo 0)
+            seg_filetype=$(file -b "$seg_file" 2>/dev/null | sed -e 's/,.*$//')
+            [[ -z "$file_path" ]] && seg_notes="anonymous executable mapping (no backing file; possible shellcode/injected code)"
+        fi
 
-        sha256sum "$seg_file" >> "${prefix}_segments_hashes.txt" || true
+        csv_row "$(date +%Y-%m-%dT%H:%M:%S%z)" "$pid" "$proc_name" "$ppid" "$start_time" \
+                "segment" "$seg_status" "${file_path:-[anon]}" "$seg_file" \
+                "$seg_actual_size" "$seg_sha256" "$perms" "$start_hex" "$end_hex" \
+                "" "" "$seg_filetype" "$seg_notes"
 
         # JSONL event
         if [[ $jsonl -eq 1 ]]; then
@@ -218,7 +310,9 @@ else
               --arg perms "$perms" \
               --arg file "$file_path" \
               --arg seg "$seg_file" \
-              '{type:"segment", start:$start, end:$end, perms:$perms, file:$file, output:$seg}' \
+              --arg sha256 "$seg_sha256" \
+              --arg status "$seg_status" \
+              '{type:"segment", start:$start, end:$end, perms:$perms, file:$file, output:$seg, sha256:$sha256, status:$status}' \
               >> "$jsonl_file"
         fi
 
@@ -229,8 +323,10 @@ else
           --arg perms "$perms" \
           --arg file "$file_path" \
           --arg seg "$seg_file" \
-          '.segments += [{start:$start, end:$end, perms:$perms, file:$file, output:$seg}]' \
-          <<< "$json_obj"
+          --arg sha256 "$seg_sha256" \
+          --arg status "$seg_status" \
+          '.segments += [{start:$start, end:$end, perms:$perms, file:$file, output:$seg, sha256:$sha256, status:$status}]' \
+          <<< "$json_obj")
 
     done < "/proc/$pid/maps"
 fi
@@ -241,6 +337,10 @@ if [[ $json -eq 1 ]]; then
     log "JSON summary written to $json_file"
 fi
 
+artifact_count=$(( $(wc -l < "$csv_file") - 1 ))
+
 log "Forensic recovery completed for PID $pid."
+log "CSV manifest written to ${csv_file} (${artifact_count} artifact(s))."
 echo "[+] Done. Log: ${logfile}"
+echo "    CSV report: ${csv_file}"
 echo "    Evidence prefix: ${prefix}_*"
