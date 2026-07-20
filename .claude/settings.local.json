@@ -12,7 +12,13 @@
       "Bash(shellcheck /d/Development/Public/Bash/proc_recovery.sh)",
       "Bash(command -v wsl.exe)",
       "Bash(wsl.exe *)",
-      "Bash(grep -v '^\\\\.git$')"
+      "Bash(grep -v '^\\\\.git$')",
+      "Bash(shellcheck -S style /d/Development/Public/Bash/install_vol.sh)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(bash -n /d/Development/Public/Bash/install_vol.sh)",
+      "PowerShell(docker run *)",
+      "PowerShell($b=[IO.File]::ReadAllBytes\\(\"D:\\\\Development\\\\Public\\\\Bash\\\\install_vol.sh\"\\); $crlf=0; for\\($i=0;$i -lt $b.Length-1;$i++\\){if\\($b[$i] -eq 13 -and $b[$i+1] -eq 10\\){$crlf++}}; \"CRLF pairs: $crlf\")",
+      "Bash(bash /d/Development/Public/Bash/install_vol.sh --help)"
     ],
     "deny": []
   }
