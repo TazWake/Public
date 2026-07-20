@@ -48,7 +48,7 @@ set -euo pipefail
 readonly VERSION="2.0"
 readonly SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 
-# Full paths for commands (security best practice)
+# Full paths for commands
 readonly EXIFTOOL_BIN="/usr/bin/exiftool"
 readonly FIND_BIN="/usr/bin/find"
 readonly DATE_BIN="/bin/date"
