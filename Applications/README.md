@@ -8,6 +8,14 @@ The `malanalyze` tool performs comprehensive static analysis on suspicious binar
 
 ## Applications
 
+### RapidMalwareTriage (C++17)
+
+- **Location**: [`RapidMalwareTriage/`](RapidMalwareTriage/README.md)
+- **Purpose**: Auditable, non-executing static triage for ELF, PE/COFF, Mach-O, scripts, archives, and unknown files
+- **Output**: Text, CSV, JSON, raw tool evidence, artifact hashes, and a hash-chained audit trail
+- **LLM support**: Optional Ollama, llama.cpp, OpenAI, Anthropic, and Gemini assessment
+- **Platform**: Version 1 builds on 64-bit Linux and WSL2; native Windows support is planned
+
 ### malreview.c (C++ Implementation)
 - **Language**: C++17
 - **Advantages**: Minimal dependencies, fast execution, native performance
