@@ -1,24 +1,22 @@
 # AGENTS.md
 
-This file provides guidance for coding agents working in this repository.
+Guidance for coding agents working in `D:\Development\Public`.
 
-## Scope
-- Repository root: D:\Development\Public
-- OS: Windows with PowerShell; use WSL2 for bash-only scripts.
+## Repository purpose
 
-## Repository Context
-- This repo is a public collection of DFIR scripts, notes, and containerized tooling.
-- Prefer small, incremental changes and avoid churn in unrelated files.
+This is a public collection of tools, scripts, plugins, notes, notebooks, and containerized labs for incident responders, investigators, and other security professionals. It includes evidence collection and analysis utilities, Volatility plugins, synthetic evidence generators, and isolated training environments. All content is intended for authorized defensive security, forensic analysis, research, and education.
 
-## Conventions
-- Use `rg` for fast search; avoid `grep` unless `rg` is unavailable.
-- Avoid piping to `nul` in PowerShell; use `>$null` instead.
-- For bash scripts, follow strict mode and safe quoting practices (see CLAUDE.md).
+## Working conventions
+
+- The host is Windows with PowerShell; run bash-only tooling through WSL2 or Docker.
+- Read the relevant directory README before changing a tool. Consult `README.md` and `CLAUDE.md` for broader context and Bash conventions.
+- Prefer small, focused changes and preserve established styles across Bash, PowerShell, Python, Go, C/C++, Lisp, notebooks, and container configuration.
+- Use `rg` for search. In PowerShell, redirect to `$null`, never `nul`.
+- New or changed tools should document their purpose, usage, dependencies, privileges, outputs, and important safety considerations.
+- Validate inputs, quote paths and shell variables, provide actionable errors, and retain forensic logging and integrity checks where applicable.
+- Test changes with the narrowest relevant check; use WSL2 or an isolated container for Linux-specific or potentially risky tooling.
 
 ## Safety
-- Do not run destructive commands unless explicitly requested.
-- Do not modify files outside the repository root without approval.
 
-## Suggestions Before Edits
-- Skim `README.md` and `CLAUDE.md` for context before larger changes.
-- For new scripts, include brief usage notes and dependencies.
+- Do not run destructive, collection, malware-analysis, scanning, rootkit, or attack-range tooling without explicit authorization and an appropriate isolated target.
+- Do not modify files outside this repository without approval, and do not commit generated evidence, case data, credentials, secrets, or large build artifacts.
