@@ -16,7 +16,7 @@ classic (and now unmaintained, Python 2) tools *NeoPI* and *BackdoorMan*:
 
 This tool combines both approaches in one dependency-free script and is designed
 to be **useful entirely on its own** - a hunter who only runs this Python script
-should still get a high-value result. To that end it also performs light-touch
+should still get a high-value result. To that end, it also performs light-touch
 web-root discovery and access-log analysis, so it does not depend on any other
 tool to find its targets or spot shell interaction.
 
@@ -52,7 +52,7 @@ Forensic caveats
 * Ownership, mode and some timestamps are platform-dependent. The tool records
   whatever the operating system exposes and says so in the log.
 
-Author: Halkyn Consulting - Friday Threat Hunting series.
+Author: Halkyn Consulting.
 Licence: MIT (see repository). Reimplementation of published concepts; contains
 no third-party code.
 """
