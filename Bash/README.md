@@ -163,6 +163,13 @@ Bash/
 
 ### 🦠 Malware Analysis
 
+- **`WebShellHuntr.sh`** - Read-only, multi-language web-shell hunter for live Linux hosts and mounted/captured evidence
+  - Discovers Apache/httpd, nginx/OpenResty, Lighttpd, Caddy, OpenLiteSpeed, Java application servers and common hosting-panel web roots
+  - Combines filename, source, obfuscation, masquerading, permissions, known-good, local hash IOC, cron, access-log and live process-ancestry checks
+  - Records candidate SHA-256 hashes, pre-read metadata, normalised TSV findings, an action log and a final report manifest
+  - Optional local YARA and ClamAV integration; never uploads evidence to an external service
+  - Usage: `sudo ./WebShellHuntr.sh --help`
+
 - **`malanalyze.sh`** - Basic malware analysis with LLM-formatted output (DRAFT v0.0.1)
   - Usage: `./malanalyze.sh -f filename`
   - Automated suspicious file analysis for AI/LLM consumption
