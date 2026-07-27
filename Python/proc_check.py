@@ -4,7 +4,6 @@
 Process Validation Tool
 Version: 1.0
 Description: Validates running processes against /proc entries to detect security anomalies
-Author: Security Team
 Usage: ./proc_check.py [options]
 """
 
@@ -21,7 +20,7 @@ import re
 
 # Version information
 VERSION = "1.0"
-COPYRIGHT = "Copyright (c) 2024 Security Team"
+COPYRIGHT = "Copyright (c) 2026 Halkyn Consulting "
 
 # Color codes for output
 class Colors:
