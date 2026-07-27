@@ -10,12 +10,6 @@
 # the same audit-log header, the same TSV findings contract, the same output
 # safety rules, the same exit codes.
 #
-# It is VENDORED - copied into each tool's directory - rather than installed.
-# A hunting tool must run on a locked-down IR host with nothing added, so there
-# is no package to install and no import path to get wrong. The canonical copy
-# lives in BuiltTools/hunterlib/; the copies beside each tool must stay
-# identical to it (the test runners verify this).
-#
 # What it provides
 # ----------------
 #   Logging      hl_log_open, hl_info, hl_detail, hl_section, hl_warning,
@@ -42,7 +36,7 @@
 #   * Deterministic ordering: findings sort by score desc, then severity, then
 #     subject. Same input, same bytes out.
 #
-# Exit codes (shared by every tool in the suite):
+# Exit codes:
 #   0 completed, no findings   1 completed, findings   2 usage/unsafe/incomplete
 #   130 interrupted
 #
