@@ -54,9 +54,6 @@
 #             edited entry shows up as REMOVED plus NEW - which is what an
 #             analyst actually wants to see for a crontab line
 #
-# This is the canonical schema for the whole tool suite: webroot-baseline and
-# hunt-baseline conform to it, so one baseline format serves every tool.
-#
 # Forensic notes
 # --------------
 #   * Read-only. Nothing under --root is written, renamed, or executed. No
@@ -69,7 +66,7 @@
 #     a feature, not a limitation: an enabled unit IS a symlink, and the link
 #     itself is the evidence of enablement.
 #   * Full coverage needs root - every user's crontab, every home directory,
-#     every authorized_keys. Run unprivileged and the gaps are counted and
+#     every authorized_keys. Run unprivileged, and the gaps are counted and
 #     reported rather than quietly skipped.
 #
 # Every result is an investigative lead, not proof of compromise.
