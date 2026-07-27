@@ -61,7 +61,9 @@
 #   * Without root, other users' processes expose far less. Coverage gaps are
 #     counted and reported in the summary rather than silently ignored.
 #
-# Every result is an investigative lead, not proof of compromise.
+# -------------------------------------------------------------------------------------------------- #
+# NOTE: Any detections should be treated as investigative leads, not evidence of malicious activity. #
+# -------------------------------------------------------------------------------------------------- #
 #
 # Author: Halkyn Consulting
 # Licence: MIT. Original code; contains no third-party code.
@@ -71,7 +73,7 @@ set -euo pipefail
 PROGRAM="proc-hunter"
 VERSION="1.0.0"
 
-# Locate the vendored shared library beside this script.
+# Locate the shared library beside this script.
 PH_SELF_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=./hunterlib.sh
 . "$PH_SELF_DIR/hunterlib.sh"
@@ -221,7 +223,7 @@ EXAMPLES
 LIMITS
     Linux-only by nature: it depends on the /proc filesystem. The Windows
     analogue of this hunt is parent/child and image-path anomaly analysis over
-    Sysmon Event ID 1, which is a different data source and a different tool.
+    Sysmon Event ID 1, which is a different data source and needs a different tool.
 
 Findings are investigative leads, not proof of compromise.
 EOF
