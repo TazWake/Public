@@ -1018,6 +1018,7 @@ def main(argv):
                             findings.count, outdir))
     return EXIT_FINDINGS if findings.count > 0 else EXIT_OK
 
+
 def ingest_journal(log):
     """Pull authentication events from the live systemd journal (best-effort)."""
     events = []
@@ -1058,12 +1059,14 @@ def ingest_journal(log):
     log.info("ingested %d event(s) from the systemd journal" % count)
     return events
 
+
 def _whoami():
     try:
         import getpass
         return getpass.getuser()
     except Exception:
         return os.environ.get("USER", "unknown")
+
 
 if __name__ == "__main__":
     try:
