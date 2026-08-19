@@ -1,0 +1,87 @@
+## ------------------------------------------------------------------------------
+## Minimum viable audit ruleset for incident responders
+##
+## Five things worth logging on a server you might one day have to investigate.
+## Deliberately small. This is a starting point, not a compliance baseline.
+##
+## ######################## NOTE ################################################
+## The deliberately reduced ruleset here will not play nicely with other rules. #
+## If you are using this with other rules, ensure that you modify it correctly, #
+## otherwise the rules here will conflict with any other files or settings.     #
+##                                                                              #
+## ##############################################################################
+##
+## Install:
+##   sudo cp audit_mvp.rules /etc/audit/rules.d/50-mvp.rules
+##   sudo augenrules --load
+##   sudo auditctl -l          # confirm what actually loaded
+##
+## Check it works:  ./audit_check.sh
+## ------------------------------------------------------------------------------
+
+## --- housekeeping -------------------------------------------------------------
+## Clear existing rules so you know what you have. Remove -D if you are adding
+## these alongside an existing ruleset you want to keep.
+-D
+
+## Buffer size. 8192 is a reasonable server default; raise it if you see
+## "audit: backlog limit exceeded" in dmesg.
+-b 8192
+
+## Failure mode: 1 = printk. Use 0 (silent) on systems where you cannot
+## tolerate log noise, 2 (panic) only if you know exactly why you want it.
+-f 1
+
+## --- noise suppression --------------------------------------------------------
+## IMPORTANT: "never" rules must appear BEFORE the "always" rules they exclude,
+## because the kernel evaluates in order and stops at the first match.
+## Uncomment and adapt once you know what is flooding your logs.
+#-a never,exit -F arch=b64 -F exe=/opt/monitoring/bin/collector
+#-a never,exit -F arch=b64 -F exe=/usr/bin/containerd
+
+## --- 1. what ran --------------------------------------------------------------
+## Every process execution. This is the single highest-value audit rule and
+## also the highest volume. Both arches are needed: a 32-bit binary on a
+## 64-bit host uses the b32 table and will otherwise be missed entirely.
+-a always,exit -F arch=b64 -S execve,execveat -k exec
+-a always,exit -F arch=b32 -S execve,execveat -k exec
+
+## --- 2. who they became -------------------------------------------------------
+## Writes and attribute changes to the account and privilege files.
+## Low volume on a stable system; anything here is worth reading.
+-w /etc/passwd     -p wa -k identity
+-w /etc/shadow     -p wa -k identity
+-w /etc/group      -p wa -k identity
+-w /etc/gshadow    -p wa -k identity
+-w /etc/sudoers    -p wa -k identity
+-w /etc/sudoers.d  -p wa -k identity
+
+## --- 3. where they persisted --------------------------------------------------
+## The places persistence actually gets written. A watch on a directory is
+## recursive, so these cover files created inside them after the rule loads.
+-w /etc/systemd/system -p wa -k persistence
+-w /etc/cron.d         -p wa -k persistence
+-w /etc/crontab        -p wa -k persistence
+-w /var/spool/cron     -p wa -k persistence
+-w /etc/ld.so.preload  -p wa -k persistence
+-w /root/.ssh          -p wa -k persistence
+
+## --- 4. kernel tampering ------------------------------------------------------
+## Module load and unload. Very low volume, very high signal.
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+-a always,exit -F arch=b32 -S init_module,finit_module,delete_module -k modules
+
+## --- 5. outbound connections --------------------------------------------------
+## HIGH VOLUME. Read the caveats before enabling on a busy host.
+## -F a2=16 filters to IPv4 only (16 = sizeof(struct sockaddr_in)), which cuts
+## a great deal of local unix-socket noise. Drop it if you need IPv6 too.
+## auid filtering restricts this to logged-in users rather than daemons.
+## On audit < 2.8 replace "auid!=unset" with "auid!=4294967295".
+-a always,exit -F arch=b64 -S connect -F a2=16 -F auid>=1000 -F auid!=unset -k netconn
+
+## --- lock the ruleset ---------------------------------------------------------
+## -e 2 makes the configuration immutable until reboot, so an attacker with
+## root cannot run "auditctl -D" to switch your logging off quietly.
+## The trade: you cannot change the rules either without rebooting.
+## Must be the LAST line of the LAST rules file loaded.
+#-e 2
