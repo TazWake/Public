@@ -31,7 +31,7 @@
 
 .NOTES
     Author: Taz Wake
-    Last Edit: $(Get-Date -Format 'dd MMMM yyyy')
+    Last Edit: 22 November 2025
     Version 1.4 - Added admin check, error handling, Force parameter, removed legacy code
     Version 1.3 - Firewall logging removed
     Version 1.2 - Updated to increase logsizes and include USB logging
